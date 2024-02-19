@@ -13,7 +13,9 @@ function MessageArea() {
             </div>
          </div>
          <div className="w-full flex-auto border-gray-200 bg-yellow-50 border-b-2 overflow-y-scroll scroll-smooth">
-            
+            <div className="h-full w-full overflow-y-scroll">
+               
+            </div>
          </div>
          <div className="w-full px-4 py-2 border-gray-200 border-b-2">
             <form

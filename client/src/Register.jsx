@@ -38,7 +38,24 @@ function Register() {
          .then((res) => res.json())
          .then((data) => {
             if (data) {
-               dispatch(login(data.data.user));
+               fetch("http://localhost:8000/api/v1/users/login", {
+                  method: "POST",
+                  credentials: "include",
+                  headers: {
+                     "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify(details),
+               })
+                  .then((res) => res.json())
+                  .then((data) => {
+                     if (data) {
+                        dispatch(login(data.data.user));
+                     }
+                  })
+                  .catch((error) => {
+                     setErr(error);
+                     console.log(error);
+                  });
             }
          })
          .catch((error) => {
@@ -52,7 +69,7 @@ function Register() {
          className="mt-8 grid grid-cols-6 gap-6"
       >
          <div className="col-span-6">
-            <p className="text-red-500 text-sm">{err? err : ""}</p>
+            <p className="text-red-500 text-sm">{err ? err : ""}</p>
          </div>
          <div className="col-span-6">
             <label
@@ -137,8 +154,10 @@ function Register() {
             </p>
          </div>
          <div className="col-span-6 sm:flex sm:items-center sm:gap-4">
-            <button className="inline-block shrink-0 rounded-md border border-blue-600 bg-blue-600 px-12 py-3 text-sm font-medium text-white transition hover:bg-transparent hover:text-blue-600 focus:outline-none focus:ring active:text-blue-500 dark:hover:bg-blue-700 dark:hover:text-white" type="submit">
-
+            <button
+               className="inline-block shrink-0 rounded-md border border-blue-600 bg-blue-600 px-12 py-3 text-sm font-medium text-white transition hover:bg-transparent hover:text-blue-600 focus:outline-none focus:ring active:text-blue-500 dark:hover:bg-blue-700 dark:hover:text-white"
+               type="submit"
+            >
                Create an account
             </button>
          </div>

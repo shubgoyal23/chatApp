@@ -31,7 +31,7 @@ function Login() {
          .then((res) => res.json())
          .then((data) => {
             if (data) {
-               dispatch(login(data.data.loggedInUser));
+               dispatch(login(data.data.user));
             }
          })
          .catch((error) => {
