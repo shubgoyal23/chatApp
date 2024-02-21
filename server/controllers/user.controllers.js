@@ -2,7 +2,6 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from "../models/user.model.js";
-import { verifyJWT } from "../middleware/auth.middleware.js";
 
 const generateAccessAndRefereshTokens = async function (userid) {
    try {
@@ -129,14 +128,27 @@ const logoutUser = asyncHandler(async (req, res) => {
       .json(new ApiResponse(200, {}, "User logged out Successfully"));
 });
 
-const currentUser = asyncHandler(async(req, res) => {
+const currentUser = asyncHandler(async (req, res) => {
    return res
-    .status(200)
-    .json(new ApiResponse(
-        200,
-        req.user,
-        "User fetched successfully"
-    ))
-})
+      .status(200)
+      .json(new ApiResponse(200, req.user, "User fetched successfully"));
+});
 
-export { registerUser, loginUser, logoutUser, currentUser };
+const listUsers = asyncHandler(async (req, res) => {
+   const { fullname } = req.body;
+
+   if (!fullname) {
+      throw new ApiError(401, "Name is required");
+   }
+   const userslist = await User.find({
+      fullname: { $regex: fullname, $options: "i" },
+   })
+      .sort({ name: 1 })
+      .select("-password -refreshToken -createdAt -updatedAt -email");
+
+   res.status(200).json(
+      new ApiResponse(200, userslist, "user list found successfully")
+   );
+});
+
+export { registerUser, loginUser, logoutUser, currentUser, listUsers };
