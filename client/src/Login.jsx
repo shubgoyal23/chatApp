@@ -20,7 +20,7 @@ function Login() {
          password: data.password,
       };
 
-      fetch("http://localhost:8000/api/v1/users/login", {
+      fetch("/api/v1/users/login", {
          method: "POST",
          credentials: "include",
          headers: {

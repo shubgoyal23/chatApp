@@ -27,7 +27,7 @@ function Register() {
          fullname: data.fullname,
       };
 
-      fetch("http://localhost:8000/api/v1/users/register", {
+      fetch("/api/v1/users/register", {
          method: "POST",
          credentials: "include",
          headers: {
@@ -38,7 +38,7 @@ function Register() {
          .then((res) => res.json())
          .then((data) => {
             if (data) {
-               fetch("http://localhost:8000/api/v1/users/login", {
+               fetch("/api/v1/users/login", {
                   method: "POST",
                   credentials: "include",
                   headers: {

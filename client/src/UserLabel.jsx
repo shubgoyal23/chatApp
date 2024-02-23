@@ -2,10 +2,16 @@ import React from "react";
 import { useDispatch } from "react-redux";
 import { setChat } from "./store/chatSlice";
 
-function UserLabel({ data }) {
+function UserLabel({ data, setSideNav }) {
    const dispatch = useDispatch();
    return (
-      <div className="flex justify-between items-center w-full h-20 px-4 hover:bg-gray-100 bg-white ">
+      <div className="flex justify-between items-center w-full h-20 px-4 hover:bg-gray-100 bg-white cursor-pointer"
+      onClick={() => {
+         dispatch(setChat(data));
+        setSideNav((prev) => !prev)}
+        
+      }
+      >
          <div className="size-14 rounded-full overflow-hidden mr-2">
             <img src="./avatar2.svg" alt="avatar" className="w-full" />
          </div>
@@ -17,7 +23,7 @@ function UserLabel({ data }) {
 
             <button
                className="flex justify-center items-center text-xl"
-               onClick={() => dispatch(setChat(data._id))}
+               onClick={() => dispatch(setChat(data))}
             >
                <span className="material-symbols-outlined ">chevron_right</span>
             </button>
