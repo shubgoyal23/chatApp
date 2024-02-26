@@ -3,7 +3,7 @@ import IndividualMsg from "./IndividualMsg";
 
 function MessageBox({ chatwith }) {
    const [msgList, setMsgList] = useState([]);
-  
+
    useEffect(() => {
       fetch("api/v1/message/all", {
          method: "POST",
@@ -18,7 +18,6 @@ function MessageBox({ chatwith }) {
             setMsgList(data.data);
          })
          .catch((error) => {
-            setErr(error);
             console.log(error);
          });
    }, [chatwith]);
@@ -27,7 +26,7 @@ function MessageBox({ chatwith }) {
       <div>
          <div className="h-full w-full overflow-y-scroll">
             {msgList.map((item) => (
-               <IndividualMsg data={item} />
+               <IndividualMsg key={item._id} data={item} />
             ))}
          </div>
       </div>

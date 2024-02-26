@@ -17,15 +17,10 @@ function MessageArea({ sidNav, setSideNav }) {
             "Content-Type": "application/json",
          },
          body: JSON.stringify(details),
-      })
-         .then((res) => res.json())
-         .then((data) => {
-            // setMsgList(prev => [...prev, data.data])
-         })
-         .catch((error) => {
-            setErr(error);
-            console.log(error);
-         });
+      }).catch((error) => {
+         setErr(error);
+         console.log(error);
+      });
 
       setMessage("");
    };
