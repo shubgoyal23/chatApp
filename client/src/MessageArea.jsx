@@ -1,20 +1,20 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import MessageBox from "./MessageBox";
 import { emoji } from "./EmojiList";
 import { socket } from "./socket";
 
-function MessageArea({ sidNav, setSideNav }) {
+function MessageArea({ sidNav, setSideNav, userOnline }) {
    const chatwith = useSelector((state) => state.chat.chattingwith);
-   const user = useSelector(state => state.login.userdata)
+   const user = useSelector((state) => state.login.userdata);
    const [message, setMessage] = useState("");
    const [showEmoji, setShowEmoji] = useState(false);
-  
+
    const messageHandler = (e) => {
       e.preventDefault();
       const details = { to: chatwith._id, message: message };
 
-      socket.emit("sendMessage", {...details, from: user._id})
+      socket.emit("sendMessage", { ...details, from: user._id });
 
       fetch("api/v1/message/new", {
          method: "POST",
@@ -38,9 +38,12 @@ function MessageArea({ sidNav, setSideNav }) {
                <div className="size-10">
                   <img src="./avatar2.svg" alt="avatar" className="w-full" />
                </div>
-               <h1 className="text-xl font-sans capitalize">
+              <div>
+              <h1 className="text-xl font-sans capitalize text-end">
                   {chatwith?.fullname || "anonymous"}
                </h1>
+               <span className="text-gray-900 text-xs">{userOnline.some((item => item._id === chatwith._id))? "online" : "offline"}</span>
+              </div>
             </div>
 
             <div className=" hidden lg:flex justify-center items-center text-xl">

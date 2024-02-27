@@ -50,7 +50,7 @@ const UserSchema = new mongoose.Schema(
       },
       avatar:{
          type: String,
-         default: "avatar1"
+         default: "./avatar1"
       },
       refreshToken: {
          type: String,

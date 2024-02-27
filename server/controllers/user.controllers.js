@@ -140,7 +140,7 @@ const changeAvatar = asyncHandler(async (req, res) => {
    if (!avatar) {
       throw new ApiError(401, "Avatar is required");
    }
-   const avatarchange = await User.findByIdAndUpdate(req.user._id,{ avatar }).select(
+   const avatarchange = await User.findByIdAndUpdate(req.user._id,{ avatar }, {new: true}).select(
       "-password -refreshToken -createdAt -updatedAt "
    );
 

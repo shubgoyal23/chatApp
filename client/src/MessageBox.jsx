@@ -35,7 +35,6 @@ function MessageBox({ chatwith }) {
 
    useEffect(() => {
       socket.on("getMessage", (data) => {
-         console.log(data)
          if(data.from === chatwith._id || data.from === user._id){
             setMessage({ ...data, createdAt: Date.now() });
          }

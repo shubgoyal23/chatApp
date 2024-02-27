@@ -2,14 +2,14 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useSelector } from "react-redux";
 import UserLabel from "./UserLabel";
 import { debounce } from "lodash";
+import Avatar from "./Avatar";
 
 function Sidebar({ sidNav, setSideNav }) {
    const [search, setSearch] = useState("");
    const [findlist, setFindList] = useState([]);
    const [cache, setCache] = useState({});
-   const [avatar, setavatar] = useState(false)
+   const [avatar, setavatar] = useState(false);
    const user = useSelector((state) => state.login.userdata);
-
    const userContacted = useMemo(() => {
       return () => {
          fetch("/api/v1/message/contacts", {
@@ -21,7 +21,8 @@ function Sidebar({ sidNav, setSideNav }) {
          })
             .then((res) => res.json())
             .then((data) => {
-               setFindList(data.data);
+               let list = data?.data?.filter((item) => item._id !== user?._id);
+               setFindList(list);
             })
             .catch((error) => console.error(error));
       };
@@ -38,7 +39,8 @@ function Sidebar({ sidNav, setSideNav }) {
       })
          .then((res) => res.json())
          .then((data) => {
-            setFindList(data.data);
+            let list = data?.data?.filter((item) => item._id !== user._id);
+            setFindList(list);
             setCache((prev) => ({ ...prev, [search]: data.data }));
          })
          .catch((error) => console.error(error));
@@ -71,28 +73,18 @@ function Sidebar({ sidNav, setSideNav }) {
       >
          <div className="relative w-full px-4 py-2 flex justify-between bg-gray-100">
             <div className="flex items-center gap-4">
-               <div className="size-10" onClick={()=>{setavatar(prev => !prev)}}>
-                  <img src="./avatar2.svg" alt="avatar" className="w-full" />
+               <div
+                  className="size-10 cursor-pointer"
+                  onClick={() => {
+                     setavatar((prev) => !prev);
+                  }}
+               >
+                  <img src={user?.avatar || "./avatar1.svg"} alt="avatar" className="w-full" />
                </div>
                <h1 className="text-xl font-sans capitalize">
                   {user?.fullname || "anonymous"}
                </h1>
-               <div className={`${avatar? "block": "hidden"} absolute -bottom-36 z-20 left-10 w-4/5 border-2 border-gray-100 h-36 bg-white rounded-lg shadow-lg`}>
-              <div className="flex justify-evenly items-center mt-6">
-              <div className="size-16 border-2 border-gray-50 shadow-lg rounded-full overflow-hidden" onClick={()=>{setavatar(prev => !prev)}}>
-                  <img src="./avatar1.svg" alt="avatar" className="w-full" />
-               </div>
-               <div className="size-16 border-2 border-gray-50 shadow-lg rounded-full overflow-hidden" onClick={()=>{setavatar(prev => !prev)}}>
-                  <img src="./avatar2.svg" alt="avatar" className="w-full" />
-               </div>
-               <div className="size-16 border-2 border-gray-50 shadow-lg rounded-full overflow-hidden" onClick={()=>{setavatar(prev => !prev)}}>
-                  <img src="./avatar3.svg" alt="avatar" className="w-full" />
-               </div>
-               <div className="size-16 border-2 border-gray-50 shadow-lg rounded-full overflow-hidden" onClick={()=>{setavatar(prev => !prev)}}>
-                  <img src="./avatar4.svg" alt="avatar" className="w-full" />
-               </div>
-              </div>
-               </div>
+               <Avatar avatar={avatar} setavatar={setavatar} />
             </div>
 
             <div className="hidden lg:flex justify-center items-center text-xl">
