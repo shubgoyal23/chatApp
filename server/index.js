@@ -1,6 +1,6 @@
 import connectDb from "./db/connectDb.js";
-import { app } from "./app.js";
 import dotenv from "dotenv";
+import { server } from "./socke.js";
 
 dotenv.config({ path: "./.env" });
 
@@ -8,7 +8,7 @@ const port = process.env.PORT;
 
 connectDb()
    .then(() => {
-      app.listen(port, () => {
+      server.listen(port, () => {
          console.log(`server Started at http://localhost:${port}`);
       });
    })

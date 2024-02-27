@@ -48,6 +48,10 @@ const UserSchema = new mongoose.Schema(
                `Password must be at least 8 characters long and contain at least one lowercase letter, one uppercase letter, one digit, and one special character.`,
          },
       },
+      avatar:{
+         type: String,
+         default: "avatar1"
+      },
       refreshToken: {
          type: String,
       },

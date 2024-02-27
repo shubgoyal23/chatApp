@@ -1,15 +1,21 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useSelector } from "react-redux";
 import MessageBox from "./MessageBox";
 import { emoji } from "./EmojiList";
+import { socket } from "./socket";
 
 function MessageArea({ sidNav, setSideNav }) {
    const chatwith = useSelector((state) => state.chat.chattingwith);
+   const user = useSelector(state => state.login.userdata)
    const [message, setMessage] = useState("");
    const [showEmoji, setShowEmoji] = useState(false);
+  
    const messageHandler = (e) => {
       e.preventDefault();
       const details = { to: chatwith._id, message: message };
+
+      socket.emit("sendMessage", {...details, from: user._id})
+
       fetch("api/v1/message/new", {
          method: "POST",
          credentials: "include",

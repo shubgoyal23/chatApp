@@ -134,6 +134,23 @@ const currentUser = asyncHandler(async (req, res) => {
       .json(new ApiResponse(200, req.user, "User fetched successfully"));
 });
 
+const changeAvatar = asyncHandler(async (req, res) => {
+   const { avatar } = req.body;
+
+   if (!avatar) {
+      throw new ApiError(401, "Avatar is required");
+   }
+   const avatarchange = await User.findByIdAndUpdate(req.user._id,{ avatar }).select(
+      "-password -refreshToken -createdAt -updatedAt "
+   );
+
+   if (!avatarchange) {
+      throw new ApiError(401, "Avatar change failed");
+   }
+   res.status(200).json(
+      new ApiResponse(200, avatarchange, "avatar change successfully")
+   );
+});
 const listUsers = asyncHandler(async (req, res) => {
    const { fullname } = req.body;
 
@@ -151,4 +168,11 @@ const listUsers = asyncHandler(async (req, res) => {
    );
 });
 
-export { registerUser, loginUser, logoutUser, currentUser, listUsers };
+export {
+   registerUser,
+   loginUser,
+   logoutUser,
+   currentUser,
+   listUsers,
+   changeAvatar,
+};

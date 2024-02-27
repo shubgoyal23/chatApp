@@ -6,6 +6,7 @@ import {
    logoutUser,
    currentUser,
    listUsers,
+   changeAvatar,
 } from "../controllers/user.controllers.js";
 import { verifyJWT } from "../middleware/auth.middleware.js";
 
@@ -19,6 +20,7 @@ router.route("/login").post(loginUser);
 router.route("/logout").get(verifyJWT, logoutUser);
 router.route("/user").get(verifyJWT, currentUser);
 router.route("/list").post(verifyJWT, listUsers);
+router.route("/avatar").post(verifyJWT, changeAvatar);
 
 
 export default router;

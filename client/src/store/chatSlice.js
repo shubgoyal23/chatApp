@@ -3,11 +3,7 @@ import { createSlice } from "@reduxjs/toolkit";
 const chatSlice = createSlice({
    name: "chat",
    initialState: {
-      chattingwith: {
-         _id: "65d600295e49924b7bcb03b4",
-         fullname: "shubham goyal",
-         username: "goyal",
-      },
+      chattingwith: {},
    },
    reducers: {
       setChat(state, action) {
