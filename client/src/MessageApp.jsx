@@ -20,7 +20,7 @@ function MessageAll() {
    return (
       <div className="relative h-screen w-screen overflow-hidden flex">
          <Sidebar sidNav={sidNav} setSideNav={setSideNav} />
-         {chatwith._id? <MessageArea sidNav={sidNav} setSideNav={setSideNav} userOnline={userOnline} /> : <EmptyMessageArea />}
+         {chatwith._id? <MessageArea sidNav={sidNav} setSideNav={setSideNav} userOnline={userOnline} /> : <EmptyMessageArea sidNav={sidNav} setSideNav={setSideNav} />}
       </div>
    );
 }

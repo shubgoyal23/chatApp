@@ -2,6 +2,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from "../models/user.model.js";
+import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
 const generateAccessAndRefereshTokens = async function (userid) {
    try {
@@ -140,9 +141,11 @@ const changeAvatar = asyncHandler(async (req, res) => {
    if (!avatar) {
       throw new ApiError(401, "Avatar is required");
    }
-   const avatarchange = await User.findByIdAndUpdate(req.user._id,{ avatar }, {new: true}).select(
-      "-password -refreshToken -createdAt -updatedAt "
-   );
+   const avatarchange = await User.findByIdAndUpdate(
+      req.user._id,
+      { avatar },
+      { new: true }
+   ).select("-password -refreshToken -createdAt -updatedAt ");
 
    if (!avatarchange) {
       throw new ApiError(401, "Avatar change failed");
@@ -168,6 +171,75 @@ const listUsers = asyncHandler(async (req, res) => {
    );
 });
 
+const uploadAvatar = asyncHandler(async (req, res) => {
+   let avatarLocalPath;
+   if (
+      req.files &&
+      Array.isArray(req.files.avatar) &&
+      req.files.avatar.length > 0
+   ) {
+      avatarLocalPath = req.files.avatar[0].path;
+   }
+
+   if (!avatarLocalPath) {
+      throw new ApiError(400, "Avatar file is required");
+   }
+
+   const avatar = await uploadOnCloudinary(avatarLocalPath);
+
+   if (!avatar) {
+      throw new ApiError(400, "Avatar file is required");
+   }
+
+   const avatarchange = await User.findByIdAndUpdate(
+      req.user._id,
+      { avatar: avatar.url },
+      { new: true }
+   ).select("-password -refreshToken -createdAt -updatedAt ");
+
+   if (!avatarchange) {
+      throw new ApiError(401, "Avatar change failed");
+   }
+   res.status(200).json(
+      new ApiResponse(200, avatarchange, "avatar change successfully")
+   );
+});
+
+const editUserDetails = asyncHandler(async (req, res) => {
+   let { username, fullname, email } = req.body;
+   const id = req.user._id;
+
+   if (!username) {
+      username = req.user.username;
+   }
+   if (!fullname) {
+      fullname = req.user.fullname;
+   }
+   if (!email) {
+      email = req.user.email;
+   }
+
+   const updateuser = await User.findByIdAndUpdate(
+      id,
+      {
+         $set: {
+            username,
+            fullname,
+            email,
+         },
+      },
+      { new: true }
+   ).select("-password");
+
+   if (!updateuser) {
+      throw new ApiError(500, "user details update failed");
+   }
+
+   return res
+      .status(200)
+      .json(new ApiResponse(200, updateuser, "Account details updated successfully"));
+});
+
 export {
    registerUser,
    loginUser,
@@ -175,4 +247,6 @@ export {
    currentUser,
    listUsers,
    changeAvatar,
+   uploadAvatar,
+   editUserDetails,
 };

@@ -2,14 +2,16 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useSelector } from "react-redux";
 import UserLabel from "./UserLabel";
 import { debounce } from "lodash";
-import Avatar from "./Avatar";
+import Edituser from "./Edituser";
 
 function Sidebar({ sidNav, setSideNav }) {
    const [search, setSearch] = useState("");
    const [findlist, setFindList] = useState([]);
    const [cache, setCache] = useState({});
-   const [avatar, setavatar] = useState(false);
+   const [edit, setEdit] = useState(false);
+
    const user = useSelector((state) => state.login.userdata);
+
    const userContacted = useMemo(() => {
       return () => {
          fetch("/api/v1/message/contacts", {
@@ -76,15 +78,24 @@ function Sidebar({ sidNav, setSideNav }) {
                <div
                   className="size-10 cursor-pointer"
                   onClick={() => {
-                     setavatar((prev) => !prev);
+                     setEdit((prev) => !prev);
                   }}
                >
-                  <img src={user?.avatar || "./avatar1.svg"} alt="avatar" className="w-full" />
+                  <img
+                     src={user?.avatar || "./avatar1.svg"}
+                     alt="avatar"
+                     className="size-10 object-cover object-top	rounded-full"
+                  />
                </div>
-               <h1 className="text-xl font-sans capitalize">
-                  {user?.fullname || "anonymous"}
+               <h1
+                  className="text-xl font-sans capitalize"
+                  onClick={() => {
+                     setEdit((prev) => !prev);
+                  }}
+               >
+                  {user?.fullname || "Anonymous"}
                </h1>
-               <Avatar avatar={avatar} setavatar={setavatar} />
+               <Edituser edit={edit} setEdit={setEdit} />
             </div>
 
             <div className="hidden lg:flex justify-center items-center text-xl">

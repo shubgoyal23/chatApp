@@ -1,8 +1,12 @@
 import React from "react";
 
-function EmptyMessageArea() {
+function EmptyMessageArea({sidNav, setSideNav}) {
    return (
-      <div className={`flex-1 grow border-r-2 border-gray-300 flex flex-col justify-center items-center bg-gray-100`}>
+      <div className={`relative flex-1 grow border-r-2 border-gray-300 flex flex-col justify-center items-center bg-gray-100`}>
+         <div className="absolute top-2 right-2 lg:hidden cursor-pointer" onClick={() => setSideNav(prev => !prev)}>
+         {sidNav? <span className="material-symbols-outlined">close</span> : <span className="material-symbols-outlined">menu</span>}
+         </div>
+         
          <div className="">
             <div className="">
                <div className="flex justify-center items-center" style={{ opacity: 1 }}>

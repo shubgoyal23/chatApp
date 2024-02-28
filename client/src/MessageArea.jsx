@@ -36,7 +36,8 @@ function MessageArea({ sidNav, setSideNav, userOnline }) {
          <div className="lg:w-full w-screen px-4 py-2 flex justify-between bg-gray-100">
             <div className="flex items-center gap-4">
                <div className="size-10">
-                  <img src="./avatar2.svg" alt="avatar" className="w-full" />
+                  <img src={user?.avatar || "./avatar1.svg"} alt="avatar" className="size-10 object-cover object-top	rounded-full" />
+
                </div>
               <div>
               <h1 className="text-xl font-sans capitalize text-end">

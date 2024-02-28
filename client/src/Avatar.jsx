@@ -27,7 +27,7 @@ function Avatar({ avatar, setavatar }) {
       <div
          className={`${
             avatar ? "block" : "hidden"
-         } absolute top-0 z-20 left-0 w-full border-2 border-gray-100 h-screen bg-white rounded-lg shadow-lg p-3 overflow-y-scroll`}
+         } absolute top-0 z-30 left-0 w-full border-2 border-gray-100 h-screen bg-white rounded-lg shadow-lg p-3 overflow-y-scroll`}
       >
          <div className="absolute top-2 right-2 cursor-pointer" onClick={() => {
                         setavatar(false);
@@ -35,14 +35,14 @@ function Avatar({ avatar, setavatar }) {
          <span className="material-symbols-outlined">close</span>
          </div>
          <h1 className="text-center text-xl font-semibold capitalize mt-6">chose Avatar from list</h1>
-         <div className="flex flex-wrap justify-evenly h-60 items-center mt-2 overflow-y-scroll border-2 border-gray-300 border-dashed rounded-md">
+         <div className="flex flex-wrap h-auto py-6 w-full mt-2 justify-evenly items-between border-2 border-gray-300 border-dashed rounded-md flex-shrink-0">
             {avatarArray.map((item) => {
                return (
                   <div
                      key={item}
                      className={`${
                         user?.avatar === item ? "ring-4 ring-lime-600" : ""
-                     } size-16 relative border-2 border-gray-50 shadow-lg rounded-full overflow-hidden`}
+                     } flex-none size-14 mx-1 border-2 border-gray-50 shadow-lg rounded-full overflow-hidden`}
                      onClick={() => {
                         setavatar((prev) => !prev);
                         changeAvatar(item);
@@ -53,7 +53,7 @@ function Avatar({ avatar, setavatar }) {
                );
             })}
          </div>
-         <h1 className="text-center text-xl font-semibold capitalize mt-6 mb-2">Upload your Photo</h1>
+         <h1 className="text-center text-xl font-semibold capitalize mt-6 mb-2">Or Upload your Photo</h1>
          <div>
             <Upload />
          </div>

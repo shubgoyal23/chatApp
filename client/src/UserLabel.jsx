@@ -13,7 +13,7 @@ function UserLabel({ data, setSideNav }) {
       }
       >
          <div className="size-14 rounded-full overflow-hidden mr-2">
-            <img src="./avatar2.svg" alt="avatar" className="w-full" />
+            <img src={data?.avatar || './avatar1.svg'} alt="avatar" className="w-full" />
          </div>
 
          <div className="flex-1 h-full flex items-center justify-between gap-4 border-b-2 border-gray-200">
