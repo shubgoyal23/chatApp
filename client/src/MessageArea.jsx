@@ -32,11 +32,11 @@ function MessageArea({ sidNav, setSideNav, userOnline }) {
    };
 
    return (
-      <div className={`flex-1 grow border-r-2 border-gray-300 flex flex-col`}>
+      <div className={`flex-1 grow border-gray-300 flex flex-col`}>
          <div className="lg:w-full w-screen px-4 py-2 flex justify-between bg-gray-100">
             <div className="flex items-center gap-4">
                <div className="size-10">
-                  <img src={user?.avatar || "./avatar1.svg"} alt="avatar" className="size-10 object-cover object-top	rounded-full" />
+                  <img src={chatwith?.avatar || "./avatar1.svg"} alt="avatar" className="size-10 object-cover object-top	rounded-full" />
 
                </div>
               <div>
@@ -60,11 +60,11 @@ function MessageArea({ sidNav, setSideNav, userOnline }) {
             </button>
          </div>
 
-         <div className="w-full flex-auto border-gray-200 bg-yellow-50 border-b-2 overflow-y-scroll scroll-smooth">
+         <div className="w-full flex-auto bg-yellow-50 p-0 m-0 overflow-y-scroll scroll-smooth">
             <MessageBox chatwith={chatwith} />
          </div>
 
-         <div className="lg:w-full w-screen px-1 lg:px-4 py-2 border-gray-200 border-b-2">
+         <div className="lg:w-full w-screen px-1 lg:px-4 py-2 border-gray-200 ">
             <form
                className="h-10 flex justify-between items-center px-2 lg:px-4 rounded-lg bg-gray-100"
                onSubmit={messageHandler}

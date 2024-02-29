@@ -4,7 +4,7 @@ import { socket } from "./socket";
 import { useSelector } from "react-redux";
 
 function MessageBox({ chatwith }) {
-   const user = useSelector(state => state.login.userdata)
+   const user = useSelector((state) => state.login.userdata);
    const [msgList, setMsgList] = useState([]);
    const [message, setMessage] = useState([]);
    const scrollref = useRef();
@@ -28,14 +28,14 @@ function MessageBox({ chatwith }) {
    }, [chatwith]);
 
    useEffect(() => {
-      if (scrollref.current) {    
-         scrollref.current.scrollIntoView({ behavior: "smooth" })
+      if (scrollref.current) {
+         scrollref.current.scrollIntoView({ behavior: "smooth" });
       }
    }, [msgList]);
 
    useEffect(() => {
       socket.on("getMessage", (data) => {
-         if(data.from === chatwith._id || data.from === user._id){
+         if (data.from === chatwith._id || data.from === user._id) {
             setMessage({ ...data, createdAt: Date.now() });
          }
       });
@@ -43,7 +43,6 @@ function MessageBox({ chatwith }) {
       return () => {
          socket.off("getMessage");
       };
-
    }, [chatwith, socket]);
 
    useEffect(() => {
@@ -51,13 +50,11 @@ function MessageBox({ chatwith }) {
    }, [message, chatwith]);
 
    return (
-      <div>
-         <div className="h-full w-full overflow-y-scroll">
-            {msgList.map((item) => (
-               <IndividualMsg key={item._id} data={item} />
-            ))}
-            <span ref={scrollref}></span>
-         </div>
+      <div className="h-full w-full p-0 m-0">
+         {msgList.map((item) => (
+            <IndividualMsg key={item._id} data={item} />
+         ))}
+         <span ref={scrollref}></span>
       </div>
    );
 }

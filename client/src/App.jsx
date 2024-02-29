@@ -12,7 +12,9 @@ function App() {
          .then((res) => res.json())
          .then((data) => {
             if (data) {
-               dispatch(login(data.data));
+               if(data.success){
+                  dispatch(login(data.data));
+               }
             } else {
                dispatch(logout());
             }

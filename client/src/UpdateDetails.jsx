@@ -39,7 +39,7 @@ function UpdateDetails({ name, label, logo }) {
             <div className="flex justify-between items-center">
                <div className="flex-1">
                   {edit ? (
-                     <span className="text-2xl">{name || label}</span>
+                     <span className="text-xl">{name || label}</span>
                   ) : (
                      <div className="flex justify-center items-center h-8">
                         <input

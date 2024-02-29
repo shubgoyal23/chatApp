@@ -4,7 +4,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { login } from "./store/loginSlice";
 
 function Login() {
-   const [err, setErr] = useState(null)
+   const [err, setErr] = useState(null);
    const dispatch = useDispatch();
    const {
       register,
@@ -13,7 +13,7 @@ function Login() {
    } = useForm();
 
    const onSubmit = (data) => {
-      setErr(null)
+      setErr(null);
       let details = {
          username: data.username,
          email: data.username,
@@ -31,12 +31,17 @@ function Login() {
          .then((res) => res.json())
          .then((data) => {
             if (data) {
-               dispatch(login(data.data.user));
+               if (data.success) {
+                  dispatch(login(data?.data?.user));
+               }else{
+                  setErr(data)
+               }
             }
          })
          .catch((error) => {
-            setErr(error)
-            console.log(error)});
+            setErr(error);
+            console.log(error);
+         });
    };
 
    return (
@@ -46,9 +51,8 @@ function Login() {
             className="mt-8 grid grid-cols-6 gap-6"
          >
             <div className="col-span-6">
-            <p className="text-red-500 text-sm">{err? err.message : ""}</p>
-           
-         </div>
+               <p className="text-red-500 text-sm">{err ? err.message : ""}</p>
+            </div>
             <div className="col-span-6">
                <label
                   htmlFor="LastName"
@@ -87,8 +91,6 @@ function Login() {
                </button>
             </div>
          </form>
-
-
       </>
    );
 }

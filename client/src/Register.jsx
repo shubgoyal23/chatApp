@@ -38,20 +38,29 @@ function Register() {
          .then((res) => res.json())
          .then((data) => {
             if (data) {
-               fetch("/api/v1/users/login", {
-                  method: "POST",
-                  credentials: "include",
-                  headers: {
-                     "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify(details),
-               })
-                  .then((res) => res.json())
-                  .then((data) => {
-                     if (data) {
-                        dispatch(login(data?.data?.user));
-                     }
+               if (data.success) {
+                  fetch("/api/v1/users/login", {
+                     method: "POST",
+                     credentials: "include",
+                     headers: {
+                        "Content-Type": "application/json",
+                     },
+                     body: JSON.stringify(details),
                   })
+                     .then((res) => res.json())
+                     .then((data) => {
+                        if (data) {                         
+                           if (data.success) {
+                              dispatch(login(data?.data?.user));
+                           }else{
+                              setErr(data)
+                           }
+                        }
+                     })
+               }else{
+                  setErr(data)
+               }
+              
             }
          })
          .catch((error) => {

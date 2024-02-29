@@ -73,7 +73,7 @@ const loginUser = asyncHandler(async (req, res) => {
       throw new ApiError(404, "username or email not Registered!");
    }
 
-   const passCheck = user.isPasswordCorrect(password);
+   const passCheck = await user.isPasswordCorrect(password);
 
    if (!passCheck) {
       throw new ApiError(401, "Invalid user credentials");

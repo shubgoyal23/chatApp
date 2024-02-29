@@ -11,7 +11,6 @@ function Sidebar({ sidNav, setSideNav }) {
    const [edit, setEdit] = useState(false);
 
    const user = useSelector((state) => state.login.userdata);
-   const chatwith = useSelector((state) => state.chat.chattingwith);
 
    const userContacted = useMemo(() => {
       return () => {
@@ -83,7 +82,7 @@ function Sidebar({ sidNav, setSideNav }) {
                   }}
                >
                   <img
-                     src={chatwith?.avatar || "./avatar1.svg"}
+                     src={user?.avatar || "./avatar1.svg"}
                      alt="avatar"
                      className="size-10 object-cover object-top	rounded-full"
                   />
@@ -99,7 +98,12 @@ function Sidebar({ sidNav, setSideNav }) {
                <Edituser edit={edit} setEdit={setEdit} />
             </div>
 
-            <div className="hidden lg:flex justify-center items-center text-xl">
+            <div
+               className="hidden lg:flex justify-center cursor-pointer items-center text-xl"
+               onClick={() => {
+                  setEdit((prev) => !prev);
+               }}
+            >
                <span className="material-symbols-outlined ">more_vert</span>
             </div>
 
