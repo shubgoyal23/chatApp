@@ -11,6 +11,7 @@ function Sidebar({ sidNav, setSideNav }) {
    const [edit, setEdit] = useState(false);
 
    const user = useSelector((state) => state.login.userdata);
+   const chatwith = useSelector((state) => state.chat.chattingwith);
 
    const userContacted = useMemo(() => {
       return () => {
@@ -82,7 +83,7 @@ function Sidebar({ sidNav, setSideNav }) {
                   }}
                >
                   <img
-                     src={user?.avatar || "./avatar1.svg"}
+                     src={chatwith?.avatar || "./avatar1.svg"}
                      alt="avatar"
                      className="size-10 object-cover object-top	rounded-full"
                   />

@@ -46,7 +46,7 @@ function Login() {
             className="mt-8 grid grid-cols-6 gap-6"
          >
             <div className="col-span-6">
-            <p>{err? err.message : ""}</p>
+            <p className="text-red-500 text-sm">{err? err.message : ""}</p>
            
          </div>
             <div className="col-span-6">
@@ -60,7 +60,7 @@ function Login() {
                   type="text"
                   id="LastName"
                   name="username"
-                  className="mt-1 w-full rounded-md border-gray-200 bg-white text-sm text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 outline-none"
+                  className="mt-1 w-full border-b-2 rounded-md border-gray-200 bg-white text-sm text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 outline-none"
                   {...register("username", { required: true })}
                />
             </div>
@@ -76,7 +76,7 @@ function Login() {
                   type="password"
                   id="Password"
                   name="password"
-                  className="mt-1 w-full rounded-md border-gray-200 bg-white text-sm text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 outline-none"
+                  className="mt-1 w-full border-b-2 rounded-md border-gray-200 bg-white text-sm text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 outline-none"
                   {...register("password", { required: true })}
                />
             </div>

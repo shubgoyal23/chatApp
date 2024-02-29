@@ -49,13 +49,9 @@ function Register() {
                   .then((res) => res.json())
                   .then((data) => {
                      if (data) {
-                        dispatch(login(data.data.user));
+                        dispatch(login(data?.data?.user));
                      }
                   })
-                  .catch((error) => {
-                     setErr(error);
-                     console.log(error);
-                  });
             }
          })
          .catch((error) => {
@@ -69,7 +65,7 @@ function Register() {
          className="mt-8 grid grid-cols-6 gap-6"
       >
          <div className="col-span-6">
-            <p className="text-red-500 text-sm">{err ? err : ""}</p>
+            <p className="text-red-500 text-sm">{err ? err.message : ""}</p>
          </div>
          <div className="col-span-6">
             <label
@@ -82,7 +78,7 @@ function Register() {
                type="text"
                id="FirstName"
                name="fullname"
-               className="mt-1 w-full rounded-md border-gray-200 bg-white text-sm text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 outline-none"
+               className="mt-1 w-full rounded-md border-gray-200 bg-white text-sm text-gray-700 shadow-sm dark:border-gray-700 border-b-2 dark:bg-gray-800 dark:text-gray-200 outline-none"
                {...register("fullname", { required: true })}
             />
          </div>
@@ -97,7 +93,7 @@ function Register() {
                type="text"
                id="LastName"
                name="username"
-               className="mt-1 w-full rounded-md border-gray-200 bg-white text-sm text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 outline-none"
+               className="mt-1 w-full rounded-md border-gray-200 border-b-2 bg-white text-sm text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 outline-none"
                {...register("username", { required: true })}
             />
          </div>
@@ -112,7 +108,7 @@ function Register() {
                type="email"
                id="Email"
                name="email"
-               className="mt-1 w-full rounded-md border-gray-200 bg-white text-sm text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 outline-none"
+               className="mt-1 w-full rounded-md border-b-2 border-gray-200 bg-white text-sm text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 outline-none"
                {...register("email", { required: true })}
             />
          </div>
@@ -127,7 +123,7 @@ function Register() {
                type="password"
                id="Password"
                name="password"
-               className="mt-1 w-full rounded-md border-gray-200 bg-white text-sm text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 outline-none"
+               className="mt-1 w-full border-b-2 rounded-md border-gray-200 bg-white text-sm text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 outline-none"
                {...register("password", { required: true })}
             />
          </div>
@@ -142,7 +138,7 @@ function Register() {
                type="password"
                id="PasswordConfirmation"
                name="password_confirmation"
-               className="mt-1 w-full rounded-md border-gray-200 bg-white text-sm text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 outline-none"
+               className="mt-1 w-full rounded-md border-b-2 border-gray-200 bg-white text-sm text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 outline-none"
                {...register("confirm_password", { required: true })}
             />
          </div>
