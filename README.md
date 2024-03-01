@@ -16,7 +16,7 @@ ChatApp provides a user-friendly interface for users to chat one to one, send me
 
 1. **Access the Application**: Simply click on [this link](https://chat.stockimagesearch.online/) to access ChatApp.
 
-2. **login or Create account*: Upon accessing the application, you can search users globally. This flexibility allows users to engage in conversations tailored to their interests.
+2. **login or Create account**: Upon accessing the application, you can search users globally. This flexibility allows users to engage in conversations tailored to their interests.
 
 3. **Start Messaging**: Once you're in a chat , you can start sending messages instantly. Whether it's text, emojis, or multimedia content, ChatApp supports a variety of message types to facilitate engaging conversations.
 
