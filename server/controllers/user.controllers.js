@@ -2,7 +2,10 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from "../models/user.model.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import {
+   deleteCloudinaryImage,
+   uploadOnCloudinary,
+} from "../utils/cloudinary.js";
 
 const generateAccessAndRefereshTokens = async function (userid) {
    try {
@@ -135,25 +138,6 @@ const currentUser = asyncHandler(async (req, res) => {
       .json(new ApiResponse(200, req.user, "User fetched successfully"));
 });
 
-const changeAvatar = asyncHandler(async (req, res) => {
-   const { avatar } = req.body;
-
-   if (!avatar) {
-      throw new ApiError(401, "Avatar is required");
-   }
-   const avatarchange = await User.findByIdAndUpdate(
-      req.user._id,
-      { avatar },
-      { new: true }
-   ).select("-password -refreshToken -createdAt -updatedAt ");
-
-   if (!avatarchange) {
-      throw new ApiError(401, "Avatar change failed");
-   }
-   res.status(200).json(
-      new ApiResponse(200, avatarchange, "avatar change successfully")
-   );
-});
 const listUsers = asyncHandler(async (req, res) => {
    const { fullname } = req.body;
 
@@ -191,18 +175,42 @@ const uploadAvatar = asyncHandler(async (req, res) => {
       throw new ApiError(400, "Avatar file is required");
    }
 
-   const avatarchange = await User.findByIdAndUpdate(
-      req.user._id,
-      { avatar: avatar.secure_url },
-      { new: true }
-   ).select("-password -refreshToken -createdAt -updatedAt ");
+   const avatarchange = await User.findByIdAndUpdate(req.user._id, {
+      avatar: avatar.public_id,
+   }).select("-password -refreshToken -createdAt -updatedAt ");
 
    if (!avatarchange) {
       throw new ApiError(401, "Avatar change failed");
    }
-   res.status(200).json(
-      new ApiResponse(200, avatarchange, "avatar change successfully")
-   );
+   if (avatarchange.avatar.slice(0, 12) === "chat-profile") {
+      await deleteCloudinaryImage(avatarchange.avatar);
+   }
+   avatarchange.avatar = avatar.public_id;
+   return res
+      .status(200)
+      .json(new ApiResponse(200, avatarchange, "avatar change successfully"));
+});
+
+const changeAvatar = asyncHandler(async (req, res) => {
+   const { avatar } = req.body;
+
+   if (!avatar) {
+      throw new ApiError(401, "Avatar is required");
+   }
+   const avatarchange = await User.findByIdAndUpdate(req.user._id, {
+      avatar,
+   }).select("-password -refreshToken -createdAt -updatedAt ");
+
+   if (!avatarchange) {
+      throw new ApiError(401, "Avatar change failed");
+   }
+   if (avatarchange.avatar.slice(0, 12) === "chat-profile") {
+      await deleteCloudinaryImage(avatarchange.avatar);
+   }
+   avatarchange.avatar = avatar;
+   return res
+      .status(200)
+      .json(new ApiResponse(200, avatarchange, "avatar change successfully"));
 });
 
 const editUserDetails = asyncHandler(async (req, res) => {

@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { logout } from "./store/loginSlice";
 import Avatar from "./Avatar";
 import UpdateDetails from "./UpdateDetails";
+import { Cloudinay_URL, avatar_public_ids } from "./avatarData";
 
 function Edituser({ edit, setEdit }) {
    const dispatch = useDispatch();
@@ -42,7 +43,9 @@ function Edituser({ edit, setEdit }) {
          >
             <div className="rounded-full size-28 overflow-hidden border-2 border-lime-500">
                <img
-                  src={user?.avatar || "./avatar1.svg"}
+                  src={`${Cloudinay_URL}/${
+                     user?.avatar || avatar_public_ids[0]
+                  }`}
                   alt="avatar"
                   className="size-28 object-cover object-top rounded-full"
                />

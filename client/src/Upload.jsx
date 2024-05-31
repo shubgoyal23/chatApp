@@ -1,26 +1,30 @@
 import React, { useState } from "react";
-import {useDispatch} from 'react-redux'
-import {login} from "./store/loginSlice"
+import { useDispatch } from "react-redux";
+import { login } from "./store/loginSlice";
 function Upload() {
    const [file, setfile] = useState(null);
-   const dispatch = useDispatch()
+   const [loading, setLoading] = useState(false);
+   const dispatch = useDispatch();
 
    function handleFileUpload() {
+      setLoading(true);
       const formData = new FormData();
       formData.append("avatar", file);
-      
-      fetch(
-         "/api/v1/users/avatar-upload",
-         {
-            method: "POST",
-            credentials: "include",
-            body: formData
-         },
-      )
+
+      fetch("/api/v1/users/avatar-upload", {
+         method: "POST",
+         credentials: "include",
+         body: formData,
+      })
          .then((res) => res.json())
-         .then((data) => {dispatch(login(data?.data))
-         setfile(null)})
-         .catch((error) => console.error("Error uploading file:", error));
+         .then((data) => {
+            dispatch(login(data?.data));
+         })
+         .catch((error) => console.error("Error uploading file:", error))
+         .finally(() => {
+            setLoading(false);
+            setfile(null);
+         });
    }
    return (
       <>
@@ -83,8 +87,9 @@ function Upload() {
                <button
                   className="h-10 w-52 mt-5 text-red-500 flex justify-center items-center border-2 rounded-full cursor-pointer hover:font-bold font-semibold border-lime-500 shadow-lg bg-lime-400"
                   onClick={handleFileUpload}
+                  disabled={loading}
                >
-                  Upload
+                  {loading ? "Uploading..." : "Upload"}
                </button>
             )}
          </div>

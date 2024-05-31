@@ -3,6 +3,7 @@ import { useSelector } from "react-redux";
 import UserLabel from "./UserLabel";
 import { debounce } from "lodash";
 import Edituser from "./Edituser";
+import { Cloudinay_URL, avatar_public_ids } from "./avatarData";
 
 function Sidebar({ sidNav, setSideNav }) {
    const [search, setSearch] = useState("");
@@ -82,7 +83,9 @@ function Sidebar({ sidNav, setSideNav }) {
                   }}
                >
                   <img
-                     src={user?.avatar || "./avatar1.svg"}
+                     src={`${Cloudinay_URL}/${
+                        user?.avatar || avatar_public_ids[0]
+                     }`}
                      alt="avatar"
                      className="size-10 object-cover object-top	rounded-full"
                   />
