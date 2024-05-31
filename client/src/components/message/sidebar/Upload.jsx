@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useDispatch } from "react-redux";
-import { login } from "./store/loginSlice";
+import { login } from "../../../store/loginSlice";
 function Upload() {
    const [file, setfile] = useState(null);
    const [loading, setLoading] = useState(false);

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
-import { login } from "./store/loginSlice";
+import { login } from "../../../store/loginSlice";
 
 function UpdateDetails({ name, label, logo }) {
    const [value, setValue] = useState();

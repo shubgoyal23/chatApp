@@ -1,8 +1,8 @@
 import React from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { login } from "./store/loginSlice";
+import { login } from "../../../store/loginSlice";
 import Upload from "./Upload";
-import { Cloudinay_URL, avatar_public_ids } from "./avatarData";
+import { Cloudinay_URL, avatar_public_ids } from "../../../constance/data";
 
 function Avatar({ avatar, setavatar }) {
    const user = useSelector((state) => state.login.userdata);

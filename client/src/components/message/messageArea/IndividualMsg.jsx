@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
-import convertDate from "./convertDate";
+import convertDate from "../../../helper/convertDate";
 
 function IndividualMsg({ data }) {
    const user = useSelector((state) => state.login.userdata);
@@ -32,7 +32,9 @@ function IndividualMsg({ data }) {
                }`}
             ></span>
             <h2 className="mb-1 pr-4">{data?.message}</h2>
-            <span className="text-[10px] w-full text-end bottom-0 right-0">{date}</span>
+            <span className="text-[10px] w-full text-end bottom-0 right-0">
+               {date}
+            </span>
          </div>
       </div>
    );

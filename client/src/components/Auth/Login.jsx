@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
-import { useSelector, useDispatch } from "react-redux";
-import { login } from "./store/loginSlice";
+import { useDispatch } from "react-redux";
+import { login } from "../../store/loginSlice";
+import ForgotPassword from "./ForgotPassword";
 
 function Login() {
    const [err, setErr] = useState(null);
+   const [showForgotPassword, setShowForgotPassword] = useState(false);
    const dispatch = useDispatch();
    const {
       register,
@@ -33,8 +35,8 @@ function Login() {
             if (data) {
                if (data.success) {
                   dispatch(login(data?.data?.user));
-               }else{
-                  setErr(data)
+               } else {
+                  setErr(data);
                }
             }
          })
@@ -90,7 +92,14 @@ function Login() {
                   Login
                </button>
             </div>
+            <div
+               className="col-span-6 text-center cursor-pointer"
+               onClick={() => setShowForgotPassword(true)}
+            >
+               Forgot Password?
+            </div>
          </form>
+         {showForgotPassword && <ForgotPassword closebtn={setShowForgotPassword} />}
       </>
    );
 }

@@ -66,7 +66,9 @@ function Auth() {
                         <div className={`flex justify-center items-center cursor-pointer transition-all ease-in duration-200 ${!login? "bg-blue-300": "bg-transparent" }`} onClick={() => setLogin(false)}>Register</div>
                      </div>
                      {login ? (
+                        <>
                         <Login />
+                        </>
                      ) : (
                         <Register />
                      )}

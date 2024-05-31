@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
-import IndividualMsg from "./IndividualMsg";
-import { socket } from "./socket";
 import { useSelector } from "react-redux";
+import IndividualMsg from "./IndividualMsg";
+import { socket } from "../../../socket";
 
 function MessageBox({ chatwith }) {
    const user = useSelector((state) => state.login.userdata);

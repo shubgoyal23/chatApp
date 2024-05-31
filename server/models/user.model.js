@@ -24,6 +24,7 @@ const UserSchema = new mongoose.Schema(
       email: {
          type: String,
          required: true,
+         index: true,
          unique: true,
          lowercase: true,
          validate: {
@@ -48,13 +49,15 @@ const UserSchema = new mongoose.Schema(
                `Password must be at least 8 characters long and contain at least one lowercase letter, one uppercase letter, one digit, and one special character.`,
          },
       },
-      avatar:{
-         type: String,
-         default: "./avatar1.svg"
+      verified: {
+         type: Boolean,
+         default: false,
       },
-      refreshToken: {
-         type: String,
-      },
+      avatar: String,
+      about: String,
+      otp: String,
+      otpExpiry: Date,
+      refreshToken: String,
    },
    {
       timestamps: true,

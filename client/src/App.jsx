@@ -1,8 +1,8 @@
 import { useEffect } from "react";
-import Auth from "./Auth";
-import MessageApp from "./MessageApp";
 import { useSelector, useDispatch } from "react-redux";
 import { login, logout } from "./store/loginSlice";
+import Auth from "./components/Auth/Auth";
+import MessageApp from "./components/message/MessageApp";
 
 function App() {
    const loginStatus = useSelector((state) => state.login);
@@ -12,7 +12,7 @@ function App() {
          .then((res) => res.json())
          .then((data) => {
             if (data) {
-               if(data.success){
+               if (data.success) {
                   dispatch(login(data.data));
                }
             } else {

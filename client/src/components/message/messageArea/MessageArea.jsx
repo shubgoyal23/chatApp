@@ -1,10 +1,17 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useSelector } from "react-redux";
+import { emoji } from "../../../constance/EmojiList";
+import { socket } from "../../../socket";
 import MessageBox from "./MessageBox";
-import { emoji } from "./EmojiList";
-import { socket } from "./socket";
+import { Cloudinay_URL, avatar_public_ids } from "../../../constance/data";
 
-function MessageArea({ sidNav, setSideNav, userOnline }) {
+function MessageArea({
+   sidNav,
+   setSideNav,
+   userOnline,
+   showChattingWithDetails,
+   setShowChattingWithDetails,
+}) {
    const chatwith = useSelector((state) => state.chat.chattingwith);
    const user = useSelector((state) => state.login.userdata);
    const [message, setMessage] = useState("");
@@ -34,17 +41,29 @@ function MessageArea({ sidNav, setSideNav, userOnline }) {
    return (
       <div className={`flex-1 grow border-gray-300 flex flex-col`}>
          <div className="lg:w-full w-screen px-4 py-2 flex justify-between bg-gray-100">
-            <div className="flex items-center gap-4">
+            <div
+               className="flex items-center gap-4"
+               onClick={() => setShowChattingWithDetails(true)}
+            >
                <div className="size-10">
-                  <img src={chatwith?.avatar || "./avatar1.svg"} alt="avatar" className="size-10 object-cover object-top	rounded-full" />
-
+                  <img
+                     src={`${Cloudinay_URL}/${
+                        chatwith?.avatar || avatar_public_ids[0]
+                     }`}
+                     alt="avatar"
+                     className="size-10 object-cover object-top rounded-full"
+                  />
                </div>
-              <div>
-              <h1 className="text-xl font-sans capitalize text-end">
-                  {chatwith?.fullname || "anonymous"}
-               </h1>
-               <span className="text-gray-900 text-xs">{userOnline.some((item => item._id === chatwith._id))? "online" : "offline"}</span>
-              </div>
+               <div>
+                  <h1 className="text-xl font-sans capitalize text-end cursor-pointer">
+                     {chatwith?.fullname || "anonymous"}
+                  </h1>
+                  <span className="text-gray-900 text-xs">
+                     {userOnline.some((item) => item._id === chatwith._id)
+                        ? "online"
+                        : "offline"}
+                  </span>
+               </div>
             </div>
 
             <div className=" hidden lg:flex justify-center items-center text-xl">

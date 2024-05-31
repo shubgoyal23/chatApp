@@ -9,6 +9,9 @@ import {
    changeAvatar,
    uploadAvatar,
    editUserDetails,
+   forgotPassword,
+   checkOtp,
+   resetPassword,
 } from "../controllers/user.controllers.js";
 import { verifyJWT } from "../middleware/auth.middleware.js";
 import { upload } from "../middleware/upload.middleware.js";
@@ -18,6 +21,9 @@ const router = Router();
 
 router.route("/register").post(registerUser);
 router.route("/login").post(loginUser);
+router.route("/forgot-password").post(forgotPassword);
+router.route("/check-otp").post(checkOtp);
+router.route("/reset-password").post(resetPassword);
 
 // secure route
 

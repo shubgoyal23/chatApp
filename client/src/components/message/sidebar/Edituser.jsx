@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { logout } from "./store/loginSlice";
+import { logout } from "../../../store/loginSlice";
 import Avatar from "./Avatar";
 import UpdateDetails from "./UpdateDetails";
-import { Cloudinay_URL, avatar_public_ids } from "./avatarData";
+import { Cloudinay_URL, avatar_public_ids } from "../../../constance/data";
 
 function Edituser({ edit, setEdit }) {
    const dispatch = useDispatch();

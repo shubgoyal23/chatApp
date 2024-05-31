@@ -6,6 +6,8 @@ import {
    deleteCloudinaryImage,
    uploadOnCloudinary,
 } from "../utils/cloudinary.js";
+import { transporter } from "../utils/transporter.js";
+import forgotPasswordEmailTemplate from "../utils/EmailTemplate/forgotPassword.js";
 
 const generateAccessAndRefereshTokens = async function (userid) {
    try {
@@ -254,6 +256,114 @@ const editUserDetails = asyncHandler(async (req, res) => {
       );
 });
 
+const forgotPassword = asyncHandler(async (req, res) => {
+   const { username, email } = req.body;
+
+   if (!(username || email)) {
+      throw new ApiError(400, "username or email required!");
+   }
+
+   const user = await User.findOne({
+      $or: [{ username }, { email }],
+   });
+
+   if (!user) {
+      throw new ApiError(404, "username or email not Registered!");
+   }
+
+   const otp = generateOTP(6, "0123456789");
+   user.otp = otp;
+   user.otpExpiry = new Date(Date.now() + 1800000);
+   await user.save({ validateBeforeSave: false });
+
+   const sendEmail = await transporter.sendMail({
+      from: '"Chatzz" <chatzz@shubhamgoyal.dev>',
+      to: user.email,
+      subject: "Password Recovery Mail",
+      html: forgotPasswordEmailTemplate({
+         fullname: user.fullname,
+         email: user.email,
+         otp: otp,
+      }),
+   });
+
+   return res
+      .status(200)
+      .json(
+         new ApiResponse(
+            200,
+            {},
+            "Password Reset Email has been send to your registed Email"
+         )
+      );
+});
+const checkOtp = asyncHandler(async (req, res) => {
+   const { username, email, otp } = req.body;
+
+   if (!(username || email)) {
+      throw new ApiError(400, "username or email required!");
+   }
+
+   const user = await User.findOne({
+      $or: [{ username }, { email }],
+   });
+
+   if (!user) {
+      throw new ApiError(404, "username or email not Registered!");
+   }
+
+   if (user.otp != otp) {
+      throw new ApiError(403, "Invalid OTP");
+   }
+   if (user.otpExpiry < new Date()) {
+      throw new ApiError(401, "OTP Expired");
+   }
+
+   return res
+      .status(200)
+      .json(new ApiResponse(200, {}, "OTP is successfully Verified"));
+});
+const resetPassword = asyncHandler(async (req, res) => {
+   const { username, email, otp, password } = req.body;
+
+   if (!(username || email) && !otp && !password) {
+      throw new ApiError(400, "All fields are required!");
+   }
+
+   const user = await User.findOne({
+      $or: [{ username }, { email }],
+   });
+
+   if (!user) {
+      throw new ApiError(404, "username or email not Registered!");
+   }
+
+   if (user.otp != otp) {
+      throw new ApiError(403, "Invalid OTP");
+   }
+   if (user.otpExpiry < new Date()) {
+      throw new ApiError(401, "OTP Expired");
+   }
+
+   user.password = password;
+   user.otp = '';
+   user.otpExpiry = "";
+   await user.save({ validateBeforeSave: true });
+
+   return res
+      .status(200)
+      .json(new ApiResponse(200, {}, "Password Reset successfully"));
+});
+
+function generateOTP(length, digits) {
+   let OTP = "";
+   let len = digits.length;
+   for (let i = 0; i < length; i++) {
+      OTP += digits[Math.floor(Math.random() * len)];
+   }
+   return OTP;
+}
+
 export {
    registerUser,
    loginUser,
@@ -263,4 +373,7 @@ export {
    changeAvatar,
    uploadAvatar,
    editUserDetails,
+   forgotPassword,
+   checkOtp,
+   resetPassword,
 };

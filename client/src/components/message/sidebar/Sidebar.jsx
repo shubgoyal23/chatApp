@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useSelector } from "react-redux";
-import UserLabel from "./UserLabel";
 import { debounce } from "lodash";
+import { Cloudinay_URL, avatar_public_ids } from "../../../constance/data";
 import Edituser from "./Edituser";
-import { Cloudinay_URL, avatar_public_ids } from "./avatarData";
+import UserLabel from "./UserLabel";
 
 function Sidebar({ sidNav, setSideNav }) {
    const [search, setSearch] = useState("");

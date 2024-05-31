@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useDispatch } from "react-redux";
-import { login } from "./store/loginSlice";
+import { login } from "../../store/loginSlice";
+
 
 function Register() {
    const [err, setErr] = useState(null);
