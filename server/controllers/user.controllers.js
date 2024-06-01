@@ -8,6 +8,7 @@ import {
 } from "../utils/cloudinary.js";
 import { transporter } from "../utils/transporter.js";
 import forgotPasswordEmailTemplate from "../utils/EmailTemplate/forgotPassword.js";
+import VerificationEmailTemplate from "../utils/EmailTemplate/verifyAccount.js";
 
 const generateAccessAndRefereshTokens = async function (userid) {
    try {
@@ -37,19 +38,45 @@ const registerUser = asyncHandler(async (req, res) => {
    ) {
       throw new ApiError(400, "All fields are required");
    }
-   const existedUser = await User.findOne({
+   const existedUser = await User.find({
       $or: [{ username }, { email }],
    });
 
-   if (existedUser) {
-      throw new ApiError(409, "User with email or username already exists");
+   const checkEmail = existedUser?.filter((item) => item.email === email);
+   const checkusername = existedUser?.filter(
+      (item) => item.username === username
+   );
+
+   if (checkEmail.length > 0) {
+      const checkVerication = checkEmail.some((item) => item.verified);
+      if (checkVerication) {
+         throw new ApiError(409, "User with email already exists");
+      } else {
+         await User.findByIdAndDelete(checkEmail[0]._id);
+      }
    }
+   if (checkusername.length > 0) {
+      const checkVerication = checkusername.some((item) => item.verified);
+      if (checkVerication) {
+         throw new ApiError(
+            409,
+            "UserName is already registered, try something else."
+         );
+      } else {
+         await User.findByIdAndDelete(checkusername[0]._id);
+      }
+   }
+
+   const otp = generateOTP(6, "0123456789");
+   const otpExpiry = new Date(Date.now() + 1800000);
 
    const userCreated = await User.create({
       fullname,
       username,
       password,
       email,
+      otp,
+      otpExpiry,
    });
 
    const user = await User.findById(userCreated._id).select("-password");
@@ -57,6 +84,18 @@ const registerUser = asyncHandler(async (req, res) => {
    if (!user) {
       throw new ApiError(400, "failed to regiter user Try again later");
    }
+
+   const sendEmail = await transporter.sendMail({
+      from: '"Chatzz" <chatzz@shubhamgoyal.dev>',
+      to: user.email,
+      subject: "Verify Your Email",
+      html: VerificationEmailTemplate({
+         fullname: user.fullname,
+         email: user.email,
+         username: user.username,
+         otp: otp,
+      }),
+   });
 
    return res
       .status(200)
@@ -319,6 +358,9 @@ const checkOtp = asyncHandler(async (req, res) => {
       throw new ApiError(401, "OTP Expired");
    }
 
+   user.verified = true;
+   await user.save({ validateBeforeSave: false });
+
    return res
       .status(200)
       .json(new ApiResponse(200, {}, "OTP is successfully Verified"));
@@ -346,7 +388,7 @@ const resetPassword = asyncHandler(async (req, res) => {
    }
 
    user.password = password;
-   user.otp = '';
+   user.otp = "";
    user.otpExpiry = "";
    await user.save({ validateBeforeSave: true });
 

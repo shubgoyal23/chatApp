@@ -99,7 +99,9 @@ function Login() {
                Forgot Password?
             </div>
          </form>
-         {showForgotPassword && <ForgotPassword closebtn={setShowForgotPassword} />}
+         {showForgotPassword && (
+            <ForgotPassword closebtn={setShowForgotPassword} />
+         )}
       </>
    );
 }

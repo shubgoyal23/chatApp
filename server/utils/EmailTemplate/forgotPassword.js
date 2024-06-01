@@ -71,7 +71,7 @@ export default function forgotPasswordEmailTemplate(user) {
         
         <body>
             <div class="container">
-                <a href="https://chat.stockimagesearch.online>Chatzz</a>
+                <a href="https://chat.stockimagesearch.online">Chatzz</a>
                 <div class="message">Forgot Your Password?</div>
                 <div class="body">
                     <p>Dear ${user?.fullname}</p>
