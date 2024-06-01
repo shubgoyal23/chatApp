@@ -5,7 +5,7 @@ export const transporter = createTransport({
    port: 465,
    secure: true,
    auth: {
-      user: process.env.EMAIL_ID,
-      pass: process.env.EMAIL_PASS,
+      user: process.env.AWS_SES_USER,
+      pass: process.env.AWS_SES_PASS,
    },
 });
