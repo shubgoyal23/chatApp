@@ -83,12 +83,17 @@ const registerUser = asyncHandler(async (req, res) => {
    const otp = generateOTP(6, "0123456789");
    const otpExpiry = new Date(Date.now() + 1800000);
 
-   const otpSave = await Verify.create({
-      userId: user._id,
-      otp,
-      otpExpiry,
-      otpFor: "registration",
-   });
+   const otpSave = await Verify.findOneAndUpdate(
+      {
+         userId: user._id,
+         otpFor: "registration",
+      },
+      {
+         otp,
+         otpExpiry,
+      },
+      { new: true, upsert: true }
+   );
 
    const sendEmail = await transporter.sendMail({
       from: '"Chatzz" <chatzz@shubhamgoyal.dev>',
@@ -311,12 +316,17 @@ const editUserDetailsSendOtp = asyncHandler(async (req, res) => {
    const otp = generateOTP(6, "0123456789");
    const otpExpiry = new Date(Date.now() + 1800000);
 
-   const otpSave = await Verify.create({
-      userId: id,
-      otp,
-      otpExpiry,
-      otpFor: "updateDetails",
-   });
+   const otpSave = await Verify.findOneAndUpdate(
+      {
+         userId: id,
+         otpFor: "updateDetails",
+      },
+      {
+         otp,
+         otpExpiry,
+      },
+      { new: true, upsert: true }
+   );
 
    const sendEmail = await transporter.sendMail({
       from: '"Chatzz" <chatzz@shubhamgoyal.dev>',
@@ -355,12 +365,18 @@ const forgotPassword = asyncHandler(async (req, res) => {
    }
 
    const otp = generateOTP(6, "0123456789");
-   const createOtpInDB = await Verify.create({
-      userId: user._id,
-      otp: otp,
-      otpExpiry: new Date(Date.now() + 1800000),
-      otpFor: "forgetPassword",
-   });
+
+   const createOtpInDB = await Verify.findOneAndUpdate(
+      {
+         userId: user._id,
+         otpFor: "forgetPassword",
+      },
+      {
+         otp,
+         otpExpiry,
+      },
+      { new: true, upsert: true }
+   );
 
    const sendEmail = await transporter.sendMail({
       from: '"Chatzz" <chatzz@shubhamgoyal.dev>',
