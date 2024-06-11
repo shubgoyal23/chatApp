@@ -12,6 +12,7 @@ import {
    forgotPassword,
    checkOtp,
    resetPassword,
+   editUserDetailsSendOtp,
 } from "../controllers/user.controllers.js";
 import { verifyJWT } from "../middleware/auth.middleware.js";
 import { upload } from "../middleware/upload.middleware.js";
@@ -31,6 +32,7 @@ router.route("/logout").get(verifyJWT, logoutUser);
 
 router.route("/user").get(verifyJWT, currentUser);
 router.route("/user-edit").post(verifyJWT, editUserDetails);
+router.route("/user-edit-otp").post(verifyJWT, editUserDetailsSendOtp);
 
 router.route("/list").post(verifyJWT, listUsers);
 

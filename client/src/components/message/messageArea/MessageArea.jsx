@@ -19,7 +19,7 @@ function MessageArea({
 
    const messageHandler = (e) => {
       e.preventDefault();
-      const details = { to: chatwith._id, message: message };
+      const details = { to: chatwith._id, message: message, type: "text" };
 
       socket.emit("sendMessage", { ...details, from: user._id });
 

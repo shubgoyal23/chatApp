@@ -1,13 +1,21 @@
 import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { logout } from "../../../store/loginSlice";
+import { logout, login } from "../../../store/loginSlice";
 import Avatar from "./Avatar";
 import UpdateDetails from "./UpdateDetails";
 import { Cloudinay_URL, avatar_public_ids } from "../../../constance/data";
+import OtpBox from "./OtpBox";
 
 function Edituser({ edit, setEdit }) {
    const dispatch = useDispatch();
    const [avatar, setavatar] = useState(false);
+   const [otpBox, setOtpBox] = useState(false);
+   const [userDetails, setUserDetails] = useState({
+      username: "",
+      email: "",
+      fullname: "",
+      edit: false,
+   });
    const user = useSelector((state) => state.login.userdata);
 
    function logoutHandler() {
@@ -17,11 +25,52 @@ function Edituser({ edit, setEdit }) {
          .then((res) => res.json())
          .then((data) => {
             dispatch(logout());
-            setDetails({name: false, email: false, username: false})
          })
          .catch((err) => console.log("error logging out", err));
    }
-  
+
+   function detailsUpdateSendOTPHandler() {
+      fetch("/api/v1/users/user-edit-otp", {
+         method: "POST",
+         credentials: "include",
+         headers: {
+            "Content-Type": "application/json",
+         },
+         body: JSON.stringify({}),
+      })
+         .then((res) => res.json())
+         .then((data) => {
+            setOtpBox(true);
+            setUserDetails((prev) => ({
+               ...prev,
+               edit: false,
+            }));
+         })
+         .catch((err) => console.log(err));
+   }
+
+   function detailsUpdateHandler() {
+      fetch("/api/v1/users/user-edit", {
+         method: "POST",
+         credentials: "include",
+         headers: {
+            "Content-Type": "application/json",
+         },
+         body: JSON.stringify(userDetails),
+      })
+         .then((res) => res.json())
+         .then((data) => {
+            dispatch(login(data.data));
+            setUserDetails({
+               username: "",
+               email: "",
+               fullname: "",
+               edit: false,
+            });
+         })
+         .catch((err) => console.log(err));
+   }
+
    return (
       <div
          className={`${
@@ -57,9 +106,47 @@ function Edituser({ edit, setEdit }) {
 
          <div className="relative mt-16">
             <div>
-               <UpdateDetails name={user?.fullname} logo={"person"} label={"FullName"} />
-               <UpdateDetails name={user?.username} logo={"admin_panel_settings"} label={"UserName"} />
-               <UpdateDetails name={user?.email} logo={"alternate_email"} label={"Email"} />
+               <UpdateDetails
+                  name={user?.fullname}
+                  logo={"person"}
+                  label={"FullName"}
+                  setUserDetails={setUserDetails}
+               />
+               <UpdateDetails
+                  name={user?.username}
+                  logo={"admin_panel_settings"}
+                  label={"UserName"}
+                  setUserDetails={setUserDetails}
+               />
+               <UpdateDetails
+                  name={user?.email}
+                  logo={"alternate_email"}
+                  label={"Email"}
+                  setUserDetails={setUserDetails}
+               />
+               <div className="flex justify-center items-center font-bold">
+                  {userDetails.edit ? (
+                     <button
+                        onClick={detailsUpdateSendOTPHandler}
+                        className="px-2 py-1 border border-gray-500 rounded-lg"
+                     >
+                        Send OTP to Save Details
+                     </button>
+                  ) : (
+                     ""
+                  )}
+               </div>
+               <div className="flex justify-center items-center font-bold">
+                  {otpBox ? (
+                     <OtpBox
+                        details={userDetails}
+                        setUserDetails={setUserDetails}
+                        setOtpBox={setOtpBox}
+                     />
+                  ) : (
+                     ""
+                  )}
+               </div>
             </div>
          </div>
 

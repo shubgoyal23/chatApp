@@ -1,13 +1,12 @@
 import React, { useRef, useEffect, useState } from "react";
+import { useDispatch } from "react-redux";
+import { login } from "../../../store/loginSlice";
 
-function OtpInputWithValidation({
-   numberOfDigits = 6,
-   details,
-   setOtpSuccess,
-}) {
+function OtpBox({ numberOfDigits = 6, details, setUserDetails, setOtpBox }) {
    const [otp, setOtp] = useState(new Array(numberOfDigits).fill(""));
    const [otpError, setOtpError] = useState(null);
    const otpBoxReference = useRef([]);
+   const dispatch = useDispatch();
 
    function handleChange(value, index) {
       let newArr = [...otp];
@@ -18,7 +17,6 @@ function OtpInputWithValidation({
          otpBoxReference.current[index + 1].focus();
       }
    }
-
    function handleBackspaceAndEnter(e, index) {
       if (e.key === "Backspace" && !e.target.value && index > 0) {
          otpBoxReference.current[index - 1].focus();
@@ -31,8 +29,9 @@ function OtpInputWithValidation({
    const checkOtpValidation = (data) => {
       setOtpError(null);
       details.otp = data;
+      details.otpFor = "updateDetails";
 
-      fetch("/api/v1/users/check-otp", {
+      fetch("/api/v1/users/user-edit", {
          method: "POST",
          credentials: "include",
          headers: {
@@ -44,15 +43,22 @@ function OtpInputWithValidation({
          .then((data) => {
             if (data) {
                if (data.success) {
-                  setOtpSuccess(true);
+                  dispatch(login(data.data));
+                  setOtpBox(false);
+                  setUserDetails({
+                     username: "",
+                     email: "",
+                     fullname: "",
+                     edit: false,
+                  });
                } else {
                   setOtpError(data?.message);
                }
             }
          })
-         .catch((error) => {
+         .catch((err) => {
+            console.log(err);
             setOtpError(error?.message);
-            console.log(error);
          });
    };
 
@@ -65,14 +71,6 @@ function OtpInputWithValidation({
 
    return (
       <section className="w-full text-center flex flex-col items-center justify-center">
-         <p className="text-2xl font-medium mt-12">
-            Enter OTP Recieved on Email
-         </p>
-
-         <p className="text-base mt-6 mb-2 text-center">
-            One Time Password (OTP)
-         </p>
-
          <div className="flex items-center justify-center w-full gap-2">
             {otp.map((digit, index) => (
                <input
@@ -100,4 +98,4 @@ function OtpInputWithValidation({
    );
 }
 
-export default OtpInputWithValidation;
+export default OtpBox;

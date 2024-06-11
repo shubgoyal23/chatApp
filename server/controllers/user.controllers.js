@@ -9,6 +9,7 @@ import {
 import { transporter } from "../utils/transporter.js";
 import forgotPasswordEmailTemplate from "../utils/EmailTemplate/forgotPassword.js";
 import VerificationEmailTemplate from "../utils/EmailTemplate/verifyAccount.js";
+import { Verify } from "../models/verification.model.js";
 
 const generateAccessAndRefereshTokens = async function (userid) {
    try {
@@ -67,16 +68,11 @@ const registerUser = asyncHandler(async (req, res) => {
       }
    }
 
-   const otp = generateOTP(6, "0123456789");
-   const otpExpiry = new Date(Date.now() + 1800000);
-
    const userCreated = await User.create({
       fullname,
       username,
       password,
       email,
-      otp,
-      otpExpiry,
    });
 
    const user = await User.findById(userCreated._id).select("-password");
@@ -84,6 +80,15 @@ const registerUser = asyncHandler(async (req, res) => {
    if (!user) {
       throw new ApiError(400, "failed to regiter user Try again later");
    }
+   const otp = generateOTP(6, "0123456789");
+   const otpExpiry = new Date(Date.now() + 1800000);
+
+   const otpSave = await Verify.create({
+      userId: user._id,
+      otp,
+      otpExpiry,
+      otpFor: "registration",
+   });
 
    const sendEmail = await transporter.sendMail({
       from: '"Chatzz" <chatzz@shubhamgoyal.dev>',
@@ -245,7 +250,7 @@ const changeAvatar = asyncHandler(async (req, res) => {
    if (!avatarchange) {
       throw new ApiError(401, "Avatar change failed");
    }
-   if (avatarchange.avatar.slice(0, 12) === "chat-profile") {
+   if (avatarchange.avatar?.slice(0, 12) === "chat-profile") {
       await deleteCloudinaryImage(avatarchange.avatar);
    }
    avatarchange.avatar = avatar;
@@ -255,7 +260,7 @@ const changeAvatar = asyncHandler(async (req, res) => {
 });
 
 const editUserDetails = asyncHandler(async (req, res) => {
-   let { username, fullname, email } = req.body;
+   let { username, fullname, email, otp, otpFor } = req.body;
    const id = req.user._id;
 
    if (!username) {
@@ -266,6 +271,12 @@ const editUserDetails = asyncHandler(async (req, res) => {
    }
    if (!email) {
       email = req.user.email;
+   }
+
+   const verify = await verifyOTP(id, otpFor, otp);
+
+   if (verify) {
+      await Verify.findByIdAndDelete(verify._id);
    }
 
    const updateuser = await User.findByIdAndUpdate(
@@ -295,6 +306,39 @@ const editUserDetails = asyncHandler(async (req, res) => {
       );
 });
 
+const editUserDetailsSendOtp = asyncHandler(async (req, res) => {
+   const id = req.user?._id;
+   const otp = generateOTP(6, "0123456789");
+   const otpExpiry = new Date(Date.now() + 1800000);
+
+   const otpSave = await Verify.create({
+      userId: id,
+      otp,
+      otpExpiry,
+      otpFor: "updateDetails",
+   });
+
+   const sendEmail = await transporter.sendMail({
+      from: '"Chatzz" <chatzz@shubhamgoyal.dev>',
+      to: req.user?.email,
+      subject: "Update User Details",
+      html: VerificationEmailTemplate({
+         fullname: req?.user?.fullname,
+         email: req?.user?.email,
+         username: req?.user?.username,
+         otp: otp,
+      }),
+   });
+
+   if (!otpSave) {
+      throw new ApiError(500, "Failed to generate OTP");
+   }
+
+   return res
+      .status(200)
+      .json(new ApiResponse(200, {}, "OTP Send successfully"));
+});
+
 const forgotPassword = asyncHandler(async (req, res) => {
    const { username, email } = req.body;
 
@@ -311,9 +355,12 @@ const forgotPassword = asyncHandler(async (req, res) => {
    }
 
    const otp = generateOTP(6, "0123456789");
-   user.otp = otp;
-   user.otpExpiry = new Date(Date.now() + 1800000);
-   await user.save({ validateBeforeSave: false });
+   const createOtpInDB = await Verify.create({
+      userId: user._id,
+      otp: otp,
+      otpExpiry: new Date(Date.now() + 1800000),
+      otpFor: "forgetPassword",
+   });
 
    const sendEmail = await transporter.sendMail({
       from: '"Chatzz" <chatzz@shubhamgoyal.dev>',
@@ -336,8 +383,33 @@ const forgotPassword = asyncHandler(async (req, res) => {
          )
       );
 });
+
+const verifyOTP = async (id, otpFor, otp) => {
+   try {
+      const DbOtp = await Verify.findOne({ userId: id, otpFor });
+
+      if (!DbOtp) {
+         throw new ApiError(404, "OTP not requested!");
+      }
+
+      if (DbOtp.otp != otp) {
+         throw new ApiError(403, "Invalid OTP");
+      }
+      if (DbOtp.otpExpiry < new Date()) {
+         throw new ApiError(401, "OTP Expired");
+      }
+      return DbOtp._id;
+   } catch (error) {
+      console.log(error);
+      throw new ApiError(
+         error.statusCode || 500,
+         error.message || "something went wrong333"
+      );
+   }
+};
+
 const checkOtp = asyncHandler(async (req, res) => {
-   const { username, email, otp } = req.body;
+   const { username, email, otp, otpFor } = req.body;
 
    if (!(username || email)) {
       throw new ApiError(400, "username or email required!");
@@ -351,20 +423,16 @@ const checkOtp = asyncHandler(async (req, res) => {
       throw new ApiError(404, "username or email not Registered!");
    }
 
-   if (user.otp != otp) {
-      throw new ApiError(403, "Invalid OTP");
+   const check = await verifyOTP(user._id, otpFor, otp);
+   if (!check) {
+      throw new ApiError(404, "Otp is not valid");
    }
-   if (user.otpExpiry < new Date()) {
-      throw new ApiError(401, "OTP Expired");
-   }
-
-   user.verified = true;
-   await user.save({ validateBeforeSave: false });
 
    return res
       .status(200)
       .json(new ApiResponse(200, {}, "OTP is successfully Verified"));
 });
+
 const resetPassword = asyncHandler(async (req, res) => {
    const { username, email, otp, password } = req.body;
 
@@ -380,17 +448,25 @@ const resetPassword = asyncHandler(async (req, res) => {
       throw new ApiError(404, "username or email not Registered!");
    }
 
-   if (user.otp != otp) {
+   const otpcheck = await Verify.findOne({
+      userId: user._id,
+      otpFor: "forgetPassword",
+   });
+
+   if (!otpcheck) {
+      throw new ApiError(404, "OTP Not Requested");
+   }
+
+   if (otpcheck.otp != otp) {
       throw new ApiError(403, "Invalid OTP");
    }
-   if (user.otpExpiry < new Date()) {
+   if (otpcheck.otpExpiry < new Date()) {
       throw new ApiError(401, "OTP Expired");
    }
 
    user.password = password;
-   user.otp = "";
-   user.otpExpiry = "";
    await user.save({ validateBeforeSave: true });
+   await Verify.findByIdAndDelete(otpcheck._id);
 
    return res
       .status(200)
@@ -418,4 +494,5 @@ export {
    forgotPassword,
    checkOtp,
    resetPassword,
+   editUserDetailsSendOtp,
 };

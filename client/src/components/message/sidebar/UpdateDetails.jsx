@@ -1,30 +1,17 @@
-import React, { useEffect, useState } from "react";
-import { useDispatch } from "react-redux";
-import { login } from "../../../store/loginSlice";
+import React, { useState } from "react";
 
-function UpdateDetails({ name, label, logo }) {
+function UpdateDetails({ name, label, logo, setUserDetails }) {
    const [value, setValue] = useState();
    const [edit, setEdit] = useState(true);
-   const dispatch = useDispatch();
-   
-   function editUserDetailsHandler() {
-      let details = { [label.toLowerCase()]: value };
 
-      fetch("/api/v1/users/user-edit", {
-         method: "POST",
-         credentials: "include",
-         headers: {
-            "Content-Type": "application/json",
-         },
-         body: JSON.stringify(details),
-      })
-         .then((res) => res.json())
-         .then((data) => {
-            dispatch(login(data.data));
-            setEdit(true);
-            setValue("");
-         })
-         .catch((err) => console.log(err));
+   function editUserDetailsHandler() {
+      setUserDetails((prev) => ({
+         ...prev,
+         edit: true,
+         [label.toLowerCase()]: value,
+      }));
+      setEdit(true);
+      setValue("");
    }
 
    return (
@@ -39,14 +26,14 @@ function UpdateDetails({ name, label, logo }) {
             <div className="flex justify-between items-center">
                <div className="flex-1">
                   {edit ? (
-                     <span className="text-xl">{name || label}</span>
+                     <span className="text-sm">{name || label}</span>
                   ) : (
                      <div className="flex justify-center items-center h-8">
                         <input
-                           className="w-4/5 h-8 outline-none bg-transparent"
+                           className="w-4/5 h-8 text-sm outline-none border border-gray-700 font-normal bg-gray-300 z-10 rounded-lg px-1 bg-transparent"
                            value={value}
                            onChange={(e) => setValue(e.target.value)}
-                           maxLength={25}
+                           maxLength={50}
                         ></input>
                         <button
                            className="w-1/5 lex justify-center items-center text-lime-700"
@@ -62,8 +49,8 @@ function UpdateDetails({ name, label, logo }) {
                <button
                   className="text-lime-800"
                   onClick={() => {
-                     setEdit((prev) => !prev); 
-                     setValue(name?.toLowerCase())                   
+                     setEdit((prev) => !prev);
+                     setValue(name?.toLowerCase());
                   }}
                >
                   <span className="material-symbols-outlined">

@@ -12,7 +12,12 @@ function Login() {
       register,
       handleSubmit,
       formState: { errors },
-   } = useForm();
+   } = useForm({
+      defaultValues: {
+         username: "testuser",
+         password: "Testuser@123"
+      }
+   });
 
    const onSubmit = (data) => {
       setErr(null);

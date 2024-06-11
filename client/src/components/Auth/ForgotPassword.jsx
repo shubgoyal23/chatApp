@@ -18,6 +18,7 @@ function ForgotPassword({ closebtn }) {
       setLoading(true);
       details.username = data.username;
       details.email = data.username;
+      details.otpFor = "forgetPassword";
 
       fetch("/api/v1/users/forgot-password", {
          method: "POST",
@@ -76,7 +77,7 @@ function ForgotPassword({ closebtn }) {
                         htmlFor="LastName"
                         className="block text-sm font-medium text-gray-700 dark:text-gray-200"
                      >
-                        User Name or Email
+                        UserName or Email
                      </label>
                      <input
                         type="text"

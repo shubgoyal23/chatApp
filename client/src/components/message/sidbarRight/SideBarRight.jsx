@@ -37,7 +37,7 @@ function SidebarRight({ sidNav, setSideNav }) {
 
          <div className="mt-2 text-center">
             <h2 className="text-bold text-2xl">{user?.fullname}</h2>
-            <h2 className="text-gray-600">{user?.email}</h2>
+            <h2 className="text-gray-600">@{user?.username}</h2>
          </div>
          <div className="mt-2 text-start border-y-8 py-4 px-6 border-gray-200">
             <h2 className="text-gray-600">about</h2>

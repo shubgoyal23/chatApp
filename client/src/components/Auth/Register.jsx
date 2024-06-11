@@ -28,6 +28,7 @@ function Register() {
       details.email = data.email;
       details.password = data.password;
       details.fullname = data.fullname;
+      details.otpFor = "registration";
 
       fetch("/api/v1/users/register", {
          method: "POST",
@@ -77,7 +78,7 @@ function Register() {
       }
    }, [otpSuccess]);
    return otpBox ? (
-      <div className="w-screen h-screen fixed top-0 left-0 bg-slate-200">
+      <div className="w-screen h-screen fixed top-0 left-0 bg-slate-200 flex justify-center items-center">
          <OtpInputWithValidation
             setOtpSuccess={setOtpSuccess}
             details={details}

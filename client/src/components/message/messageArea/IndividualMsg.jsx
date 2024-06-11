@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import convertDate from "../../../helper/convertDate";
+import Action from "./Action";
 
 function IndividualMsg({ data }) {
    const user = useSelector((state) => state.login.userdata);
@@ -24,6 +25,12 @@ function IndividualMsg({ data }) {
                you ? " bg-lime-400" : "bg-amber-200 "
             }`}
          >
+            <span className="absolute right-0 top-1 cursor-pointer opacity-0 hover:opacity-100 group w-6 h-6">
+               <span className="material-symbols-outlined">
+                  keyboard_arrow_down
+               </span>
+               <Action data={data} className="hidden group-hover:block" />
+            </span>
             <span
                className={`border-4 absolute top-3 rotate-45 z-0 shadow-sm ${
                   you
@@ -31,7 +38,7 @@ function IndividualMsg({ data }) {
                      : "-left-1 border-amber-200"
                }`}
             ></span>
-            <h2 className="mb-1 pr-4">{data?.message}</h2>
+            <h2 className="mb-1 pr-6">{data?.message}</h2>
             <span className="text-[10px] w-full text-end bottom-0 right-0">
                {date}
             </span>

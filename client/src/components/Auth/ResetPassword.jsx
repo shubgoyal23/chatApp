@@ -20,7 +20,6 @@ function ResetPassword({ details, closebtn }) {
       setErr(null);
       setLoading(true);
       details.password = data.newPassword;
-      console.log(details);
 
       fetch("/api/v1/users/reset-password", {
          method: "POST",
