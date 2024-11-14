@@ -8,11 +8,17 @@ import (
 )
 
 func StartRouter() {
-	router := gin.Default()
+	router := gin.New()
 	router.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"PublicKey": helpers.PublicKey,
 		})
 	})
+	router.NoRoute(func(c *gin.Context) {
+		c.JSON(404, gin.H{
+			"error": "Page not found",
+		})
+	})
+	router.GET("/ws", helpers.UserAuthMiddleware, helpers.SocketConnectionHandler)
 	router.Run("localhost:" + os.Getenv("PORT"))
 }
