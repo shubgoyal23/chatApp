@@ -3,6 +3,7 @@ package helpers
 import (
 	"context"
 	"os"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -43,5 +44,18 @@ func SetKeyString(key string, val string) (f bool) {
 	if rs := RedisClient.Set(context.Background(), key, val, 0); rs == nil {
 		f = true
 	}
+	return true
+}
+
+func SetUserSocketId(userid string) (f bool) {
+	f = false
+	_, err := RedisClient.Ping(context.Background()).Result()
+	if err != nil {
+		return
+	}
+	if rs := RedisClient.Set(context.Background(), "chatuser:"+userid, VmId, 0); rs == nil {
+		f = true
+	}
+	RedisClient.Expire(context.Background(), "chatuser:"+userid, 5*time.Minute)
 	return true
 }

@@ -6,9 +6,12 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
 
@@ -22,6 +25,17 @@ var upgrader = websocket.Upgrader{
 }
 
 var AllConns *models.WSConn
+var VmId string
+
+func SocketInit() {
+	AllConns = &models.WSConn{
+		Mu:   &sync.RWMutex{},
+		Conn: make(map[string]models.UserConnection),
+	}
+	// create a new vm id
+	vm := uuid.New()
+	VmId = strings.Split(vm.String(), "-")[0]
+}
 
 func UserAuthMiddleware(c *gin.Context) {
 	tokenString := c.Request.Header.Get("Authorization")
@@ -88,11 +102,13 @@ func SocketConnectionHandler(c *gin.Context) {
 	AllConns.Conn[userInfo.ID] = models.UserConnection{WS: conn, UserInfo: userInfo}
 	AllConns.Mu.Unlock()
 
-	// handle the WebSocket connection
+	SetUserSocketId(userInfo.ID)
 
+	// handle the WebSocket connection
+	go UserSocketHandler(userInfo.ID)
 }
 
-func SocketHandler(userid string) {
+func UserSocketHandler(userid string) {
 	defer func() {
 		AllConns.Mu.Lock()
 		userconn := AllConns.Conn[userid]
@@ -106,7 +122,6 @@ func SocketHandler(userid string) {
 	AllConns.Mu.Unlock()
 
 	// handle the WebSocket connection
-
 	for {
 		_, message, err := userconn.WS.ReadMessage()
 		if err != nil {
@@ -114,5 +129,11 @@ func SocketHandler(userid string) {
 			break
 		}
 		fmt.Println("Received message:", string(message))
+	}
+}
+
+func ReadAndSendMessages() {
+	for {
+
 	}
 }
