@@ -38,13 +38,13 @@ func SocketInit() {
 }
 
 func UserAuthMiddleware(c *gin.Context) {
-	tokenString := c.Request.Header.Get("Authorization")
+	tokenString := c.Request.URL.Query().Get("token")
 	if tokenString == "" {
 		c.AbortWithStatusJSON(401, gin.H{"error": "Unauthorized"})
 		return
 	}
 
-	secretKey := []byte(os.Getenv("JWT_SECRET"))
+	secretKey := []byte(os.Getenv("ACCESS_TOKEN_SECRET"))
 
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		// Validate the algorithm
@@ -128,12 +128,49 @@ func UserSocketHandler(userid string) {
 			fmt.Println("Error reading message:", err)
 			break
 		}
-		fmt.Println("Received message:", string(message))
+		dmessage, err := DecryptUserMsg(string(message), userconn.UserInfo)
+		if err != nil {
+			fmt.Println("Error decrypting message:", err)
+			break
+		}
+
+		jm, err := json.Marshal(dmessage)
+		if err != nil {
+			fmt.Println("Error marshalling message:", err)
+			break
+		}
+		var msg models.Message
+		if e := json.Unmarshal(jm, &msg); e != nil {
+			fmt.Println("Error unmarshalling message:", e)
+			break
+		}
+		msg.ID = uuid.New().String()
+		if msg.Media == "" && msg.Message != "" {
+			// faltu message
+			continue
+		}
+
+		SendMessagestoUser(msg)
+
+		msge, _ := json.Marshal(msg)
+		m, _, _ := EncryptUserMsg(string(msge), userconn.UserInfo)
+		userconn.WS.WriteMessage(websocket.TextMessage, []byte(m))
+
 	}
 }
 
-func ReadAndSendMessages() {
-	for {
+func SendMessagestoUser(message models.Message) {
+	to := message.To
 
+	AllConns.Mu.RLock()
+	sendUser, ok := AllConns.Conn[to]
+	AllConns.Mu.RUnlock()
+
+	// user is on other vm
+	if !ok {
+		// todo
 	}
+	msg, _ := json.Marshal(message)
+	m, _, _ := EncryptUserMsg(string(msg), sendUser.UserInfo)
+	sendUser.WS.WriteMessage(websocket.TextMessage, []byte(m))
 }

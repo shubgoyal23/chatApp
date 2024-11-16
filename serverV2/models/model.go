@@ -22,3 +22,13 @@ type UserConnection struct {
 	WS       *websocket.Conn
 	UserInfo User
 }
+
+type Message struct {
+	ID      string `json:"_id"`
+	From    string `json:"from" binding:"required"`
+	To      string `json:"to" binding:"required"`
+	Message string `json:"message"`
+	Media   string `json:"media"`
+	Type    string `json:"type" binding:"required"`
+	ReplyTo string `json:"replyTo"`
+}
