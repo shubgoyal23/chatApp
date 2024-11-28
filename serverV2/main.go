@@ -16,6 +16,9 @@ func main() {
 	if cRedis := helpers.RedisInit(); !cRedis {
 		log.Fatalf("Error initializing redis")
 	}
+	if mongo := helpers.MongoInit(); !mongo {
+		log.Fatalf("Error initializing mongo")
+	}
 	helpers.LoadRsaKey()
 	router.StartRouter()
 }

@@ -76,7 +76,8 @@ func StoreUserPublicKey(c *gin.Context) {
 	}
 	userInfo := user.(models.User)
 	var publicKey struct {
-		PublicKey string `json:"publicKey"`
+		PublicKey  string `json:"publicKey"`
+		PrivateKey string `json:"privateKey"` // remove this for app
 	}
 
 	if err := c.ShouldBindJSON(&publicKey); err != nil {
@@ -91,16 +92,12 @@ func StoreUserPublicKey(c *gin.Context) {
 		})
 		return
 	}
-	sk := uuid.New().String()
-	if f := SetKeyString(fmt.Sprintf("usersk:%s", userInfo.ID), sk); !f {
-		c.JSON(500, gin.H{
-			"error": "Internal server error",
-		})
-		return
+	var upk = map[string]string{
+		"userId":     userInfo.ID,
+		"PrivateKey": publicKey.PrivateKey,
+		"PublicKey":  publicKey.PublicKey,
 	}
-
-	data, err := EncryptRsaDatabyPublicKey(publicKey.PublicKey, sk)
-	if err != nil {
+	if e := MongoAddDoc("userPrivateKey", []interface{}{upk}); !e {
 		c.JSON(500, gin.H{
 			"error": "Internal server error",
 		})
@@ -109,7 +106,6 @@ func StoreUserPublicKey(c *gin.Context) {
 
 	c.JSON(200, gin.H{
 		"message": "Public key stored successfully",
-		"sk":      data,
 	})
 }
 func GetSecretKeyforUser(c *gin.Context) {
@@ -120,6 +116,18 @@ func GetSecretKeyforUser(c *gin.Context) {
 		})
 	}
 	userInfo := user.(models.User)
+
+	var publicKey struct {
+		PublicKey  string `json:"publicKey"`
+		PrivateKey string `json:"privateKey"` // remove this for app
+	}
+
+	if err := c.ShouldBindJSON(&publicKey); err != nil {
+		c.JSON(400, gin.H{
+			"error": "Invalid request body",
+		})
+		return
+	}
 
 	sk := uuid.New().String()
 	if f := SetKeyString(fmt.Sprintf("usersk:%s", userInfo.ID), sk); !f {
