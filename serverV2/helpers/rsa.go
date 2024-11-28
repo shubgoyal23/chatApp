@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/pem"
 )
 
@@ -101,4 +102,39 @@ func DecodeRsaPublicKeyPEM(key string) *rsa.PublicKey {
 		return nil
 	}
 	return publicKey
+}
+
+// decrypt data with private key
+func DecryptRsaDatabyPrivateKey(encryptedData string) (string, error) {
+	// Decode the base64 ciphertext
+	ciphertext, err := base64.StdEncoding.DecodeString(encryptedData)
+	if err != nil {
+		// log.Fatalf("Failed to decode base64 ciphertext: %v", err)
+		return "", err
+	}
+	// Decrypt the ciphertext using the private key
+	plaintext, err := rsa.DecryptPKCS1v15(rand.Reader, PrivateKey, ciphertext)
+	if err != nil {
+		// log.Fatalf("Failed to decrypt: %v", err)
+		return "", err
+	}
+
+	return string(plaintext), nil
+}
+
+// encrypt data with public key
+func EncryptRsaDatabyPublicKey(plaintext string, PublicKey string) (string, error) {
+
+	publicKey := DecodeRsaPublicKeyPEM(PublicKey)
+	if publicKey == nil {
+		// log.Fatalf("Failed to parse public key")
+		return "", nil
+	}
+	// Encrypt the plaintext using the public key
+	encryptedData, err := rsa.EncryptPKCS1v15(rand.Reader, publicKey, []byte(plaintext))
+	if err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(encryptedData), nil
+
 }

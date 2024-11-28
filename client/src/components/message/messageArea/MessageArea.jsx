@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { useSelector } from "react-redux";
 import { emoji } from "../../../constance/EmojiList";
-import { socket } from "../../../socket";
 import MessageBox from "./MessageBox";
 import { Cloudinay_URL, avatar_public_ids } from "../../../constance/data";
 
@@ -21,7 +20,7 @@ function MessageArea({
       e.preventDefault();
       const details = { to: chatwith._id, message: message, type: "text" };
 
-      socket.emit("sendMessage", { ...details, from: user._id });
+      // socket.emit("sendMessage", { ...details, from: user._id });
 
       fetch("api/v1/message/new", {
          method: "POST",

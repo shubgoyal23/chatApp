@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { useDispatch } from "react-redux";
 import { login } from "../../store/loginSlice";
 import ForgotPassword from "./ForgotPassword";
+import { connectWebSocket } from "../../socket";
 
 function Login() {
    const [err, setErr] = useState(null);
@@ -15,8 +16,8 @@ function Login() {
    } = useForm({
       defaultValues: {
          username: "testuser",
-         password: "Testuser@123"
-      }
+         password: "Testuser@123",
+      },
    });
 
    const onSubmit = (data) => {
@@ -40,6 +41,8 @@ function Login() {
             if (data) {
                if (data.success) {
                   dispatch(login(data?.data?.user));
+                  console.log(data?.data?.user)
+                  connectWebSocket("ws://localhost:3000/ws")
                } else {
                   setErr(data);
                }

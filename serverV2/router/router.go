@@ -21,6 +21,12 @@ func StartRouter() {
 		})
 	})
 	helpers.SocketInit()
-	router.GET("/ws", helpers.UserAuthMiddleware, helpers.SocketConnectionHandler)
+	loggedinuser := router.Group("/api/v2/user", helpers.UserAuthMiddleware)
+	{
+		loggedinuser.POST("/publickey", helpers.StoreUserPublicKey)
+		loggedinuser.POST("/key", helpers.GetSecretKeyforUser)
+	}
+
+	router.GET("/ws", helpers.UserAuthMiddlewareWS, helpers.SocketConnectionHandler)
 	router.Run("localhost:" + os.Getenv("PORT"))
 }

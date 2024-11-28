@@ -5,12 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 	"sync"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
@@ -37,34 +35,29 @@ func SocketInit() {
 	VmId = strings.Split(vm.String(), "-")[0]
 }
 
-func UserAuthMiddleware(c *gin.Context) {
+func UserAuthMiddlewareWS(c *gin.Context) {
 	tokenString := c.Request.URL.Query().Get("token")
 	if tokenString == "" {
 		c.AbortWithStatusJSON(401, gin.H{"error": "Unauthorized"})
 		return
 	}
 
-	secretKey := []byte(os.Getenv("ACCESS_TOKEN_SECRET"))
-
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		// Validate the algorithm
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		return secretKey, nil
-	})
-
+	userdata, err := DecryptRsaDatabyPrivateKey(tokenString)
 	if err != nil {
-		fmt.Println("Error decoding token:", err)
+		c.AbortWithStatusJSON(401, gin.H{"error": "Unauthorized"})
 		return
 	}
-
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		fmt.Println("Decoded JWT claims:", claims)
-		c.Set("user", claims)
-	} else {
-		fmt.Println("Invalid token")
+	da, err := json.Marshal(userdata)
+	if err != nil {
+		c.AbortWithStatusJSON(401, gin.H{"error": "Unauthorized"})
+		return
 	}
+	var userd models.User
+	if errj := json.Unmarshal(da, &userd); errj != nil {
+		c.AbortWithStatusJSON(401, gin.H{"error": "Unauthorized"})
+		return
+	}
+	c.Set("user", userd)
 	c.Next()
 }
 
@@ -75,19 +68,7 @@ func SocketConnectionHandler(c *gin.Context) {
 			"error": "Unauthorized",
 		})
 	}
-	var userInfo models.User
-
-	if data, err := json.Marshal(user); err != nil {
-		c.JSON(500, gin.H{
-			"error": "Internal server error",
-		})
-	} else {
-		if err := json.Unmarshal(data, &userInfo); err != nil {
-			c.JSON(500, gin.H{
-				"error": "Internal server error",
-			})
-		}
-	}
+	userInfo := user.(models.User)
 
 	// upgrade the connection to a WebSocket connection
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
@@ -149,9 +130,9 @@ func UserSocketHandler(userid string) {
 			// faltu message
 			continue
 		}
-
-		SendMessagestoUser(msg)
-
+		go SavemessageToDB(msg)
+		go SendMessagestoUser(msg)
+		msg.MessageTo = ""
 		msge, _ := json.Marshal(msg)
 		m, _, _ := EncryptUserMsg(string(msge), userconn.UserInfo)
 		userconn.WS.WriteMessage(websocket.TextMessage, []byte(m))
@@ -166,6 +147,9 @@ func SendMessagestoUser(message models.Message) {
 	sendUser, ok := AllConns.Conn[to]
 	AllConns.Mu.RUnlock()
 
+	message.Message = message.MessageTo
+	message.MessageTo = ""
+
 	// user is on other vm
 	if !ok {
 		// todo
@@ -173,4 +157,12 @@ func SendMessagestoUser(message models.Message) {
 	msg, _ := json.Marshal(message)
 	m, _, _ := EncryptUserMsg(string(msg), sendUser.UserInfo)
 	sendUser.WS.WriteMessage(websocket.TextMessage, []byte(m))
+}
+
+func SavemessageToDB(msg models.Message) {
+	// save message to db
+}
+
+func SendMessageToOtherVm(message models.Message, vmid string) {
+	// send message to other vm
 }
