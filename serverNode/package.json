@@ -5,10 +5,10 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "nodemon -r dotenv/config --experimental-json-modules server/index.js",
-    "start": "node server/index.js",
+    "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js",
+    "start": "node src/index.js",
     "build" : "npm i && cd client && npm i && npm run build",
-    "pm2" : "pm2 start server/index.js"
+    "pm2" : "pm2 start src/index.js"
 
   },
   "author": "shubham",
