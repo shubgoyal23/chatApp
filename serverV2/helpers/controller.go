@@ -2,10 +2,10 @@ package helpers
 
 import (
 	"chatapp/models"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
@@ -70,6 +70,11 @@ func UserAuthMiddlewareCookie(c *gin.Context) {
 
 func GetSecretKeyforUser(c *gin.Context) {
 	user, f := c.Get("user")
+	if !f {
+		c.JSON(401, gin.H{
+			"error": "Unauthorized",
+		})
+	}
 	jwtToken, f := c.Get("jwt")
 	if !f {
 		c.JSON(401, gin.H{
@@ -86,20 +91,24 @@ func GetSecretKeyforUser(c *gin.Context) {
 	}
 
 	sk := uuid.New().String()
-	if f := SetKeyString(fmt.Sprintf("usersk:%s", userInfo.ID), sk); !f {
+	if f := SetRedisKeyVal(fmt.Sprintf("usersk:%s", userInfo.ID), sk); f != nil {
 		c.JSON(500, gin.H{
 			"error": "Internal server error",
 		})
 		return
 	}
-	if f := SetKeyExpiry(fmt.Sprintf("usersk:%s", userInfo.ID), time.Duration(time.Minute*5)); !f {
+	if f := SetKeyExpiry(fmt.Sprintf("usersk:%s", userInfo.ID), 5); f != nil {
 		c.JSON(500, gin.H{
 			"error": "Internal server error",
 		})
 		return
 	}
+	d := map[string]string{
+		"key": sk,
+	}
+	b, _ := json.Marshal(d)
 
-	data, ad, err := EncryptKeyAES(sk, userInfo, true)
+	data, ad, err := EncryptKeyAES(string(b), userInfo, true)
 	if err != nil {
 		c.JSON(500, gin.H{
 			"error": "Internal server error",
@@ -107,9 +116,9 @@ func GetSecretKeyforUser(c *gin.Context) {
 		return
 	}
 	fmt.Println("ad", string(ad))
-
+	base64Data := base64.StdEncoding.EncodeToString([]byte(data))
 	c.JSON(200, gin.H{
 		"message": "key Fetched successfully",
-		"sk":      data,
+		"sk":      base64Data,
 	})
 }

@@ -57,8 +57,8 @@ func UserAuthMiddlewareWS(c *gin.Context) {
 		c.AbortWithStatusJSON(401, gin.H{"error": "Unauthorized"})
 		return
 	}
-	key, f := GetKeyString(fmt.Sprintf("usersk:%s", userd.ID))
-	if !f {
+	key, f := GetRedisKeyVal(fmt.Sprintf("usersk:%s", userd.ID))
+	if f != nil {
 		c.AbortWithStatusJSON(401, gin.H{"error": "Unauthorized"})
 		return
 	}
@@ -89,11 +89,22 @@ func SocketConnectionHandler(c *gin.Context) {
 		return
 	}
 
+	if err := SetRedisKeyVal(fmt.Sprintf("chatuser:%s", userInfo.ID), VmId); err != nil {
+		c.JSON(500, gin.H{
+			"error": "Internal server error",
+		})
+		return
+	}
+	if err := SetKeyExpiry(fmt.Sprintf("chatuser:%s", userInfo.ID), 5); err != nil {
+		c.JSON(500, gin.H{
+			"error": "Internal server error",
+		})
+		return
+	}
+
 	AllConns.Mu.Lock()
 	AllConns.Conn[userInfo.ID] = models.UserConnection{WS: conn, UserInfo: userInfo}
 	AllConns.Mu.Unlock()
-
-	SetUserSocketId(userInfo.ID)
 
 	// handle the WebSocket connection
 	go UserSocketHandler(userInfo.ID)

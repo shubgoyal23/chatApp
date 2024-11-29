@@ -22,6 +22,7 @@ export const connectWebSocket = (url) => {
       socket = null; // Reset socket on close
     };
   }
+  return socket;
 };
 
 export const sendMessage = (message) => {

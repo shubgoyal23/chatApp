@@ -26,7 +26,7 @@ func StoreUserPublicKey(c *gin.Context) {
 		})
 		return
 	}
-	if f := SetKeyString(fmt.Sprintf("userpk:%s", userInfo.ID), publicKey.PublicKey); !f {
+	if f := SetRedisKeyVal(fmt.Sprintf("userpk:%s", userInfo.ID), publicKey.PublicKey); f != nil {
 		c.JSON(500, gin.H{
 			"error": "Internal server error",
 		})

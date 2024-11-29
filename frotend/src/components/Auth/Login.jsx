@@ -4,6 +4,7 @@ import { useDispatch } from "react-redux";
 import { login } from "../../store/loginSlice";
 import ForgotPassword from "./ForgotPassword";
 import { connectWebSocket } from "../../socket";
+import { connectSocket } from "../../helper/ConnectSocket";
 
 function Login() {
    const [err, setErr] = useState(null);
@@ -42,7 +43,7 @@ function Login() {
                if (data.success) {
                   dispatch(login(data?.data?.user));
                   console.log(data?.data?.user)
-                  connectWebSocket("ws://localhost:3000/ws")
+                  connectSocket(data?.data?.user)
                } else {
                   setErr(data);
                }

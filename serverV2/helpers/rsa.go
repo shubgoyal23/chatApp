@@ -3,6 +3,7 @@ package helpers
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
@@ -12,26 +13,26 @@ var PrivateKey *rsa.PrivateKey
 var PublicKey string
 
 func LoadRsaKey() {
-	pk, err := GetKeyString("PrivateKey")
-	if !err {
+	pk, err := GetRedisKeyVal("PrivateKey")
+	if err != nil {
 		privateKey, publicKey := GenerateRsaKey()
 		PrivateKey = privateKey
 		PublicKey = EncodeRsaPublicKeyPEM(publicKey)
 
-		SetKeyString("PrivateKey", EncodeRsaPrivateKeyPEM(privateKey))
-		SetKeyString("PublicKey", EncodeRsaPublicKeyPEM(publicKey))
+		SetRedisKeyVal("PrivateKey", EncodeRsaPrivateKeyPEM(privateKey))
+		SetRedisKeyVal("PublicKey", EncodeRsaPublicKeyPEM(publicKey))
 	}
 
 	PrivateKey = DecodeRsaPrivateKeyPEM(pk)
 
-	puk, err := GetKeyString("PublicKey")
-	if !err {
+	puk, err := GetRedisKeyVal("PublicKey")
+	if err != nil {
 		privateKey, publicKey := GenerateRsaKey()
 		PrivateKey = privateKey
 		PublicKey = EncodeRsaPublicKeyPEM(publicKey)
 
-		SetKeyString("PrivateKey", EncodeRsaPrivateKeyPEM(privateKey))
-		SetKeyString("PublicKey", EncodeRsaPublicKeyPEM(publicKey))
+		SetRedisKeyVal("PrivateKey", EncodeRsaPrivateKeyPEM(privateKey))
+		SetRedisKeyVal("PublicKey", EncodeRsaPublicKeyPEM(publicKey))
 	}
 	PublicKey = puk
 }
@@ -113,7 +114,7 @@ func DecryptRsaDatabyPrivateKey(encryptedData string) (string, error) {
 		return "", err
 	}
 	// Decrypt the ciphertext using the private key
-	plaintext, err := rsa.DecryptPKCS1v15(rand.Reader, PrivateKey, ciphertext)
+	plaintext, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, PrivateKey, ciphertext, nil)
 	if err != nil {
 		// log.Fatalf("Failed to decrypt: %v", err)
 		return "", err
@@ -131,7 +132,7 @@ func EncryptRsaDatabyPublicKey(plaintext string, PublicKey string) (string, erro
 		return "", nil
 	}
 	// Encrypt the plaintext using the public key
-	encryptedData, err := rsa.EncryptPKCS1v15(rand.Reader, publicKey, []byte(plaintext))
+	encryptedData, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, publicKey, []byte(plaintext), nil)
 	if err != nil {
 		return "", err
 	}
