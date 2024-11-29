@@ -57,6 +57,16 @@ func UserAuthMiddlewareWS(c *gin.Context) {
 		c.AbortWithStatusJSON(401, gin.H{"error": "Unauthorized"})
 		return
 	}
+	key, f := GetKeyString(fmt.Sprintf("usersk:%s", userd.ID))
+	if !f {
+		c.AbortWithStatusJSON(401, gin.H{"error": "Unauthorized"})
+		return
+	}
+	if key == "" {
+		c.AbortWithStatusJSON(401, gin.H{"error": "Unauthorized"})
+		return
+	}
+	userd.KEY = key
 	c.Set("user", userd)
 	c.Next()
 }
@@ -109,7 +119,7 @@ func UserSocketHandler(userid string) {
 			fmt.Println("Error reading message:", err)
 			break
 		}
-		dmessage, err := DecryptUserMsg(string(message), userconn.UserInfo)
+		dmessage, err := DecryptKeyAES(string(message), userconn.UserInfo, true)
 		if err != nil {
 			fmt.Println("Error decrypting message:", err)
 			break
@@ -134,7 +144,7 @@ func UserSocketHandler(userid string) {
 		go SendMessagestoUser(msg)
 		msg.MessageTo = ""
 		msge, _ := json.Marshal(msg)
-		m, _, _ := EncryptUserMsg(string(msge), userconn.UserInfo)
+		m, _, _ := EncryptKeyAES(string(msge), userconn.UserInfo, true)
 		userconn.WS.WriteMessage(websocket.TextMessage, []byte(m))
 
 	}
@@ -155,7 +165,7 @@ func SendMessagestoUser(message models.Message) {
 		// todo
 	}
 	msg, _ := json.Marshal(message)
-	m, _, _ := EncryptUserMsg(string(msg), sendUser.UserInfo)
+	m, _, _ := EncryptKeyAES(string(msg), sendUser.UserInfo, true)
 	sendUser.WS.WriteMessage(websocket.TextMessage, []byte(m))
 }
 

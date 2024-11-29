@@ -21,9 +21,8 @@ func StartRouter() {
 		})
 	})
 	helpers.SocketInit()
-	loggedinuser := router.Group("/api/v2/user", helpers.UserAuthMiddleware)
+	loggedinuser := router.Group("/api/v2/user", helpers.UserAuthMiddlewareCookie, helpers.UserAuthMiddlewareRSA)
 	{
-		loggedinuser.POST("/publickey", helpers.StoreUserPublicKey)
 		loggedinuser.POST("/key", helpers.GetSecretKeyforUser)
 	}
 

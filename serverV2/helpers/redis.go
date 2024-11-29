@@ -44,7 +44,16 @@ func SetKeyString(key string, val string) (f bool) {
 	if rs := RedisClient.Set(context.Background(), key, val, 0); rs == nil {
 		f = true
 	}
-	return true
+	return
+}
+
+// f = false if not found or error
+func SetKeyExpiry(key string, exp time.Duration) (f bool) {
+	f = false
+	if rs := RedisClient.Expire(context.Background(), key, exp); rs == nil {
+		f = true
+	}
+	return
 }
 
 func SetUserSocketId(userid string) (f bool) {

@@ -11,7 +11,7 @@ type User struct {
 	Name     string `json:"fullName" binding:"required"`
 	Email    string `json:"email" binding:"required"`
 	UserName string `json:"username" binding:"required"`
-	KEY      string `json:"key" binding:"required"`
+	KEY      string `json:"key"`
 }
 
 type WSConn struct {
