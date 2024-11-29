@@ -53,7 +53,6 @@ func UserAuthMiddlewareCookie(c *gin.Context) {
 		}
 		return secretKey, nil
 	})
-
 	if err != nil {
 		fmt.Println("Error decoding token:", err)
 		return
@@ -74,12 +73,14 @@ func GetSecretKeyforUser(c *gin.Context) {
 		c.JSON(401, gin.H{
 			"error": "Unauthorized",
 		})
+		return
 	}
 	jwtToken, f := c.Get("jwt")
 	if !f {
 		c.JSON(401, gin.H{
 			"error": "Unauthorized",
 		})
+		return
 	}
 	jwtInfo := jwtToken.(jwt.MapClaims)
 	userInfo := user.(models.User)

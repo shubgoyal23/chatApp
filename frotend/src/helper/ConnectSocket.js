@@ -23,7 +23,6 @@ export const connectSocket = async (data) => {
       fullName: data.fullname,
       email: data.email,
    };
-   console.log(pk);
    let jdata = JSON.stringify(userdata);
    let eData = encryptWithPublicKey(jdata, pk);
    let sKey;
@@ -36,7 +35,7 @@ export const connectSocket = async (data) => {
    })
       .then((res) => res.json())
       .then((data) => {
-         sKey = data.sk;
+         sKey = data;
       })
       .catch((err) => console.log(err));
    console.log(sKey);

@@ -42,5 +42,5 @@ func StartRouter() {
 	}
 
 	router.GET("/ws", helpers.UserAuthMiddlewareWS, helpers.SocketConnectionHandler)
-	router.Run("localhost:" + os.Getenv("PORT"))
+	router.Run("localhost:" + os.Getenv("PORT_GIN"))
 }

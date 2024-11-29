@@ -2,7 +2,6 @@ package helpers
 
 import (
 	"context"
-	"os"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -11,10 +10,8 @@ import (
 var MongoConn *mongo.Client
 var MongoDb string
 
-func MongoInit() (f bool) {
+func MongoInit(uri string, dbName string) (f bool) {
 	f = false
-
-	uri := os.Getenv("MONGO_URI")
 	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
 	opts := options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPI)
 	client, err := mongo.Connect(context.TODO(), opts)
@@ -26,7 +23,7 @@ func MongoInit() (f bool) {
 		return
 	}
 	MongoConn = client
-	MongoDb = os.Getenv("MONGO_DB")
+	MongoDb = dbName
 	return true
 }
 
