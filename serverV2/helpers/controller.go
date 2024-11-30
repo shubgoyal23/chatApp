@@ -2,7 +2,6 @@ package helpers
 
 import (
 	"chatapp/models"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -59,7 +58,7 @@ func UserAuthMiddlewareCookie(c *gin.Context) {
 	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		fmt.Println("Decoded JWT claims:", claims)
+		// fmt.Println("Decoded JWT claims:", claims)
 		c.Set("jwt", claims)
 	} else {
 		fmt.Println("Invalid token")
@@ -109,17 +108,16 @@ func GetSecretKeyforUser(c *gin.Context) {
 	}
 	b, _ := json.Marshal(d)
 
-	data, ad, err := EncryptKeyAES(string(b), userInfo, true)
+	data, err := EncryptKeyAES(string(b), userInfo, true)
 	if err != nil {
 		c.JSON(500, gin.H{
 			"error": "Internal server error",
 		})
 		return
 	}
-	fmt.Println("ad", string(ad))
-	base64Data := base64.StdEncoding.EncodeToString([]byte(data))
+	// base64Data := base64.StdEncoding.EncodeToString([]byte(data))
 	c.JSON(200, gin.H{
 		"message": "key Fetched successfully",
-		"sk":      base64Data,
+		"sk":      data,
 	})
 }

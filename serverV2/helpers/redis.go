@@ -170,7 +170,7 @@ func SetKeyExpiry(key string, dur int) error {
 		// LogError("SetRedisKeyVal", "Redis not connected", er)
 		return er
 	}
-	_, err := rc.Do("EXPIRE", key, dur)
+	_, err := rc.Do("EXPIRE", key, dur*60)
 	if err != nil {
 		// LogError("SetRedisKeyVal", fmt.Sprintf("cannot set in redis key: %s with value: %s", key, val), err)
 		return err

@@ -6,6 +6,7 @@ import (
 	"crypto/cipher"
 	"crypto/md5"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -17,7 +18,7 @@ func DeriveKeyFromMD5(key string) []byte {
 	return hash[:]
 }
 
-func EncryptKeyAES(plainText string, user models.User, useKey bool) (string, []byte, error) {
+func EncryptKeyAES(plainText string, user models.User, useKey bool) (string, error) {
 	var key []byte
 	if useKey {
 		key = DeriveKeyFromMD5(fmt.Sprintf("%s%s%s%s", user.ID, user.Email, user.UserName, user.KEY))
@@ -26,21 +27,21 @@ func EncryptKeyAES(plainText string, user models.User, useKey bool) (string, []b
 	}
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return "", nil, err
-	}
-
-	nonce := make([]byte, 12) // 12-byte nonce for AES-GCM
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return "", nil, err
+		return "", err
 	}
 
 	aesGCM, err := cipher.NewGCM(block)
 	if err != nil {
-		return "", nil, err
+		return "", err
 	}
 
-	cipherText := aesGCM.Seal(nil, nonce, []byte(plainText), nil)
-	return fmt.Sprintf("%x", append(nonce, cipherText...)), nonce, nil
+	nonce := make([]byte, aesGCM.NonceSize())
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		return "", err
+	}
+
+	cipherText := aesGCM.Seal(nonce, nonce, []byte(plainText), nil)
+	return base64.StdEncoding.EncodeToString(cipherText), nil
 }
 
 func DecryptKeyAES(cipherTextHex string, user models.User, useKey bool) (string, error) {
@@ -55,9 +56,7 @@ func DecryptKeyAES(cipherTextHex string, user models.User, useKey bool) (string,
 	if err != nil {
 		return "", err
 	}
-
-	nonce := cipherText[:12]
-	cipherText = cipherText[12:]
+	fmt.Println("key:", hex.EncodeToString(key))
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
@@ -69,10 +68,15 @@ func DecryptKeyAES(cipherTextHex string, user models.User, useKey bool) (string,
 		return "", err
 	}
 
-	plainText, err := aesGCM.Open(nil, nonce, cipherText, nil)
+	nonceSize := aesGCM.NonceSize()
+	if len(cipherText) < nonceSize {
+		return "", fmt.Errorf("ciphertext too short")
+	}
+	nonce, ciphertext := cipherText[:nonceSize], cipherText[nonceSize:]
+
+	plainText, err := aesGCM.Open(nil, nonce, ciphertext, nil)
 	if err != nil {
 		return "", err
 	}
-
 	return string(plainText), nil
 }

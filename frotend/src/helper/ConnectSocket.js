@@ -38,16 +38,16 @@ export const connectSocket = async (data) => {
          sKey = data;
       })
       .catch((err) => console.log(err));
-   console.log(sKey);
    let skeyNew = await decryptData(
-      sKey,
-      `${userdata._id}${userdata.email}${userdata.username}${userdata.key}`
+      `${userdata._id}${userdata.email}${userdata.username}${userdata.key}`,
+      sKey.sk
    );
-   console.log(skeyNew);
-   userdata.key = skeyNew;
+   skeyNew = await JSON.parse(skeyNew);
+   // userdata.key = skeyNew.key;
    jdata = JSON.stringify(userdata);
-   eData = encryptWithPublicKey(jdata, pk);
-   let url = `${conf.WS_URL}/ws?token=${eData}`;
+   let eData2 = encryptWithPublicKey(jdata, pk);
+   console.log(eData2);
+   let url = `${conf.WS_URL}/ws?token=${eData2}`;
    let socket = connectWebSocket(url);
    console.log(socket);
    return socket;

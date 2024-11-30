@@ -1,92 +1,75 @@
 import CryptoJS from "crypto-js";
+import base64 from "base64-js";
 
-export const encryptData = (data, secretKey) => {
-   const ciphertext = CryptoJS.AES.encrypt(
-      JSON.stringify(data),
-      secretKey
-   ).toString();
-   return ciphertext;
-};
-
-export const decryptData2 = async (ciphertext, secretKey) => {
+export const decryptData = async (key, text) => {
    try {
-      secretKey = generateMD5(secretKey);
-      const keyBuffer = Uint8Array.from(
-         secretKey.match(/.{1,2}/g).map((byte) => parseInt(byte, 16))
+      // Decode base64
+      const encryptedArray = base64.toByteArray(text);
+
+      // Extract IV and ciphertext
+      const iv = encryptedArray.slice(0, 12);
+      const ciphertext = encryptedArray.slice(12);
+
+      // Generate CryptoKey
+      const keyHash = CryptoJS.MD5(key).toString();
+      const rawKey = new Uint8Array(
+         keyHash.match(/.{2}/g).map((byte) => parseInt(byte, 16))
       );
-
-      // Decode the base64 encrypted data to a Uint8Array
-      const encryptedData = Uint8Array.from(atob(ciphertext), (char) =>
-         char.charCodeAt(0)
-      );
-
-      // Extract the nonce (first 12 bytes) and ciphertext
-      const nonce = encryptedData.slice(0, 12); // First 12 bytes are the nonce
-      const cipherText = encryptedData.slice(12); // Remaining bytes are the ciphertext
-
-      // Import the AES key derived from MD5
       const cryptoKey = await crypto.subtle.importKey(
-         "raw", // Key format
-         keyBuffer, // Key buffer
-         { name: "AES-GCM" }, // Algorithm
-         false, // Extractable
-         ["decrypt"] // Key usage
+         "raw",
+         rawKey,
+         { name: "AES-GCM" },
+         false,
+         ["decrypt"]
       );
 
-      // Decrypt the ciphertext
-      const decryptedBuffer = await crypto.subtle.decrypt(
-         {
-            name: "AES-GCM",
-            iv: nonce, // Nonce extracted from the encrypted data
-         },
-         cryptoKey, // AES key
-         cipherText // Encrypted data without the nonce
+      // Decrypt
+      const plaintextBuffer = await crypto.subtle.decrypt(
+         { name: "AES-GCM", iv },
+         cryptoKey,
+         ciphertext
       );
 
-      // Decode the decrypted data (from ArrayBuffer to string)
-      const decoder = new TextDecoder();
-      return decoder.decode(decryptedBuffer);
+      // Decode plaintext
+      const plaintext = new TextDecoder().decode(plaintextBuffer);
+      return plaintext;
    } catch (error) {
       console.error("Decryption failed:", error);
-      throw new Error("Decryption failed");
+      throw error;
    }
-
-   // console.log(secretKey);
-   // secretKey = generateMD5(secretKey);
-   // const bytes = CryptoJS.AES.decrypt(ciphertext, secretKey);
-   // console.log(bytes);
-   // // const decryptedData = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
-   // return bytes.toString(CryptoJS.enc.Utf8);
 };
-export const decryptData = async (ciphertext, secretKey) => {
-   secretKey = generateMD5(secretKey);
-   console.log(secretKey)
-   const keyBuffer = Uint8Array.from(
-      secretKey.match(/.{1,2}/g).map((byte) => parseInt(byte, 16))
-   );
-   console.log(keyBuffer)
 
-   // Decode the base64 encrypted data to a Uint8Array
-   const encryptedData = Uint8Array.from(atob(ciphertext), (char) =>
-      char.charCodeAt(0)
+async function encryptData(key, plaintext) {
+   const keyHash = CryptoJS.MD5(key).toString();
+   const cryptoKey = await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(keyHash),
+      { name: "AES-GCM" },
+      false,
+      ["encrypt"]
    );
-   console.log(encryptData)
 
-   // Extract the nonce (first 12 bytes) and ciphertext
-   const nonce = encryptedData.slice(0, 12); // First 12 bytes are the nonce
-   const cipherText = encryptedData.slice(12); // Remaining bytes are the ciphertext
-   console.log(nonce, cipherText)
-   const cleartext = await crypto.subtle.decrypt(
-      {
-         name: "AES-GCM",
-         iv: Buffer.from(iv, "base64"),
-      },
-      secretKey,
-      Buffer.from(ciphertext, "base64")
+   const iv = crypto.getRandomValues(new Uint8Array(12));
+   const ciphertextBuffer = await crypto.subtle.encrypt(
+      { name: "AES-GCM", iv },
+      cryptoKey,
+      new TextEncoder().encode(plaintext)
    );
-   const data = new TextDecoder().decode(cleartext);
-   return data;
-};
-export const generateMD5 = (text) => {
-   return CryptoJS.MD5(text).toString(CryptoJS.enc.Hex);
-};
+
+   const encryptedArray = new Uint8Array([
+      ...iv,
+      ...new Uint8Array(ciphertextBuffer),
+   ]);
+   return base64.fromByteArray(encryptedArray);
+}
+
+// (async () => {
+//    const key = "your-key-string";
+//    const plaintext = "Hello, AES-GCM!";
+
+//    const encryptedText = await encryptData(key, plaintext);
+//    console.log("Encrypted text:", encryptedText);
+
+//    const decryptedText = await decryptData(key, encryptedText);
+//    console.log("Decrypted text:", decryptedText);
+// })();
