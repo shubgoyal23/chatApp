@@ -3,20 +3,22 @@ import Sidebar from "./sidebar/Sidebar";
 import MessageArea from "./messageArea/MessageArea";
 import { useSelector } from "react-redux";
 import EmptyMessageArea from "./EmptyMessageArea";
-import { socket } from "../../socket";
 import SidebarRight from "./sidbarRight/SideBarRight";
 
 function MessageAll() {
    const user = useSelector((state) => state.login.userdata);
    const chatwith = useSelector((state) => state.chat.chattingwith);
+   const socket = useSelector((state) => state.socket);
    const [sidNav, setSideNav] = useState(true);
    const [showChattingWithUserDetails, setShowChattingWithUserDetails] =
       useState(false);
    const [userOnline, setUsersOnline] = useState([]);
 
    useEffect(() => {
-      socket.emit("addUser", user);
-      socket.on("getUsers", (allusers) => setUsersOnline(allusers));
+      // socket.emit("addUser", user);
+      // socket.on("getUsers", (allusers) => setUsersOnline(allusers));
+      // socket.sendMessage()
+      
    }, []);
 
    return (

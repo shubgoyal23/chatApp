@@ -3,7 +3,9 @@ package helpers
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha256"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/pem"
 )
 
@@ -11,26 +13,26 @@ var PrivateKey *rsa.PrivateKey
 var PublicKey string
 
 func LoadRsaKey() {
-	pk, err := GetKeyString("PrivateKey")
-	if !err {
+	pk, err := GetRedisKeyVal("PrivateKey")
+	if err != nil {
 		privateKey, publicKey := GenerateRsaKey()
 		PrivateKey = privateKey
 		PublicKey = EncodeRsaPublicKeyPEM(publicKey)
 
-		SetKeyString("PrivateKey", EncodeRsaPrivateKeyPEM(privateKey))
-		SetKeyString("PublicKey", EncodeRsaPublicKeyPEM(publicKey))
+		SetRedisKeyVal("PrivateKey", EncodeRsaPrivateKeyPEM(privateKey))
+		SetRedisKeyVal("PublicKey", EncodeRsaPublicKeyPEM(publicKey))
 	}
 
 	PrivateKey = DecodeRsaPrivateKeyPEM(pk)
 
-	puk, err := GetKeyString("PublicKey")
-	if !err {
+	puk, err := GetRedisKeyVal("PublicKey")
+	if err != nil {
 		privateKey, publicKey := GenerateRsaKey()
 		PrivateKey = privateKey
 		PublicKey = EncodeRsaPublicKeyPEM(publicKey)
 
-		SetKeyString("PrivateKey", EncodeRsaPrivateKeyPEM(privateKey))
-		SetKeyString("PublicKey", EncodeRsaPublicKeyPEM(publicKey))
+		SetRedisKeyVal("PrivateKey", EncodeRsaPrivateKeyPEM(privateKey))
+		SetRedisKeyVal("PublicKey", EncodeRsaPublicKeyPEM(publicKey))
 	}
 	PublicKey = puk
 }
@@ -101,4 +103,39 @@ func DecodeRsaPublicKeyPEM(key string) *rsa.PublicKey {
 		return nil
 	}
 	return publicKey
+}
+
+// decrypt data with private key
+func DecryptRsaDatabyPrivateKey(encryptedData string) (string, error) {
+	// Decode the base64 ciphertext
+	ciphertext, err := base64.StdEncoding.DecodeString(encryptedData)
+	if err != nil {
+		// log.Fatalf("Failed to decode base64 ciphertext: %v", err)
+		return "", err
+	}
+	// Decrypt the ciphertext using the private key
+	plaintext, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, PrivateKey, ciphertext, nil)
+	if err != nil {
+		// log.Fatalf("Failed to decrypt: %v", err)
+		return "", err
+	}
+
+	return string(plaintext), nil
+}
+
+// encrypt data with public key
+func EncryptRsaDatabyPublicKey(plaintext string, PublicKey string) (string, error) {
+
+	publicKey := DecodeRsaPublicKeyPEM(PublicKey)
+	if publicKey == nil {
+		// log.Fatalf("Failed to parse public key")
+		return "", nil
+	}
+	// Encrypt the plaintext using the public key
+	encryptedData, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, publicKey, []byte(plaintext), nil)
+	if err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(encryptedData), nil
+
 }

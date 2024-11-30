@@ -1,7 +1,6 @@
 import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import path from "path";
 
 const app = express();
 
@@ -12,12 +11,8 @@ app.use(
    })
 );
 
-const __filename = new URL(import.meta.url).pathname;
-const __dirname = path.resolve();
-
 app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
-app.use(express.static(path.join(__dirname, "client/dist")));
 app.use(cookieParser());
 
 import userRouter from "./routes/user.route.js";

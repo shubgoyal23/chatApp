@@ -6,6 +6,7 @@ import (
 	"crypto/cipher"
 	"crypto/md5"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -17,37 +18,46 @@ func DeriveKeyFromMD5(key string) []byte {
 	return hash[:]
 }
 
-func EncryptUserMsg(plainText string, user models.User) (string, []byte, error) {
-	key := DeriveKeyFromMD5(fmt.Sprintf("%s%s%s", user.ID, user.Email, user.UserName))
+func EncryptKeyAES(plainText string, user models.User, useKey bool) (string, error) {
+	var key []byte
+	if useKey {
+		key = DeriveKeyFromMD5(fmt.Sprintf("%s%s%s%s", user.ID, user.Email, user.UserName, user.KEY))
+	} else {
+		key = DeriveKeyFromMD5(fmt.Sprintf("%s%s%s", user.ID, user.Email, user.UserName))
+	}
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return "", nil, err
-	}
-
-	nonce := make([]byte, 12) // 12-byte nonce for AES-GCM
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return "", nil, err
+		return "", err
 	}
 
 	aesGCM, err := cipher.NewGCM(block)
 	if err != nil {
-		return "", nil, err
+		return "", err
 	}
 
-	cipherText := aesGCM.Seal(nil, nonce, []byte(plainText), nil)
-	return fmt.Sprintf("%x", append(nonce, cipherText...)), nonce, nil
+	nonce := make([]byte, aesGCM.NonceSize())
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		return "", err
+	}
+
+	cipherText := aesGCM.Seal(nonce, nonce, []byte(plainText), nil)
+	return base64.StdEncoding.EncodeToString(cipherText), nil
 }
 
-func DecryptUserMsg(cipherTextHex string, user models.User) (string, error) {
+func DecryptKeyAES(cipherTextHex string, user models.User, useKey bool) (string, error) {
+	var key []byte
+	if useKey {
+		key = DeriveKeyFromMD5(fmt.Sprintf("%s%s%s%s", user.ID, user.Email, user.UserName, user.KEY))
+	} else {
+		key = DeriveKeyFromMD5(fmt.Sprintf("%s%s%s", user.ID, user.Email, user.UserName))
+	}
+
 	cipherText, err := hex.DecodeString(cipherTextHex)
 	if err != nil {
 		return "", err
 	}
+	fmt.Println("key:", hex.EncodeToString(key))
 
-	nonce := cipherText[:12]
-	cipherText = cipherText[12:]
-
-	key := DeriveKeyFromMD5(fmt.Sprintf("%s%s%s", user.ID, user.Email, user.UserName))
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return "", err
@@ -58,10 +68,15 @@ func DecryptUserMsg(cipherTextHex string, user models.User) (string, error) {
 		return "", err
 	}
 
-	plainText, err := aesGCM.Open(nil, nonce, cipherText, nil)
+	nonceSize := aesGCM.NonceSize()
+	if len(cipherText) < nonceSize {
+		return "", fmt.Errorf("ciphertext too short")
+	}
+	nonce, ciphertext := cipherText[:nonceSize], cipherText[nonceSize:]
+
+	plainText, err := aesGCM.Open(nil, nonce, ciphertext, nil)
 	if err != nil {
 		return "", err
 	}
-
 	return string(plainText), nil
 }
