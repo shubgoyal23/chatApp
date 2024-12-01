@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import IndividualMsg from "./IndividualMsg";
+import { socket } from "../../../socket";
+import { messageHandler } from "../../../store/chatSlice";
 
 function MessageBox({ chatwith }) {
    const user = useSelector((state) => state.login.userdata);
@@ -32,17 +34,27 @@ function MessageBox({ chatwith }) {
       }
    }, [msgList]);
 
-   // useEffect(() => {
-   //    socket.on("getMessage", (data) => {
-   //       if (data.from === chatwith._id || data.from === user._id) {
-   //          setMessage({ ...data, createdAt: Date.now() });
-   //       }
-   //    });
-
-   //    return () => {
-   //       socket.off("getMessage");
-   //    };
-   // }, [chatwith, socket]);
+   useEffect(() => {
+      if (socket) {
+         console.log("socket", socket);
+         socket.onmessage = (event) => {
+            console.log("event", event);
+            const msg = decryptDataAES(event.data);
+            const data = JSON.parse(msg);
+            console.log(data)
+            if (data) {
+               if (data.from === chatwith._id || data.from === user._id) {
+                  setMessage({ ...data, createdAt: Date.now() });
+               } else {
+                  dispatch(messageHandler(data));
+               }
+            }
+         };
+      }
+      // return () => {
+      //    socket.off("getMessage");
+      // };
+   }, [socket]);
 
    useEffect(() => {
       setMsgList((prev) => [...prev, message]);

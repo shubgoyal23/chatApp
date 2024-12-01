@@ -50,65 +50,6 @@ const allMessage = asyncHandler(async (req, res) => {
 const userContacts = asyncHandler(async (req, res) => {
    const user = req.user;
 
-   // const listMessage = await Message.aggregate([
-   //    {
-   //       $match: {
-   //          $or: [{ from: user._id }, { to: user._id }],
-   //       },
-   //    },
-   //    {
-   //       $group: {
-   //          _id: null,
-   //          uniqueAccounts: { $addToSet: "$from" },
-   //          uniqueAccounts2: { $addToSet: "$to" },
-   //       },
-   //    },
-   //    {
-   //       $project: {
-   //          uniqueAccounts: {
-   //             $setUnion: ["$uniqueAccounts", "$uniqueAccounts2"],
-   //          },
-   //       },
-   //    },
-   //    {
-   //       $unwind: "$uniqueAccounts",
-   //    },
-   //    {
-   //       $lookup: {
-   //          from: "users",
-   //          localField: "uniqueAccounts",
-   //          foreignField: "_id",
-   //          as: "user",
-   //       },
-   //    },
-   //    {
-   //       $unwind: "$user", // Deconstruct the "user" array
-   //    },
-   //    {
-   //       $project: {
-   //          _id: null, // Exclude null _id field
-   //          username: "$user.username",
-   //          id: "$user._id", // Assuming "_id" field exists in the user object
-   //          fullname: "$user.fullname",
-   //          email: "$user.email",
-   //          avatar: "$user.avatar",
-   //       },
-   //    },
-   // ]);
-   // const uniqueAccountIds = listMessage[0].uniqueAccounts;
-
-   // if (!uniqueAccountIds) {
-   //    throw new ApiError(400, "no account Found");
-   // }
-
-   // const list = await User.find({ _id: { $in: uniqueAccountIds } }).select(
-   //    "-password -refreshToken -createdAt -updatedAt -otp -otpExpiry"
-   // );
-
-   // if (!list) {
-   //    throw new ApiError(400, "no account Found");
-   // }
-
    const listMessage = await Message.aggregate([
       {
          $match: {
@@ -141,10 +82,9 @@ const userContacts = asyncHandler(async (req, res) => {
       },
       {
          $project: {
-            username: "$user.username",
             _id: "$user._id",
+            username: "$user.username",
             fullname: "$user.fullname",
-            email: "$user.email",
             avatar: "$user.avatar",
          },
       },

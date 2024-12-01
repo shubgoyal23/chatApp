@@ -1,4 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { connectSocket } from "../helper/ConnectSocket";
 
 const loginSlice = createSlice({
    name: "Login",
@@ -8,6 +9,7 @@ const loginSlice = createSlice({
    },
    reducers: {
       login(state, action) {
+         connectSocket(action.payload);
          state.isLoggedin = true;
          state.userdata = action.payload;
       },

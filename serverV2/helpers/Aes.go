@@ -7,7 +7,6 @@ import (
 	"crypto/md5"
 	"crypto/rand"
 	"encoding/base64"
-	"encoding/hex"
 	"fmt"
 	"io"
 )
@@ -44,39 +43,42 @@ func EncryptKeyAES(plainText string, user models.User, useKey bool) (string, err
 	return base64.StdEncoding.EncodeToString(cipherText), nil
 }
 
-func DecryptKeyAES(cipherTextHex string, user models.User, useKey bool) (string, error) {
+func DecryptKeyAES(cipherTextHex string, user models.User, useKey bool) ([]byte, error) {
 	var key []byte
 	if useKey {
 		key = DeriveKeyFromMD5(fmt.Sprintf("%s%s%s%s", user.ID, user.Email, user.UserName, user.KEY))
 	} else {
 		key = DeriveKeyFromMD5(fmt.Sprintf("%s%s%s", user.ID, user.Email, user.UserName))
 	}
-
-	cipherText, err := hex.DecodeString(cipherTextHex)
+	cipherText, err := base64.StdEncoding.DecodeString(cipherTextHex)
 	if err != nil {
-		return "", err
+		return []byte{}, err
 	}
-	fmt.Println("key:", hex.EncodeToString(key))
+
+	// cipherText, err := hex.DecodeString(Text)
+	// if err != nil {
+	// 	return "", err
+	// }
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return "", err
+		return []byte{}, err
 	}
 
 	aesGCM, err := cipher.NewGCM(block)
 	if err != nil {
-		return "", err
+		return []byte{}, err
 	}
 
 	nonceSize := aesGCM.NonceSize()
 	if len(cipherText) < nonceSize {
-		return "", fmt.Errorf("ciphertext too short")
+		return []byte{}, fmt.Errorf("ciphertext too short")
 	}
 	nonce, ciphertext := cipherText[:nonceSize], cipherText[nonceSize:]
 
 	plainText, err := aesGCM.Open(nil, nonce, ciphertext, nil)
 	if err != nil {
-		return "", err
+		return []byte{}, err
 	}
-	return string(plainText), nil
+	return plainText, nil
 }

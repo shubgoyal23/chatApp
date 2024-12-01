@@ -3,6 +3,7 @@ import { useSelector } from "react-redux";
 import { emoji } from "../../../constance/EmojiList";
 import MessageBox from "./MessageBox";
 import { Cloudinay_URL, avatar_public_ids } from "../../../constance/data";
+import { sendMessage } from "../../../socket";
 
 function MessageArea({
    sidNav,
@@ -16,23 +17,18 @@ function MessageArea({
    const [message, setMessage] = useState("");
    const [showEmoji, setShowEmoji] = useState(false);
 
-   const messageHandler = (e) => {
+   const messageHandler = async (e) => {
       e.preventDefault();
-      const details = { to: chatwith._id, message: message, type: "text" };
+      const details = {
+         from: user._id,
+         to: chatwith._id,
+         message: message,
+         type: "text",
+         replyTo: "",
+         media: "",
+      };
 
-      // socket.emit("sendMessage", { ...details, from: user._id });
-
-      fetch("api/v1/message/new", {
-         method: "POST",
-         credentials: "include",
-         headers: {
-            "Content-Type": "application/json",
-         },
-         body: JSON.stringify(details),
-      }).catch((error) => {
-         setErr(error);
-         console.log(error);
-      });
+      await sendMessage(details);
 
       setMessage("");
    };

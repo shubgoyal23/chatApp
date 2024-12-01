@@ -22,16 +22,28 @@ function UserLabel({ data, setSideNav }) {
          </div>
 
          <div className="flex-1 h-full flex items-center justify-between gap-4 border-b-2 border-gray-200">
-            <h1 className="text-xl font-sans capitalize">
-               {data?.fullname || "anonymous"}
-            </h1>
+            <div>
+               <h1 className="text-xl font-sans capitalize">
+                  {data?.fullname || "anonymous"}
+               </h1>
+               <p className="text-sm text-gray-500 line-clamp-1 w-2/3">
+                  {data?.messages?.[0]}
+               </p>
+            </div>
 
-            <button
-               className="flex justify-center items-center text-xl"
-               onClick={() => dispatch(setChat(data))}
-            >
-               <span className="material-symbols-outlined ">chevron_right</span>
-            </button>
+            <div>
+               {data?.messages?.length > 0 ? (
+                  <span className="inline-flex items-center justify-center w-6 h-6 text-white font-semibold text-xs bg-lime-400 rounded-full">
+                     {data?.messages?.length}
+                  </span>
+               ) : (
+                  <span className="flex justify-center items-center text-xl">
+                     <span className="material-symbols-outlined ">
+                        chevron_right
+                     </span>
+                  </span>
+               )}
+            </div>
          </div>
       </div>
    );

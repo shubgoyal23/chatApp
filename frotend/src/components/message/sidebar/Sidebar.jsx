@@ -1,19 +1,22 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { debounce } from "lodash";
 import { Cloudinay_URL, avatar_public_ids } from "../../../constance/data";
 import Edituser from "./Edituser";
 import UserLabel from "./UserLabel";
+import { setConnections } from "../../../store/chatSlice";
 
 function Sidebar({ sidNav, setSideNav }) {
    const [search, setSearch] = useState("");
    const [findlist, setFindList] = useState([]);
    const [cache, setCache] = useState({});
    const [edit, setEdit] = useState(false);
+   const dispatch = useDispatch();
 
    const user = useSelector((state) => state.login.userdata);
+   const Connections = useSelector((state) => state.chat.connections);
 
-   const userContacted = useMemo(() => {
+   const userContacted = useEffect(() => {
       return () => {
          fetch("/api/v1/message/contacts", {
             method: "POST",
@@ -26,6 +29,7 @@ function Sidebar({ sidNav, setSideNav }) {
             .then((data) => {
                let list = data?.data?.filter((item) => item._id !== user?._id);
                setFindList(list);
+               dispatch(setConnections(list))
             })
             .catch((error) => console.error(error));
       };
@@ -55,7 +59,11 @@ function Sidebar({ sidNav, setSideNav }) {
 
    useEffect(() => {
       if (search === "") {
-         userContacted();
+         let list = []
+         Object.values(Connections).forEach(value => {
+            list.push(value)
+          });
+         setFindList(list);
       } else {
          if (cache[search]) {
             setFindList(cache[search]);

@@ -126,30 +126,25 @@ func UserSocketHandler(userid string) {
 			fmt.Println("Error reading message:", err)
 			break
 		}
+		fmt.Println("userkeus", userconn.UserInfo.KEY)
 		dmessage, err := DecryptKeyAES(string(message), userconn.UserInfo, true)
 		if err != nil {
 			fmt.Println("Error decrypting message:", err)
 			break
 		}
 
-		jm, err := json.Marshal(dmessage)
-		if err != nil {
-			fmt.Println("Error marshalling message:", err)
-			break
-		}
 		var msg models.Message
-		if e := json.Unmarshal(jm, &msg); e != nil {
+		if e := json.Unmarshal(dmessage, &msg); e != nil {
 			fmt.Println("Error unmarshalling message:", e)
 			break
 		}
 		msg.ID = uuid.New().String()
-		if msg.Media == "" && msg.Message != "" {
+		if msg.Media == "" && msg.Message == "" {
 			// faltu message
 			continue
 		}
 		go SavemessageToDB(msg)
 		go SendMessagestoUser(msg)
-		msg.MessageTo = ""
 		msge, _ := json.Marshal(msg)
 		m, _ := EncryptKeyAES(string(msge), userconn.UserInfo, true)
 		userconn.WS.WriteMessage(websocket.TextMessage, []byte(m))
@@ -164,16 +159,15 @@ func SendMessagestoUser(message models.Message) {
 	sendUser, ok := AllConns.Conn[to]
 	AllConns.Mu.RUnlock()
 
-	message.Message = message.MessageTo
-	message.MessageTo = ""
-
 	// user is on other vm
 	if !ok {
 		// todo
 	}
 	msg, _ := json.Marshal(message)
 	m, _ := EncryptKeyAES(string(msg), sendUser.UserInfo, true)
-	sendUser.WS.WriteMessage(websocket.TextMessage, []byte(m))
+	if err := sendUser.WS.WriteMessage(websocket.TextMessage, []byte(m)); err != nil {
+		fmt.Println("Error sending message:", err)
+	}
 }
 
 func SavemessageToDB(msg models.Message) {
