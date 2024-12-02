@@ -1,36 +1,32 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import IndividualMsg from "./IndividualMsg";
-import { socket } from "../../../socket";
-import { EmptyMessages, messageHandler } from "../../../store/chatSlice";
-import { decryptDataAES } from "../../../helper/AEShelper";
+import { EmptyMessages } from "../../../store/chatSlice";
 
 function MessageBox() {
    const dispatch = useDispatch();
-   const user = useSelector((state) => state.login.userdata);
    const chatwith = useSelector((state) => state.chat.chattingwith);
    const messagesQue = useSelector((state) => state.chat.messagesQue);
    const [msgList, setMsgList] = useState([]);
-   const [message, setMessage] = useState([]);
    const scrollref = useRef();
 
-   useEffect(() => {
-      fetch("api/v1/message/all", {
-         method: "POST",
-         credentials: "include",
-         headers: {
-            "Content-Type": "application/json",
-         },
-         body: JSON.stringify({ to: chatwith._id }),
-      })
-         .then((res) => res.json())
-         .then((data) => {
-            setMsgList(data.data);
-         })
-         .catch((error) => {
-            console.log(error);
-         });
-   }, [chatwith]);
+   // useEffect(() => {
+   //    fetch("api/v1/message/all", {
+   //       method: "POST",
+   //       credentials: "include",
+   //       headers: {
+   //          "Content-Type": "application/json",
+   //       },
+   //       body: JSON.stringify({ to: chatwith._id }),
+   //    })
+   //       .then((res) => res.json())
+   //       .then((data) => {
+   //          setMsgList(data.data);
+   //       })
+   //       .catch((error) => {
+   //          console.log(error);
+   //       });
+   // }, [chatwith]);
 
    useEffect(() => {
       if (scrollref.current) {
@@ -38,21 +34,18 @@ function MessageBox() {
       }
    }, [msgList]);
 
-   useEffect(() => {
-      setMsgList((prev) => [...prev, message]);
-   }, [message, chatwith]);
+   // useEffect(() => {
+   //    setMsgList((prev) => [...prev, message]);
+   // }, [message, chatwith._id]);
 
    useEffect(() => {
-      let list = []
-      for (let i = 0; i < messagesQue[chatwith._id]?.length; i++) {
-         let message = messagesQue[chatwith._id];
-         if (message){
-            dispatch(EmptyMessages(chatwith._id))
-            list.push(...message)
-         }
+      const message = messagesQue[chatwith._id];
+      if (message && message.length > 0) {
+         dispatch(EmptyMessages(chatwith._id)); // Clear the queue
+         console.log("message", message);
+         setMsgList((prev) => [...prev, ...message]); // Append new messages
       }
-      setMsgList((prev) => [...prev, ...list]);
-   }, [messagesQue, chatwith]);
+   }, [messagesQue, chatwith._id]);
 
    return (
       <div className="h-full w-full p-0 m-0">
