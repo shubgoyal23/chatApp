@@ -5,25 +5,51 @@ const chatSlice = createSlice({
    initialState: {
       chattingwith: {},
       connections: {},
+      messagesQue: {},
    },
    reducers: {
       setChat(state, action) {
          state.chattingwith = action.payload;
       },
       setConnections(state, action) {
-         let a = {};
          action.payload.map((user) => {
-            user.messages = [];
-            a[user._id] = user;
+            state.connections[user._id] = user;
          });
-         state.connections = a;
+      },
+      addConnection(state, action) {
+         state.connections[action.payload._id] = action.payload;
       },
       messageHandler(state, action) {
-         console.log(action.payload);
-         state.connections[action.payload.to]?.messages.prepend(action.payload);
+         if (action.payload.self) {
+            if (!state.messagesQue[action.payload.data.to]) {
+               state.messagesQue[action.payload.data.to] = [
+                  action.payload.data,
+               ];
+            } else {
+               state.messagesQue[action.payload.data.to]?.unshift(
+                  action.payload.data
+               );
+            }
+         } else {
+            if (!state.messagesQue[action.payload.data.from]) {
+               state.messagesQue[action.payload.data.from] = [
+                  action.payload.data,
+               ];
+            } else {
+               state.messagesQue[action.payload.data.from]?.unshift(
+                  action.payload.data
+               );
+            }
+         }
+      },
+      EmptyMessages(state, action) {
+         if (state.messagesQue[action.payload]) {
+            state.messagesQue[action.payload] = [];
+         }
       },
    },
 });
 
-export const { setChat, setConnections, messageHandler } = chatSlice.actions;
+export const { setChat, setConnections, messageHandler, addConnection, EmptyMessages } =
+   chatSlice.actions;
 export default chatSlice.reducer;

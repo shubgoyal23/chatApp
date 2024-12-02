@@ -1,25 +1,47 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "./sidebar/Sidebar";
 import MessageArea from "./messageArea/MessageArea";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import EmptyMessageArea from "./EmptyMessageArea";
 import SidebarRight from "./sidbarRight/SideBarRight";
+import { socket } from "../../socket";
+import { messageHandler } from "../../store/chatSlice";
+import { decryptDataAES } from "../../helper/AEShelper";
 
 function MessageAll() {
+   const dispatch = useDispatch();
    const user = useSelector((state) => state.login.userdata);
    const chatwith = useSelector((state) => state.chat.chattingwith);
-   const socket = useSelector((state) => state.socket);
    const [sidNav, setSideNav] = useState(true);
-   const [showChattingWithUserDetails, setShowChattingWithUserDetails] =
-      useState(false);
+   const [showChattingWithUserDetails, setShowChattingWithUserDetails] = useState(false);
    const [userOnline, setUsersOnline] = useState([]);
 
    useEffect(() => {
-      // socket.emit("addUser", user);
-      // socket.on("getUsers", (allusers) => setUsersOnline(allusers));
-      // socket.sendMessage()
-      
-   }, []);
+      if (socket) {
+         console.log("listing messages")
+         socket.onmessage = async (event) => {
+            const msg = await decryptDataAES(event.data);
+            const data = JSON.parse(msg);
+            const d = {
+               self: data.from === user._id,
+               data: data,}
+            dispatch(messageHandler(d));
+            console.log(data)
+            if (data) {
+               console.log(chatwith._id)
+               console.log(user._id);
+               if (data.from === chatwith._id || (data.from === user._id && data.to === chatwith._id)) {
+                  setMessage({ ...data, createdAt: Date.now() });
+               } else {
+                  dispatch(messageHandler(data));
+               }
+            }
+         };
+      }
+      // return () => {
+      //    socket.off("getMessage");
+      // };
+   }, [socket]);
 
    return (
       <div className="relative h-[100svh] w-screen overflow-hidden flex">

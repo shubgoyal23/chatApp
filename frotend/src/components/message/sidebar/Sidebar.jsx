@@ -16,6 +16,8 @@ function Sidebar({ sidNav, setSideNav }) {
    const user = useSelector((state) => state.login.userdata);
    const Connections = useSelector((state) => state.chat.connections);
 
+   
+
    const userContacted = useEffect(() => {
       return () => {
          fetch("/api/v1/message/contacts", {
@@ -63,6 +65,7 @@ function Sidebar({ sidNav, setSideNav }) {
          Object.values(Connections).forEach(value => {
             list.push(value)
           });
+          console.log(list)
          setFindList(list);
       } else {
          if (cache[search]) {
@@ -74,7 +77,7 @@ function Sidebar({ sidNav, setSideNav }) {
       return () => {
          debouncedFindUsers.cancel();
       };
-   }, [search, cache, debouncedFindUsers, userContacted]);
+   }, [search, cache, debouncedFindUsers, userContacted, Connections]);
 
    return (
       <div

@@ -108,7 +108,7 @@ func GetSecretKeyforUser(c *gin.Context) {
 	}
 	b, _ := json.Marshal(d)
 
-	data, err := EncryptKeyAES(string(b), userInfo, true)
+	data, err := EncryptKeyAES(b, userInfo, true)
 	if err != nil {
 		c.JSON(500, gin.H{
 			"error": "Internal server error",

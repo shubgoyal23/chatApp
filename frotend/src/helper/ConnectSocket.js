@@ -5,21 +5,20 @@ import { connectWebSocket } from "../socket";
 import { encryptWithPublicKey } from "./RSAhelper";
 
 export const connectSocket = async (data) => {
-   const userdata = {
-      _id: data._id,
-      username: data.username,
-      fullName: data.fullname,
-      email: data.email,
-   };
-   await getSecretKey(userdata);
-   let jdata = JSON.stringify(userdata);
-   let eData2 = await encryptWithPublicKey(jdata);
-   let url = `${conf.WS_URL}/ws?token=${eData2}`;
-   let socket = await connectWebSocket(url);
-   if (socket == null) {
-      return false;
+   try {
+      const userdata = {
+         _id: data._id,
+         username: data.username,
+         fullName: data.fullname,
+         email: data.email,
+      };
+      await getSecretKey(userdata);
+      let jdata = JSON.stringify(userdata);
+      let eData2 = await encryptWithPublicKey(jdata);
+      connectWebSocket(eData2);
+   } catch (error) {
+      console.log(error)
    }
-   return true;
 };
 
 export const getSecretKey = async (userdata) => {

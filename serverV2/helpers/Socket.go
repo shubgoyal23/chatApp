@@ -76,6 +76,13 @@ func SocketConnectionHandler(c *gin.Context) {
 	}
 	userInfo := user.(models.User)
 
+	AllConns.Mu.Lock()
+	connExist, ok := AllConns.Conn[userInfo.ID]
+	if ok {
+		connExist.WS.Close()
+	}
+	AllConns.Mu.Unlock()
+
 	// upgrade the connection to a WebSocket connection
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
@@ -85,13 +92,13 @@ func SocketConnectionHandler(c *gin.Context) {
 		return
 	}
 
-	if err := SetRedisKeyVal(fmt.Sprintf("chatuser:%s", userInfo.ID), VmId); err != nil {
+	if err := SetRedisKeyVal(fmt.Sprintf("userVm:%s", userInfo.ID), VmId); err != nil {
 		c.JSON(500, gin.H{
 			"error": "Internal server error",
 		})
 		return
 	}
-	if err := SetKeyExpiry(fmt.Sprintf("chatuser:%s", userInfo.ID), 5); err != nil {
+	if err := SetKeyExpiry(fmt.Sprintf("userVm:%s", userInfo.ID), 5); err != nil {
 		c.JSON(500, gin.H{
 			"error": "Internal server error",
 		})
@@ -108,6 +115,9 @@ func SocketConnectionHandler(c *gin.Context) {
 
 func UserSocketHandler(userid string) {
 	defer func() {
+		if f := recover(); f != nil {
+			fmt.Println("Panic occurred:", f)
+		}
 		AllConns.Mu.Lock()
 		userconn := AllConns.Conn[userid]
 		delete(AllConns.Conn, userid)
@@ -126,8 +136,7 @@ func UserSocketHandler(userid string) {
 			fmt.Println("Error reading message:", err)
 			break
 		}
-		fmt.Println("userkeus", userconn.UserInfo.KEY)
-		dmessage, err := DecryptKeyAES(string(message), userconn.UserInfo, true)
+		dmessage, err := DecryptKeyAES(message, userconn.UserInfo, true)
 		if err != nil {
 			fmt.Println("Error decrypting message:", err)
 			break
@@ -146,7 +155,7 @@ func UserSocketHandler(userid string) {
 		go SavemessageToDB(msg)
 		go SendMessagestoUser(msg)
 		msge, _ := json.Marshal(msg)
-		m, _ := EncryptKeyAES(string(msge), userconn.UserInfo, true)
+		m, _ := EncryptKeyAES(msge, userconn.UserInfo, true)
 		userconn.WS.WriteMessage(websocket.TextMessage, []byte(m))
 
 	}
@@ -162,9 +171,10 @@ func SendMessagestoUser(message models.Message) {
 	// user is on other vm
 	if !ok {
 		// todo
+		return
 	}
 	msg, _ := json.Marshal(message)
-	m, _ := EncryptKeyAES(string(msg), sendUser.UserInfo, true)
+	m, _ := EncryptKeyAES(msg, sendUser.UserInfo, true)
 	if err := sendUser.WS.WriteMessage(websocket.TextMessage, []byte(m)); err != nil {
 		fmt.Println("Error sending message:", err)
 	}

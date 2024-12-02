@@ -1,30 +1,36 @@
+import conf from "./constance/conf";
 import { decryptDataAES, encryptDataAES } from "./helper/AEShelper";
 export let socket = null;
 
-export const connectWebSocket = (url) => {
-   if (!socket) {
-      socket = new WebSocket(url);
+export const connectWebSocket = (token) => {
+   // if (socket) {
+   //    socket.close();
+   //    socket = null;
+   // }
+   document.cookie = `ws=${token}; path=/; SameSite=None`
+   let url = `${conf.WS_URL}/ws?token=${token}`;
+   socket = new WebSocket(url);
 
-      socket.onopen = () => {
-         console.log("WebSocket connected.");
-      };
+   socket.onopen = () => {
+      console.log("WebSocket connected.");
+   };
 
-      // socket.onmessage = (event) => {
-      //    const msg = decryptDataAES(event.data);
-      //    const msgJson = JSON.parse(msg);
-      //    dispatch()
-      //    console.log("WebSocket message received:", event.data);
-      // };
+   // socket.onmessage = (event) => {
+   //    const msg = decryptDataAES(event.data);
+   //    const msgJson = JSON.parse(msg);
+   //    dispatch()
+   //    console.log("WebSocket message received:", event.data);
+   // };
 
-      socket.onerror = (error) => {
-         console.error("WebSocket error:", error);
-      };
+   socket.onerror = (error) => {
+      console.error("WebSocket error:", error);
+   };
 
-      socket.onclose = () => {
-         console.log("WebSocket connection closed.");
-         socket = null; // Reset socket on close
-      };
-   }
+   socket.onclose = () => {
+      console.log("WebSocket connection closed.");
+      socket = null; // Reset socket on close
+   };
+
    return socket;
 };
 

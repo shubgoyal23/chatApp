@@ -1,9 +1,10 @@
 import React from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { setChat } from "../../../store/chatSlice";
 import { Cloudinay_URL, avatar_public_ids } from "../../../constance/data";
 
 function UserLabel({ data, setSideNav }) {
+   const messagesQue = useSelector((state) => state.chat.messagesQue);
    const dispatch = useDispatch();
    return (
       <div
@@ -27,7 +28,7 @@ function UserLabel({ data, setSideNav }) {
                   {data?.fullname || "anonymous"}
                </h1>
                <p className="text-sm text-gray-500 line-clamp-1 w-2/3">
-                  {data?.messages?.[0]}
+                  {data?.messages?.[0]?.message}
                </p>
             </div>
 

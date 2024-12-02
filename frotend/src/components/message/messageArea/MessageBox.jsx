@@ -1,11 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import IndividualMsg from "./IndividualMsg";
 import { socket } from "../../../socket";
-import { messageHandler } from "../../../store/chatSlice";
+import { EmptyMessages, messageHandler } from "../../../store/chatSlice";
+import { decryptDataAES } from "../../../helper/AEShelper";
 
-function MessageBox({ chatwith }) {
+function MessageBox() {
+   const dispatch = useDispatch();
    const user = useSelector((state) => state.login.userdata);
+   const chatwith = useSelector((state) => state.chat.chattingwith);
+   const messagesQue = useSelector((state) => state.chat.messagesQue);
    const [msgList, setMsgList] = useState([]);
    const [message, setMessage] = useState([]);
    const scrollref = useRef();
@@ -35,30 +39,20 @@ function MessageBox({ chatwith }) {
    }, [msgList]);
 
    useEffect(() => {
-      if (socket) {
-         console.log("socket", socket);
-         socket.onmessage = (event) => {
-            console.log("event", event);
-            const msg = decryptDataAES(event.data);
-            const data = JSON.parse(msg);
-            console.log(data)
-            if (data) {
-               if (data.from === chatwith._id || data.from === user._id) {
-                  setMessage({ ...data, createdAt: Date.now() });
-               } else {
-                  dispatch(messageHandler(data));
-               }
-            }
-         };
-      }
-      // return () => {
-      //    socket.off("getMessage");
-      // };
-   }, [socket]);
-
-   useEffect(() => {
       setMsgList((prev) => [...prev, message]);
    }, [message, chatwith]);
+
+   useEffect(() => {
+      let list = []
+      for (let i = 0; i < messagesQue[chatwith._id]?.length; i++) {
+         let message = messagesQue[chatwith._id];
+         if (message){
+            dispatch(EmptyMessages(chatwith._id))
+            list.push(...message)
+         }
+      }
+      setMsgList((prev) => [...prev, ...list]);
+   }, [messagesQue, chatwith]);
 
    return (
       <div className="h-full w-full p-0 m-0">
