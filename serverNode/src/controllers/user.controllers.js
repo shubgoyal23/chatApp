@@ -75,7 +75,7 @@ const registerUser = asyncHandler(async (req, res) => {
       email,
    });
 
-   const user = await User.findById(userCreated._id).select("-password");
+   const user = await User.findById(userCreated._id).select("_id email username fullname avatar");
 
    if (!user) {
       throw new ApiError(400, "failed to regiter user Try again later");
@@ -138,7 +138,7 @@ const loginUser = asyncHandler(async (req, res) => {
    );
 
    const loggedInUser = await User.findById(user._id).select(
-      "-password -refreshToken -verified -otp -otpExpiry -createdAt -updatedAt -email"
+      "username email fullname _id avatar"
    );
 
    const options = {
@@ -184,9 +184,15 @@ const logoutUser = asyncHandler(async (req, res) => {
 });
 
 const currentUser = asyncHandler(async (req, res) => {
+   let r = {
+      username: req.user.username,
+      email: req.user.email,
+      fullname: req.user.fullname,
+      _id: req.user._id,
+   };
    return res
       .status(200)
-      .json(new ApiResponse(200, req.user, "User fetched successfully"));
+      .json(new ApiResponse(200, r, "User fetched successfully"));
 });
 
 const listUsers = asyncHandler(async (req, res) => {
@@ -199,7 +205,7 @@ const listUsers = asyncHandler(async (req, res) => {
       fullname: { $regex: fullname, $options: "i" },
    })
       .sort({ name: 1 })
-      .select("-password -refreshToken -createdAt -updatedAt -email");
+      .select("username fullname _id avatar");
 
    res.status(200).json(
       new ApiResponse(200, userslist, "user list found successfully")
@@ -228,7 +234,7 @@ const uploadAvatar = asyncHandler(async (req, res) => {
 
    const avatarchange = await User.findByIdAndUpdate(req.user._id, {
       avatar: avatar.public_id,
-   }).select("-password -refreshToken -createdAt -updatedAt ");
+   }).select("username email fullname _id avatar");
 
    if (!avatarchange) {
       throw new ApiError(401, "Avatar change failed");
@@ -250,7 +256,7 @@ const changeAvatar = asyncHandler(async (req, res) => {
    }
    const avatarchange = await User.findByIdAndUpdate(req.user._id, {
       avatar,
-   }).select("-password -refreshToken -createdAt -updatedAt ");
+   }).select("username email fullname _id avatar");
 
    if (!avatarchange) {
       throw new ApiError(401, "Avatar change failed");
@@ -294,7 +300,7 @@ const editUserDetails = asyncHandler(async (req, res) => {
          },
       },
       { new: true }
-   ).select("-password");
+   ).select("username email fullname _id avatar");
 
    if (!updateuser) {
       throw new ApiError(500, "user details update failed");

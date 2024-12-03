@@ -144,17 +144,19 @@ func UserSocketHandler(userid string) {
 			fmt.Println("Error unmarshalling message:", e)
 			continue
 		}
+		msg.ID = uuid.NewString()
+		msg.Epoch = time.Now().Unix()
+		if msg.Media == "" && msg.Message == "" {
+			continue
+		}
 		if msg.Type == models.P2p {
-			msg.ID = uuid.NewString()
-			msg.Epoch = time.Now().Unix()
-			if msg.Media == "" && msg.Message == "" {
-				continue
-			}
 			go SendMessagestoUser(msg)
 		} else if msg.Type == models.Grp {
 
 		} else if msg.Type == models.Chat {
 
+		} else {
+			continue
 		}
 		go SavemessageToDB(msg)
 		msge, _ := json.Marshal(msg)

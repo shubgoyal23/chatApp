@@ -54,7 +54,7 @@ function MessageBox() {
    return (
       <div className="h-full w-full p-0 m-0">
          {msgList.map((item) => (
-            <IndividualMsg key={item._id} data={item} />
+            <IndividualMsg key={item.id} data={item} />
          ))}
          <span ref={scrollref}></span>
       </div>

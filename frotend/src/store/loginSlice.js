@@ -1,6 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { connectSocket } from "../helper/ConnectSocket";
-import { GetkeyAes } from "../helper/AEShelper";
+import { closeWebSocket } from "../socket";
 
 const loginSlice = createSlice({
    name: "Login",
@@ -10,12 +9,11 @@ const loginSlice = createSlice({
    },
    reducers: {
       login(state, action) {
-         connectSocket(action.payload);
-         GetkeyAes(action.payload, true) // for local key
          state.isLoggedin = true;
          state.userdata = action.payload;
       },
       logout(state, action) {
+         closeWebSocket()
          state.isLoggedin = false;
          state.userdata = null;
       },

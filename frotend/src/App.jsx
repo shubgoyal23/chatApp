@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { login, logout } from "./store/loginSlice";
 import Auth from "./components/Auth/Auth";
-import MessageApp from "./components/message/MessageApp";
+import SocketConnect from "./components/message/SocketConnect";
 
 function App() {
    const loginStatus = useSelector((state) => state.login);
@@ -22,7 +22,7 @@ function App() {
          .catch((error) => console.log(error));
    }, []);
 
-   return loginStatus.isLoggedin ? <MessageApp /> : <Auth />;
+   return loginStatus.isLoggedin ? <SocketConnect /> : <Auth />;
 }
 
 export default App;
