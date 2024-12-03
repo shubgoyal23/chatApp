@@ -366,19 +366,13 @@ const forgotPassword = asyncHandler(async (req, res) => {
 
    const otp = generateOTP(6, "0123456789");
 
-   const createOtpInDB = await Verify.findOneAndUpdate(
-      {
-         userId: user._id,
-         otpFor: "forgetPassword",
-      },
-      {
-         otp,
-         otpExpiry,
-      },
-      { new: true, upsert: true }
-   );
+   await Verify.create({
+      userId: user._id,
+      otpFor: "forgetPassword",
+      otp,
+   });
 
-   const sendEmail = await transporter.sendMail({
+   await transporter.sendMail({
       from: '"Chatzz" <chatzz@shubhamgoyal.dev>',
       to: user.email,
       subject: "Password Recovery Mail",
@@ -410,9 +404,6 @@ const verifyOTP = async (id, otpFor, otp) => {
 
       if (DbOtp.otp != otp) {
          throw new ApiError(403, "Invalid OTP");
-      }
-      if (DbOtp.otpExpiry < new Date()) {
-         throw new ApiError(401, "OTP Expired");
       }
       return DbOtp._id;
    } catch (error) {
@@ -476,13 +467,9 @@ const resetPassword = asyncHandler(async (req, res) => {
    if (otpcheck.otp != otp) {
       throw new ApiError(403, "Invalid OTP");
    }
-   if (otpcheck.otpExpiry < new Date()) {
-      throw new ApiError(401, "OTP Expired");
-   }
 
    user.password = password;
    await user.save({ validateBeforeSave: true });
-   await Verify.findByIdAndDelete(otpcheck._id);
 
    return res
       .status(200)

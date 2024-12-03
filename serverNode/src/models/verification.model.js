@@ -8,7 +8,6 @@ const VerificationSchema = new mongoose.Schema(
          required: true,
       },
       otp: String,
-      otpExpiry: Date,
       otpFor: String,
    },
    {

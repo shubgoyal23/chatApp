@@ -2,30 +2,29 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { Message } from "../models/message.model.js";
-import { User } from "../models/user.model.js";
 
-const newMessage = asyncHandler(async (req, res) => {
-   const { to, message } = req.body;
-   const user = req.user;
+// const newMessage = asyncHandler(async (req, res) => {
+//    const { to, message } = req.body;
+//    const user = req.user;
 
-   if ([to, message].some((field) => field?.trim() === undefined)) {
-      throw new ApiError(400, "message is required");
-   }
+//    if ([to, message].some((field) => field?.trim() === undefined)) {
+//       throw new ApiError(400, "message is required");
+//    }
 
-   const messageCreate = await Message.create({
-      from: user._id,
-      to,
-      message,
-   });
+//    const messageCreate = await Message.create({
+//       from: user._id,
+//       to,
+//       message,
+//    });
 
-   if (!messageCreate) {
-      throw new ApiError(400, "failed to send message Try again later");
-   }
+//    if (!messageCreate) {
+//       throw new ApiError(400, "failed to send message Try again later");
+//    }
 
-   return res
-      .status(200)
-      .json(new ApiResponse(201, messageCreate, "message send Successfully"));
-});
+//    return res
+//       .status(200)
+//       .json(new ApiResponse(201, messageCreate, "message send Successfully"));
+// });
 
 const allMessage = asyncHandler(async (req, res) => {
    const { to } = req.body;
@@ -40,7 +39,7 @@ const allMessage = asyncHandler(async (req, res) => {
          { from: user._id, to: to },
          { from: to, to: user._id },
       ],
-   }).sort({ createdAt: 1 });
+   }).sort({ createdAt: 1 }).limit(50)
 
    return res
       .status(200)
@@ -114,4 +113,4 @@ const editMessage = asyncHandler(async (req, res) => {
       .json(new ApiResponse(201, messageCreate, "message send Successfully"));
 });
 
-export { newMessage, allMessage, userContacts };
+export { allMessage, userContacts };
