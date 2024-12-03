@@ -12,6 +12,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 var upgrader = websocket.Upgrader{
@@ -55,11 +57,7 @@ func UserAuthMiddlewareWS(c *gin.Context) {
 		return
 	}
 	key, f := GetRedisKeyVal(fmt.Sprintf("usersk:%s", userd.ID))
-	if f != nil {
-		c.AbortWithStatusJSON(401, gin.H{"error": "Unauthorized"})
-		return
-	}
-	if key == "" {
+	if f != nil || key == "" {
 		c.AbortWithStatusJSON(401, gin.H{"error": "Unauthorized"})
 		return
 	}
@@ -146,26 +144,29 @@ func UserSocketHandler(userid string) {
 			fmt.Println("Error unmarshalling message:", e)
 			continue
 		}
-		msg.ID = uuid.New().String()
-		msg.Epoch = time.Now().Unix()
-		if msg.Media == "" && msg.Message == "" {
-			// faltu message
-			continue
+		if msg.Type == models.P2p {
+			msg.ID = uuid.NewString()
+			msg.Epoch = time.Now().Unix()
+			if msg.Media == "" && msg.Message == "" {
+				continue
+			}
+			go SendMessagestoUser(msg)
+		} else if msg.Type == models.Grp {
+
+		} else if msg.Type == models.Chat {
+
 		}
 		go SavemessageToDB(msg)
-		go SendMessagestoUser(msg)
 		msge, _ := json.Marshal(msg)
 		m, _ := EncryptKeyAES(msge, userconn.UserInfo, true)
 		if err := userconn.WS.WriteMessage(websocket.TextMessage, []byte(m)); err != nil {
 			fmt.Println("Error sending message:", err)
 		}
-
 	}
 }
 
 func SendMessagestoUser(message models.Message) {
 	to := message.To
-
 	AllConns.Mu.RLock()
 	sendUser, ok := AllConns.Conn[to]
 	AllConns.Mu.RUnlock()
@@ -182,12 +183,30 @@ func SendMessagestoUser(message models.Message) {
 	}
 }
 
+// save message to db
 func SavemessageToDB(msg models.Message) {
-	// save message to db
+	var m models.MongoMessage
+	from, _ := primitive.ObjectIDFromHex(msg.From)
+	to, _ := primitive.ObjectIDFromHex(msg.To)
+	m.Epoch = msg.Epoch
+	m.From = from
+	m.To = to
+	m.ID = msg.ID
+	m.Media = msg.Media
+	m.Message = msg.Message
+	m.ReplyTo = msg.ReplyTo
+	m.Type = msg.Type
+	data, err := bson.Marshal(m)
+	if err != nil {
+		fmt.Println("error marshalling data")
+	}
+	if f := MongoAddOncDoc("messages", data); !f {
+		fmt.Println("error putting data to mongodb")
+	}
 }
 
+// send message to other vm
 func SendMessageToOtherVm(message models.Message, vmid string) {
-	// send message to other vm
 }
 
 func CloseUserConnection(userid string) {

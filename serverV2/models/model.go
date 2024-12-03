@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/gorilla/websocket"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type User struct {
@@ -34,6 +35,17 @@ type Message struct {
 	Type    MsgType `json:"type" binding:"required"`
 	ReplyTo string  `json:"replyTo"`
 	Epoch   int64   `json:"epoch"`
+}
+
+type MongoMessage struct {
+	ID      string             `json:"_id"`
+	From    primitive.ObjectID `json:"from" binding:"required"`
+	To      primitive.ObjectID `json:"to" binding:"required"`
+	Message string             `json:"message"`
+	Media   string             `json:"media"`
+	Type    MsgType            `json:"type" binding:"required"`
+	ReplyTo string             `json:"replyTo"`
+	Epoch   int64              `json:"epoch"`
 }
 
 type MsgType string

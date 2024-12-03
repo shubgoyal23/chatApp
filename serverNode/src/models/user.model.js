@@ -55,8 +55,6 @@ const UserSchema = new mongoose.Schema(
       },
       avatar: String,
       about: String,
-      otp: String,
-      otpExpiry: Date,
       refreshToken: String,
    },
    {

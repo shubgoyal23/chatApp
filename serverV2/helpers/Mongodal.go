@@ -28,7 +28,22 @@ func MongoInit(uri string, dbName string) (f bool) {
 }
 
 // add doc to mongo db
-func MongoAddDoc(collection string, doc []interface{}) (f bool) {
+func MongoAddOncDoc(collection string, doc interface{}) (f bool) {
+	f = false
+	client := MongoConn.Database(MongoDb).Collection(collection)
+
+	ints, err := client.InsertOne(context.TODO(), doc)
+	if err != nil {
+		return
+	}
+	if ints.InsertedID == nil {
+		return
+	}
+	return true
+}
+
+// add doc to mongo db
+func MongoAddManyDoc(collection string, doc []interface{}) (f bool) {
 	f = false
 	client := MongoConn.Database(MongoDb).Collection(collection)
 

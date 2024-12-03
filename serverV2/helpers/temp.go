@@ -37,7 +37,7 @@ func StoreUserPublicKey(c *gin.Context) {
 		"PrivateKey": publicKey.PrivateKey,
 		"PublicKey":  publicKey.PublicKey,
 	}
-	if e := MongoAddDoc("userPrivateKey", []interface{}{upk}); !e {
+	if e := MongoAddManyDoc("userPrivateKey", []interface{}{upk}); !e {
 		c.JSON(500, gin.H{
 			"error": "Internal server error",
 		})
