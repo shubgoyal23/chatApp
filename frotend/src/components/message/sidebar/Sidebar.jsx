@@ -16,25 +16,21 @@ function Sidebar({ sidNav, setSideNav }) {
    const user = useSelector((state) => state.login.userdata);
    const Connections = useSelector((state) => state.chat.connections);
 
-   
-
-   const userContacted = useEffect(() => {
-      return () => {
-         fetch("/api/v1/message/contacts", {
-            method: "POST",
-            credentials: "include",
-            headers: {
-               "Content-Type": "application/json",
-            },
+   useEffect(() => {
+      fetch("/api/v1/message/contacts", {
+         method: "POST",
+         credentials: "include",
+         headers: {
+            "Content-Type": "application/json",
+         },
+      })
+         .then((res) => res.json())
+         .then((data) => {
+            let list = data?.data?.filter((item) => item._id !== user?._id);
+            setFindList(list);
+            dispatch(setConnections(list));
          })
-            .then((res) => res.json())
-            .then((data) => {
-               let list = data?.data?.filter((item) => item._id !== user?._id);
-               setFindList(list);
-               dispatch(setConnections(list))
-            })
-            .catch((error) => console.error(error));
-      };
+         .catch((error) => console.error(error));
    }, []);
 
    const findusers = (search) => {
@@ -61,11 +57,10 @@ function Sidebar({ sidNav, setSideNav }) {
 
    useEffect(() => {
       if (search === "") {
-         let list = []
-         Object.values(Connections).forEach(value => {
-            list.push(value)
-          });
-          console.log(list)
+         let list = [];
+         Object.values(Connections).forEach((value) => {
+            list.push(value);
+         });
          setFindList(list);
       } else {
          if (cache[search]) {
@@ -77,7 +72,7 @@ function Sidebar({ sidNav, setSideNav }) {
       return () => {
          debouncedFindUsers.cancel();
       };
-   }, [search, cache, debouncedFindUsers, userContacted, Connections]);
+   }, [search, cache, debouncedFindUsers, Connections]);
 
    return (
       <div

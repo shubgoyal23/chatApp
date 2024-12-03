@@ -6,7 +6,7 @@ import Action from "./Action";
 function IndividualMsg({ data }) {
    const user = useSelector((state) => state.login.userdata);
    const [you, SetYou] = useState(false);
-   const [date, setDate] = useState(convertDate(data.createdAt));
+   const date = convertDate(data.epoch);
 
    useEffect(() => {
       if (data.from === user._id) {

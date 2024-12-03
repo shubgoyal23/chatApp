@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -104,12 +105,12 @@ func SocketConnectionHandler(c *gin.Context) {
 		})
 		return
 	}
-
+	userInfo.Epoch = time.Now().Unix()
 	AllConns.Mu.Lock()
 	AllConns.Conn[userInfo.ID] = models.UserConnection{WS: conn, UserInfo: userInfo}
 	AllConns.Mu.Unlock()
 
-	// handle the WebSocket connection
+	// handle the WebSocket connection for particlular user
 	go UserSocketHandler(userInfo.ID)
 }
 
@@ -117,12 +118,10 @@ func UserSocketHandler(userid string) {
 	defer func() {
 		if f := recover(); f != nil {
 			fmt.Println("Panic occurred:", f)
+			CloseUserConnection(userid)
+			return
 		}
-		AllConns.Mu.Lock()
-		userconn := AllConns.Conn[userid]
-		delete(AllConns.Conn, userid)
-		AllConns.Mu.Unlock()
-		userconn.WS.Close()
+		CloseUserConnection(userid)
 	}()
 
 	AllConns.Mu.Lock()
@@ -145,9 +144,10 @@ func UserSocketHandler(userid string) {
 		var msg models.Message
 		if e := json.Unmarshal(dmessage, &msg); e != nil {
 			fmt.Println("Error unmarshalling message:", e)
-			break
+			continue
 		}
 		msg.ID = uuid.New().String()
+		msg.Epoch = time.Now().Unix()
 		if msg.Media == "" && msg.Message == "" {
 			// faltu message
 			continue
@@ -156,7 +156,9 @@ func UserSocketHandler(userid string) {
 		go SendMessagestoUser(msg)
 		msge, _ := json.Marshal(msg)
 		m, _ := EncryptKeyAES(msge, userconn.UserInfo, true)
-		userconn.WS.WriteMessage(websocket.TextMessage, []byte(m))
+		if err := userconn.WS.WriteMessage(websocket.TextMessage, []byte(m)); err != nil {
+			fmt.Println("Error sending message:", err)
+		}
 
 	}
 }
@@ -186,4 +188,14 @@ func SavemessageToDB(msg models.Message) {
 
 func SendMessageToOtherVm(message models.Message, vmid string) {
 	// send message to other vm
+}
+
+func CloseUserConnection(userid string) {
+	AllConns.Mu.Lock()
+	userconn := AllConns.Conn[userid]
+	delete(AllConns.Conn, userid)
+	AllConns.Mu.Unlock()
+	if err := userconn.WS.Close(); err != nil {
+		fmt.Println("Error closing connection:", err)
+	}
 }

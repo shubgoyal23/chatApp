@@ -1,4 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { SetMessageToLS } from "../helper/MessageStorage";
 
 const chatSlice = createSlice({
    name: "chat",
@@ -26,20 +27,22 @@ const chatSlice = createSlice({
                   action.payload.data,
                ];
             } else {
-               state.messagesQue[action.payload.data.to]?.unshift(
+               state.messagesQue[action.payload.data.to]?.push(
                   action.payload.data
                );
             }
+            SetMessageToLS(action.payload.data, true)
          } else {
             if (!state.messagesQue[action.payload.data.from]) {
                state.messagesQue[action.payload.data.from] = [
                   action.payload.data,
                ];
             } else {
-               state.messagesQue[action.payload.data.from]?.unshift(
+               state.messagesQue[action.payload.data.from]?.push(
                   action.payload.data
                );
             }
+            SetMessageToLS(action.payload.data, false)
          }
       },
       EmptyMessages(state, action) {

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import IndividualMsg from "./IndividualMsg";
 import { EmptyMessages } from "../../../store/chatSlice";
+import { GetMessageFromLS } from "../../../helper/MessageStorage";
 
 function MessageBox() {
    const dispatch = useDispatch();
@@ -34,15 +35,18 @@ function MessageBox() {
       }
    }, [msgList]);
 
-   // useEffect(() => {
-   //    setMsgList((prev) => [...prev, message]);
-   // }, [message, chatwith._id]);
+   useEffect(() => {
+      const f = async () => {
+         let m = await GetMessageFromLS(chatwith._id);
+         setMsgList(m);
+      };
+      f();
+   }, [chatwith._id]);
 
    useEffect(() => {
       const message = messagesQue[chatwith._id];
       if (message && message.length > 0) {
          dispatch(EmptyMessages(chatwith._id)); // Clear the queue
-         console.log("message", message);
          setMsgList((prev) => [...prev, ...message]); // Append new messages
       }
    }, [messagesQue, chatwith._id]);

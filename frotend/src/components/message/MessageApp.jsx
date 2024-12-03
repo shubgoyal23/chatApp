@@ -13,33 +13,27 @@ function MessageAll() {
    const user = useSelector((state) => state.login.userdata);
    const chatwith = useSelector((state) => state.chat.chattingwith);
    const [sidNav, setSideNav] = useState(true);
-   const [showChattingWithUserDetails, setShowChattingWithUserDetails] = useState(false);
+   const [showChattingWithUserDetails, setShowChattingWithUserDetails] =
+      useState(false);
    const [userOnline, setUsersOnline] = useState([]);
 
    useEffect(() => {
       if (socket) {
-         console.log("listing messages")
+         console.log("listing messages");
          socket.onmessage = async (event) => {
             const msg = await decryptDataAES(event.data);
             const data = JSON.parse(msg);
-            const d = {
-               self: data.from === user._id,
-               data: data,}
-            dispatch(messageHandler(d));
-            console.log(data)
             if (data) {
-               console.log(chatwith._id)
-               console.log(user._id);
-               if (data.from === chatwith._id || (data.from === user._id && data.to === chatwith._id)) {
-                  setMessage({ ...data, createdAt: Date.now() });
-               } else {
-                  dispatch(messageHandler(data));
-               }
+               const d = {
+                  self: data.from === user._id,
+                  data: data,
+               };
+               dispatch(messageHandler(d));
             }
          };
       }
       // return () => {
-      //    socket.off("getMessage");
+      //    socket.close()
       // };
    }, [socket]);
 

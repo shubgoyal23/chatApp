@@ -1,5 +1,6 @@
 export default function(date){
-    const dateTime = new Date(date);
+    const dateTime = new Date(0);
+    dateTime.setUTCSeconds(date);
     let hr = dateTime.getHours()
     let min = dateTime.getMinutes()
     let day = dateTime.getDate()

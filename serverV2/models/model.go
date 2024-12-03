@@ -12,6 +12,7 @@ type User struct {
 	Email    string `json:"email" binding:"required"`
 	UserName string `json:"username" binding:"required"`
 	KEY      string `json:"key"`
+	Epoch    int64  `json:"epoch"`
 }
 
 type WSConn struct {
@@ -25,12 +26,21 @@ type UserConnection struct {
 }
 
 type Message struct {
-	ID      string `json:"_id"`
-	From    string `json:"from" binding:"required"`
-	To      string `json:"to" binding:"required"`
-	Message string `json:"message"`
-	Media   string `json:"media"`
-	Type    string `json:"type" binding:"required"`
-	ReplyTo string `json:"replyTo"`
-	Epoch   uint64 `json:"epoch"`
+	ID      string  `json:"_id"`
+	From    string  `json:"from" binding:"required"`
+	To      string  `json:"to" binding:"required"`
+	Message string  `json:"message"`
+	Media   string  `json:"media"`
+	Type    MsgType `json:"type" binding:"required"`
+	ReplyTo string  `json:"replyTo"`
+	Epoch   int64   `json:"epoch"`
 }
+
+type MsgType string
+
+const (
+	P2p  MsgType = "person"
+	Grp  MsgType = "group"
+	Chat MsgType = "chat"
+	Ping MsgType = "ping"
+)
