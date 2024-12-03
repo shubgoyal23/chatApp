@@ -3,12 +3,18 @@ import { useSelector, useDispatch } from "react-redux";
 import { login, logout } from "./store/loginSlice";
 import Auth from "./components/Auth/Auth";
 import SocketConnect from "./components/message/SocketConnect";
+import conf from "./constance/conf";
 
 function App() {
    const loginStatus = useSelector((state) => state.login);
    const dispatch = useDispatch();
    useEffect(() => {
-      fetch("/api/v1/users/user")
+      fetch(`${conf.API_URL}/users/user`, {
+         credentials: "include",
+         headers: {
+            "Content-Type": "application/json",
+         },
+      })
          .then((res) => res.json())
          .then((data) => {
             if (data) {

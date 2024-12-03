@@ -11,24 +11,6 @@ function MessageBox() {
    const [msgList, setMsgList] = useState([]);
    const scrollref = useRef();
 
-   // useEffect(() => {
-   //    fetch("api/v1/message/all", {
-   //       method: "POST",
-   //       credentials: "include",
-   //       headers: {
-   //          "Content-Type": "application/json",
-   //       },
-   //       body: JSON.stringify({ to: chatwith._id }),
-   //    })
-   //       .then((res) => res.json())
-   //       .then((data) => {
-   //          setMsgList(data.data);
-   //       })
-   //       .catch((error) => {
-   //          console.log(error);
-   //       });
-   // }, [chatwith]);
-
    useEffect(() => {
       if (scrollref.current) {
          scrollref.current.scrollIntoView({ behavior: "smooth" });

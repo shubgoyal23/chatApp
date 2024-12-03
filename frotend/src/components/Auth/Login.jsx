@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { useDispatch } from "react-redux";
 import { login } from "../../store/loginSlice";
 import ForgotPassword from "./ForgotPassword";
+import conf from "../../constance/conf";
 
 function Login() {
    const [err, setErr] = useState(null);
@@ -27,7 +28,7 @@ function Login() {
          password: data.password,
       };
 
-      fetch("/api/v1/users/login", {
+      fetch(`${conf.API_URL}/users/login`, {
          method: "POST",
          credentials: "include",
          headers: {

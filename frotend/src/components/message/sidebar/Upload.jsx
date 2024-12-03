@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useDispatch } from "react-redux";
 import { login } from "../../../store/loginSlice";
+import conf from "../../../constance/conf";
 function Upload() {
    const [file, setfile] = useState(null);
    const [loading, setLoading] = useState(false);
@@ -11,7 +12,7 @@ function Upload() {
       const formData = new FormData();
       formData.append("avatar", file);
 
-      fetch("/api/v1/users/avatar-upload", {
+      fetch(`${conf.API_URL}/users/avatar-upload`, {
          method: "POST",
          credentials: "include",
          body: formData,

@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { useDispatch } from "react-redux";
 import { login } from "../../store/loginSlice";
 import OtpInputWithValidation from "./OtpCheck";
+import conf from "../../constance/conf";
 const details = {};
 function Register() {
    const [err, setErr] = useState(null);
@@ -30,7 +31,7 @@ function Register() {
       details.fullname = data.fullname;
       details.otpFor = "registration";
 
-      fetch("/api/v1/users/register", {
+      fetch(`${conf.API_URL}/users/register`, {
          method: "POST",
          credentials: "include",
          headers: {
@@ -56,7 +57,7 @@ function Register() {
 
    useEffect(() => {
       if (otpSuccess) {
-         fetch("/api/v1/users/login", {
+         fetch(`${conf.API_URL}/users/login`, {
             method: "POST",
             credentials: "include",
             headers: {

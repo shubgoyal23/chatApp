@@ -22,7 +22,7 @@ export const GetMessageFromLS = async (key) => {
 
    let messageslist = [];
    if (list.length <= 0) {
-     await fetch(`${conf.API_URL}/api/v1/message/all`, {
+     await fetch(`${conf.API_URL}/message/all`, {
          method: "POST",
          credentials: "include",
          headers: {

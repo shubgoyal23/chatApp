@@ -21,7 +21,7 @@ function ResetPassword({ details, closebtn }) {
       setLoading(true);
       details.password = data.newPassword;
 
-      fetch("/api/v1/users/reset-password", {
+      fetch(`${conf.API_URL}/users/reset-password`, {
          method: "POST",
          credentials: "include",
          headers: {

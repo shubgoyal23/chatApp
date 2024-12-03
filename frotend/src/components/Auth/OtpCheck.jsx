@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from "react";
+import conf from "../../constance/conf";
 
 function OtpInputWithValidation({
    numberOfDigits = 6,
@@ -32,7 +33,7 @@ function OtpInputWithValidation({
       setOtpError(null);
       details.otp = data;
 
-      fetch("/api/v1/users/check-otp", {
+      fetch(`${conf.API_URL}/users/check-otp`, {
          method: "POST",
          credentials: "include",
          headers: {

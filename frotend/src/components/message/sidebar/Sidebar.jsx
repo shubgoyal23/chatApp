@@ -5,6 +5,7 @@ import { Cloudinay_URL, avatar_public_ids } from "../../../constance/data";
 import Edituser from "./Edituser";
 import UserLabel from "./UserLabel";
 import { setConnections } from "../../../store/chatSlice";
+import conf from "../../../constance/conf";
 
 function Sidebar({ sidNav, setSideNav }) {
    const [search, setSearch] = useState("");
@@ -17,7 +18,7 @@ function Sidebar({ sidNav, setSideNav }) {
    const Connections = useSelector((state) => state.chat.connections);
 
    useEffect(() => {
-      fetch("/api/v1/message/contacts", {
+      fetch(`${conf.API_URL}/message/contacts`, {
          method: "POST",
          credentials: "include",
          headers: {
@@ -34,7 +35,7 @@ function Sidebar({ sidNav, setSideNav }) {
    }, []);
 
    const findusers = (search) => {
-      fetch("/api/v1/users/list", {
+      fetch(`${conf.API_URL}/users/list`, {
          method: "POST",
          credentials: "include",
          headers: {

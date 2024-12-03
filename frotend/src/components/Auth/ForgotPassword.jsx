@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import ResetPassword from "./ResetPassword";
+import conf from "../../constance/conf";
 const details = {};
 
 function ForgotPassword({ closebtn }) {
@@ -20,7 +21,7 @@ function ForgotPassword({ closebtn }) {
       details.email = data.username;
       details.otpFor = "forgetPassword";
 
-      fetch("/api/v1/users/forgot-password", {
+      fetch(`${conf.API_URL}/users/forgot-password`, {
          method: "POST",
          credentials: "include",
          headers: {
