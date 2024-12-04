@@ -10,7 +10,6 @@ export default function MessageApp() {
    const [sidNav, setSideNav] = useState(true);
    const [showChattingWithUserDetails, setShowChattingWithUserDetails] =
       useState(false);
-   const [userOnline, setUsersOnline] = useState([]);
 
    return (
       <div className="relative h-[100svh] w-screen overflow-hidden flex">
@@ -23,8 +22,6 @@ export default function MessageApp() {
             <MessageArea
                sidNav={sidNav}
                setSideNav={setSideNav}
-               userOnline={userOnline}
-               showChattingWithDetails={showChattingWithUserDetails}
                setShowChattingWithDetails={setShowChattingWithUserDetails}
             />
          ) : (

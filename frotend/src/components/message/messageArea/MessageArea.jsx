@@ -1,21 +1,28 @@
-import React, { useState } from "react";
-import { useSelector } from "react-redux";
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { emoji } from "../../../constance/EmojiList";
 import MessageBox from "./MessageBox";
 import { Cloudinay_URL, avatar_public_ids } from "../../../constance/data";
 import { sendMessage } from "../../../socket";
+import { clearReplyto, setReplyto } from "../../../store/chatSlice";
 
-function MessageArea({
-   sidNav,
-   setSideNav,
-   userOnline,
-   showChattingWithDetails,
-   setShowChattingWithDetails,
-}) {
+function MessageArea({ sidNav, setSideNav, setShowChattingWithDetails }) {
    const chatwith = useSelector((state) => state.chat.chattingwith);
    const user = useSelector((state) => state.login.userdata);
+   const replyTo = useSelector((state) => state.chat.replyto);
    const [message, setMessage] = useState("");
    const [showEmoji, setShowEmoji] = useState(false);
+   const [showReplyBox, setShowReplyBox] = useState(false);
+   const dispatch = useDispatch();
+
+   useEffect(() => {
+      dispatch(clearReplyto());
+   }, [chatwith._id]);
+
+   useEffect(() => {
+      const set = replyTo ? true : false;
+      setShowReplyBox(set);
+   }, [replyTo]);
 
    const messageHandler = async (e) => {
       e.preventDefault();
@@ -24,17 +31,16 @@ function MessageArea({
          to: chatwith._id,
          message: message,
          type: "person",
-         replyTo: "",
+         replyTo: replyTo?.id,
          media: "",
       };
-
       await sendMessage(details);
-
+      dispatch(clearReplyto());
       setMessage("");
    };
 
    return (
-      <div className={`flex-1 grow border-gray-300 flex flex-col`}>
+      <div className={`flex-1 grow bg-yellow-50 border-gray-300 flex flex-col`}>
          <div className="lg:w-full w-screen px-4 py-2 flex justify-between bg-gray-100">
             <div
                className="flex items-center gap-4"
@@ -54,9 +60,9 @@ function MessageArea({
                      {chatwith?.fullname || "anonymous"}
                   </h1>
                   <span className="text-gray-900 text-xs">
-                     {userOnline.some((item) => item._id === chatwith._id)
+                     {/* {userOnline.some((item) => item._id === chatwith._id)
                         ? "online"
-                        : "offline"}
+                        : "offline"} */}
                   </span>
                </div>
             </div>
@@ -74,11 +80,19 @@ function MessageArea({
             </button>
          </div>
 
-         <div className="w-full flex-auto bg-yellow-50 p-0 m-0 overflow-y-scroll scroll-smooth">
-            <MessageBox chatwith={chatwith} />
+         <div className="w-full flex-auto  p-0 m-0 overflow-y-scroll scroll-smooth">
+            <MessageBox />
          </div>
+         {showReplyBox ? (
+            <div className="lg:w-full border-[10px] w-screen bg-gray-50 px-6 lg:px-16 py-2 border-gray-100 ">
+               replying to
+               <div>{replyTo?.message}</div>
+            </div>
+         ) : (
+            ""
+         )}
 
-         <div className="lg:w-full w-screen px-1 lg:px-4 py-2 border-gray-200 ">
+         <div className="lg:w-full w-screen px-1 lg:px-4 py-2 border-gray-500 ">
             <form
                className="h-10 flex justify-between items-center px-2 lg:px-4 rounded-lg bg-gray-100"
                onSubmit={messageHandler}

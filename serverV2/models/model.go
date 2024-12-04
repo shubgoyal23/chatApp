@@ -27,7 +27,7 @@ type UserConnection struct {
 }
 
 type Message struct {
-	ID      string  `json:"_id"`
+	ID      string  `json:"id"`
 	From    string  `json:"from" binding:"required"`
 	To      string  `json:"to" binding:"required"`
 	Message string  `json:"message"`
@@ -38,7 +38,7 @@ type Message struct {
 }
 
 type MongoMessage struct {
-	ID      string             `json:"_id"`
+	ID      string             `json:"id"`
 	From    primitive.ObjectID `json:"from" binding:"required"`
 	To      primitive.ObjectID `json:"to" binding:"required"`
 	Message string             `json:"message"`

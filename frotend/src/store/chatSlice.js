@@ -5,12 +5,19 @@ const chatSlice = createSlice({
    name: "chat",
    initialState: {
       chattingwith: {},
+      replyto: null,
       connections: {},
       messagesQue: {},
    },
    reducers: {
       setChat(state, action) {
          state.chattingwith = action.payload;
+      },
+      setReplyto(state, action) {
+         state.replyto = action.payload;
+      },
+      clearReplyto(state, action) {
+         state.replyto = null;
       },
       setConnections(state, action) {
          action.payload.map((user) => {
@@ -31,7 +38,7 @@ const chatSlice = createSlice({
                   action.payload.data
                );
             }
-            SetMessageToLS(action.payload.data, true)
+            SetMessageToLS(action.payload.data, true);
          } else {
             if (!state.messagesQue[action.payload.data.from]) {
                state.messagesQue[action.payload.data.from] = [
@@ -42,7 +49,7 @@ const chatSlice = createSlice({
                   action.payload.data
                );
             }
-            SetMessageToLS(action.payload.data, false)
+            SetMessageToLS(action.payload.data, false);
          }
       },
       EmptyMessages(state, action) {
@@ -53,6 +60,13 @@ const chatSlice = createSlice({
    },
 });
 
-export const { setChat, setConnections, messageHandler, addConnection, EmptyMessages } =
-   chatSlice.actions;
+export const {
+   setChat,
+   setConnections,
+   messageHandler,
+   addConnection,
+   EmptyMessages,
+   setReplyto,
+   clearReplyto,
+} = chatSlice.actions;
 export default chatSlice.reducer;

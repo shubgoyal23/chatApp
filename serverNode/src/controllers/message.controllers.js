@@ -39,7 +39,7 @@ const allMessage = asyncHandler(async (req, res) => {
          { from: user._id, to: to },
          { from: to, to: user._id },
       ],
-   }).sort({ createdAt: 1 }).limit(50)
+   }).sort({ createdAt: 1 }).limit(50).select("-__v -_id");
 
    return res
       .status(200)

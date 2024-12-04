@@ -18,15 +18,18 @@ const messageSchema = new mongoose.Schema(
       },
       type: {
          type: String,
-         emun: ["text", "image", "document"],
       },
-      isEdited: {
-         type: Boolean,
-         default: false,
+      media: {
+         type: String,
       },
-      isDeleted: {
-         type: Boolean,
-         default: false,
+      replyTo: {
+         type: String,
+      },
+      epoch: {
+         type: Number,
+      },
+      id: {
+         type: String,
       },
    },
    { timestamps: true }
