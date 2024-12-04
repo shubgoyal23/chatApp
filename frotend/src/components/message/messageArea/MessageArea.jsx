@@ -23,7 +23,7 @@ function MessageArea({
          from: user._id,
          to: chatwith._id,
          message: message,
-         type: "p2p",
+         type: "person",
          replyTo: "",
          media: "",
       };

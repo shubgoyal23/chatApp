@@ -64,12 +64,14 @@ function SocketConnect() {
             </Suspense>
          ) : (
             <div className="h-screen w-screen flex flex-col justify-center items-center">
-               <h1>Loading Your Messages</h1>
+               <h1 className="mb-2 text-xl font-semibold">Loading Your Messages</h1>
+               <div className="max-w-[420px] w-full h-[6px] m-0 p-0 flex justify-center items-center overflow-hidden rounded-full">
                <progress
-                  className="max-w-[420px] w-full h-[6px] bg-lime-600 m-0"
+                  className="max-w-[420px] w-full h-[6px] bg-lime-500 m-0"
                   value={progress}
                   max={100}
                />
+               </div>
             </div>
          )}
       </div>
