@@ -1,6 +1,15 @@
 import { Router } from "express";
 import { verifyJWT } from "../middleware/auth.middleware.js";
-import { AddAdmin, AddMembers, CreateGroup, DeleteGroup, removeAdmin, RemoveMembers } from "../controllers/group.controller.js";
+import {
+   AddAdmin,
+   AddMembers,
+   changeDescription,
+   changeName,
+   CreateGroup,
+   DeleteGroup,
+   RemoveAdmin,
+   RemoveMembers,
+} from "../controllers/group.controller.js";
 
 const router = Router();
 
@@ -10,6 +19,9 @@ router.route("/delete").post(verifyJWT, DeleteGroup);
 router.route("/add/member").post(verifyJWT, AddMembers);
 router.route("/add/admin").post(verifyJWT, AddAdmin);
 router.route("/remove/member").post(verifyJWT, RemoveMembers);
-router.route("/remove/admin").post(verifyJWT, removeAdmin);
+router.route("/remove/admin").post(verifyJWT, RemoveAdmin);
+
+router.route("/description").post(verifyJWT, changeDescription);
+router.route("/name").post(verifyJWT, changeName);
 
 export default router;

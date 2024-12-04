@@ -144,35 +144,6 @@ const RemoveMembers = asyncHandler(async (req, res) => {
       .status(200)
       .json(new ApiResponse(201, grp, "members removed Successfully"));
 });
-const changeDescription = asyncHandler(async (req, res) => {
-   const { description, grpId } = req.body;
-   const user = req.user;
-
-   if (!grpId) {
-      throw new ApiError(400, `group id is required`);
-   }
-
-   if (!description) {
-      throw new ApiError(400, "description is required");
-   }
-
-   const grp = await Group.findById(grpId);
-
-   if (!grp) {
-      throw new ApiError(400, `group does not exist`);
-   }
-
-   if (!grp?.admins?.includes(user._id)) {
-      throw new ApiError(400, "You need to be admin to add members");
-   }
-
-   grp.description = description;
-   await grp.save();
-
-   return res
-      .status(200)
-      .json(new ApiResponse(201, grp, "members removed Successfully"));
-});
 
 const AddAdmin = asyncHandler(async (req, res) => {
    const { adminid, grpId } = req.body;
@@ -248,6 +219,66 @@ const RemoveAdmin = asyncHandler(async (req, res) => {
       .json(new ApiResponse(201, grp, "admin removed Successfully"));
 });
 
+const changeName = asyncHandler(async (req, res) => {
+   const { name, grpId } = req.body;
+   const user = req.user;
+
+   if (!grpId) {
+      throw new ApiError(400, `group id is required`);
+   }
+
+   if (!name) {
+      throw new ApiError(400, "name is required");
+   }
+
+   const grp = await Group.findById(grpId);
+
+   if (!grp) {
+      throw new ApiError(400, `group does not exist`);
+   }
+
+   if (!grp?.admins?.includes(user._id)) {
+      throw new ApiError(400, "You need to be admin to add members");
+   }
+
+   grp.groupname = name;
+   await grp.save();
+
+   return res
+      .status(200)
+      .json(new ApiResponse(201, grp, "group name changed Successfully"));
+});
+
+const changeDescription = asyncHandler(async (req, res) => {
+   const { description, grpId } = req.body;
+   const user = req.user;
+
+   if (!grpId) {
+      throw new ApiError(400, `group id is required`);
+   }
+
+   if (!description) {
+      throw new ApiError(400, "description is required");
+   }
+
+   const grp = await Group.findById(grpId);
+
+   if (!grp) {
+      throw new ApiError(400, `group does not exist`);
+   }
+
+   if (!grp?.admins?.includes(user._id)) {
+      throw new ApiError(400, "You need to be admin to add members");
+   }
+
+   grp.description = description;
+   await grp.save();
+
+   return res
+      .status(200)
+      .json(new ApiResponse(201, grp, "description changed Successfully"));
+});
+
 export {
    CreateGroup,
    AddMembers,
@@ -255,5 +286,6 @@ export {
    changeDescription,
    DeleteGroup,
    AddAdmin,
-   removeAdmin,
+   RemoveAdmin,
+   changeName
 };

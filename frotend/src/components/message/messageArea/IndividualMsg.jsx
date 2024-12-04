@@ -22,7 +22,7 @@ function IndividualMsg({ data }) {
       >
          <div
             className={`relative flex flex-col max-w-[80%] w-content pl-2 pt-2 pb-1 pr-1 rounded-lg shadow ${
-               you ? " bg-lime-400" : "bg-amber-200 "
+               you ? " bg-lime-300" : "bg-amber-100 "
             }`}
          >
             <span className="absolute right-0 top-1 cursor-pointer opacity-0 hover:opacity-100 group w-6 h-6">
@@ -34,8 +34,8 @@ function IndividualMsg({ data }) {
             <span
                className={`border-4 absolute top-3 rotate-45 z-0 shadow-sm ${
                   you
-                     ? "left-full -translate-x-1 border-lime-400"
-                     : "-left-1 border-amber-200"
+                     ? "left-full -translate-x-1 border-lime-300"
+                     : "-left-1 border-amber-100"
                }`}
             ></span>
             <h2 className="mb-1 pr-6">{data?.message}</h2>
