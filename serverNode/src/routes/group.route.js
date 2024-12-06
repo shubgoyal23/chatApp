@@ -5,11 +5,13 @@ import {
    AddMembers,
    changeDescription,
    changeName,
+   checkGroupUniqueness,
    CreateGroup,
    DeleteGroup,
    RemoveAdmin,
    RemoveMembers,
 } from "../controllers/group.controller.js";
+import { ApiError } from "../utils/ApiError.js";
 
 const router = Router();
 
@@ -23,5 +25,21 @@ router.route("/remove/admin").post(verifyJWT, RemoveAdmin);
 
 router.route("/description").post(verifyJWT, changeDescription);
 router.route("/name").post(verifyJWT, changeName);
+router.route("/check-group-name").post(verifyJWT, checkGroupUniqueness);
 
+router.use((err, req, res, next) => {
+   if (err instanceof ApiError) {
+      res.status(err.statusCode).json({
+         success: false,
+         message: err.message,
+         errors: err.errors,
+      });
+   } else {
+      console.error(err);
+      res.status(500).json({
+         success: false,
+         message: err.message,
+      });
+   }
+});
 export default router;

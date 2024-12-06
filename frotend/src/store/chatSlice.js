@@ -40,14 +40,26 @@ const chatSlice = createSlice({
             }
             SetMessageToLS(action.payload.data, true);
          } else {
-            if (!state.messagesQue[action.payload.data.from]) {
-               state.messagesQue[action.payload.data.from] = [
-                  action.payload.data,
-               ];
+            if (action.payload.data.type === "group") {
+               if (!state.messagesQue[action.payload.data.to]) {
+                  state.messagesQue[action.payload.data.to] = [
+                     action.payload.data,
+                  ];
+               } else {
+                  state.messagesQue[action.payload.data.to]?.push(
+                     action.payload.data
+                  );
+               }
             } else {
-               state.messagesQue[action.payload.data.from]?.push(
-                  action.payload.data
-               );
+               if (!state.messagesQue[action.payload.data.from]) {
+                  state.messagesQue[action.payload.data.from] = [
+                     action.payload.data,
+                  ];
+               } else {
+                  state.messagesQue[action.payload.data.from]?.push(
+                     action.payload.data
+                  );
+               }
             }
             SetMessageToLS(action.payload.data, false);
          }

@@ -73,6 +73,7 @@ const registerUser = asyncHandler(async (req, res) => {
       username,
       password,
       email,
+      accountType: "user",
    });
 
    const user = await User.findById(userCreated._id).select("_id email username fullname avatar");

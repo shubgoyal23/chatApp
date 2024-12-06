@@ -122,9 +122,9 @@ func UserSocketHandler(userid string) {
 		CloseUserConnection(userid)
 	}()
 
-	AllConns.Mu.Lock()
+	AllConns.Mu.RLock()
 	userconn := AllConns.Conn[userid]
-	AllConns.Mu.Unlock()
+	AllConns.Mu.RUnlock()
 
 	// handle the WebSocket connection
 	for {
@@ -150,24 +150,19 @@ func UserSocketHandler(userid string) {
 			continue
 		}
 		if msg.Type == models.P2p {
-			go SendMessagestoUser(msg)
+			go SendMessagestoUser(msg, userconn)
 		} else if msg.Type == models.Grp {
-
+			go SendMessagestoGroup(msg)
 		} else if msg.Type == models.Chat {
 
 		} else {
 			continue
 		}
 		go SavemessageToDB(msg)
-		msge, _ := json.Marshal(msg)
-		m, _ := EncryptKeyAES(msge, userconn.UserInfo, true)
-		if err := userconn.WS.WriteMessage(websocket.TextMessage, []byte(m)); err != nil {
-			fmt.Println("Error sending message:", err)
-		}
 	}
 }
 
-func SendMessagestoUser(message models.Message) {
+func SendMessagestoUser(message models.Message, sender models.UserConnection) {
 	to := message.To
 	AllConns.Mu.RLock()
 	sendUser, ok := AllConns.Conn[to]
@@ -183,6 +178,46 @@ func SendMessagestoUser(message models.Message) {
 	if err := sendUser.WS.WriteMessage(websocket.TextMessage, []byte(m)); err != nil {
 		fmt.Println("Error sending message:", err)
 	}
+	ms, _ := EncryptKeyAES(msg, sender.UserInfo, true)
+	if err := sender.WS.WriteMessage(websocket.TextMessage, []byte(ms)); err != nil {
+		fmt.Println("Error sending message:", err)
+	}
+}
+
+func SendMessagestoGroup(message models.Message) {
+	to := message.To
+	members, err := GetAllRedisSetMemeber(fmt.Sprintf("group:%s", to))
+	if err != nil {
+		return
+	}
+	sendTo := []models.UserConnection{}
+	offline := []string{}
+
+	AllConns.Mu.RLock()
+	for _, userid := range members {
+		reciever, ok := AllConns.Conn[userid]
+		if ok {
+			sendTo = append(sendTo, reciever)
+		} else {
+			offline = append(offline, userid)
+		}
+	}
+	AllConns.Mu.RUnlock()
+	msg, _ := json.Marshal(message)
+	go func() {
+		for _, sendUser := range sendTo {
+			m, _ := EncryptKeyAES(msg, sendUser.UserInfo, true)
+			if err := sendUser.WS.WriteMessage(websocket.TextMessage, []byte(m)); err != nil {
+				fmt.Println("Error sending message:", err)
+			}
+		}
+	}()
+
+	// handle offline users and users on other vm
+	if len(offline) > 0 {
+		// todo
+	}
+
 }
 
 // save message to db

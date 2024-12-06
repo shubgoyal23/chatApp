@@ -51,7 +51,7 @@ type MongoMessage struct {
 type MsgType string
 
 const (
-	P2p  MsgType = "person"
+	P2p  MsgType = "user"
 	Grp  MsgType = "group"
 	Chat MsgType = "chat"
 	Ping MsgType = "ping"

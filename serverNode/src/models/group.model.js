@@ -2,11 +2,11 @@ import mongoose from "mongoose";
 
 const GroupSchema = new mongoose.Schema(
    {
-      groupname: {
+      fullname: {
          type: String,
          required: true,
       },
-      groupUniqueName: {
+      username: {
          type: String,
          index: true,
          unique: true,
@@ -31,7 +31,8 @@ const GroupSchema = new mongoose.Schema(
          ref: "User",
       },
       avatar: String,
-      description: String,
+      about: String,
+      accountType: String
    },
    {
       timestamps: true,

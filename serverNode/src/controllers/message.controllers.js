@@ -2,6 +2,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { Message } from "../models/message.model.js";
+import { Group } from "../models/group.model.js";
 
 // const newMessage = asyncHandler(async (req, res) => {
 //    const { to, message } = req.body;
@@ -39,7 +40,10 @@ const allMessage = asyncHandler(async (req, res) => {
          { from: user._id, to: to },
          { from: to, to: user._id },
       ],
-   }).sort({ createdAt: 1 }).limit(50).select("-__v -_id");
+   })
+      .sort({ createdAt: 1 })
+      .limit(50)
+      .select("-__v -_id");
 
    return res
       .status(200)
@@ -88,6 +92,10 @@ const userContacts = asyncHandler(async (req, res) => {
          },
       },
    ]);
+
+   const groups = await Group.find({ members: user._id });
+   
+   listMessage.push(...groups);
 
    return res
       .status(200)

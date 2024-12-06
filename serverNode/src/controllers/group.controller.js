@@ -5,15 +5,21 @@ import { User } from "../models/user.model.js";
 import { Group } from "../models/group.model.js";
 
 const CreateGroup = asyncHandler(async (req, res) => {
-   const { name, username, description, members } = req.body;
+   const { groupname, groupUniqueName, description, members } = req.body;
    const user = req.user;
 
-   if ([name].some((field) => field?.trim() === undefined)) {
-      throw new ApiError(400, `${field} is required`);
+   if (!groupname || !groupUniqueName || !description) {
+      throw new ApiError(400, `All fields are required`);
    }
+
    if (!members || members.length < 1) {
       throw new ApiError(400, `At least one member is required`);
    }
+   const check = await Group.findOne({ groupUniqueName });
+   if (check) {
+      throw new ApiError(400, `group name already exists`);
+   }
+   let m = [];
    for (let i = 0; i < members.length; i++) {
       const findusers = await User.findById(members[i]);
       if (!findusers) {
@@ -22,15 +28,17 @@ const CreateGroup = asyncHandler(async (req, res) => {
             `members contain one or more members which does not exists`
          );
       }
+      m.push(findusers._id);
    }
 
    const grp = await Group.create({
-      groupname: name,
+      fullname: groupname,
       admins: [user._id],
-      username,
-      members,
-      description,
+      username: groupUniqueName,
+      members: [...m, user._id],
+      about: description,
       createdBy: user._id,
+      accountType: "group",
    });
 
    if (!grp) {
@@ -192,10 +200,7 @@ const RemoveAdmin = asyncHandler(async (req, res) => {
    }
    const findusers = await User.findById(adminid);
    if (!findusers) {
-      throw new ApiError(
-         400,
-         `invalid admin id`
-      );
+      throw new ApiError(400, `invalid admin id`);
    }
    const grp = await Group.findById(grpId);
 
@@ -279,6 +284,26 @@ const changeDescription = asyncHandler(async (req, res) => {
       .json(new ApiResponse(201, grp, "description changed Successfully"));
 });
 
+const checkGroupUniqueness = asyncHandler(async (req, res) => {
+   const { groupUniqueName } = req.body;
+   const user = req.user;
+
+   if (!groupUniqueName) {
+      throw new ApiError(400, "username is required");
+   }
+
+   const grp = await Group.findOne({ groupUniqueName: groupUniqueName });
+
+   if (grp) {
+      return res
+         .status(200)
+         .json(new ApiResponse(218, null, "group name is not available"));
+   }
+
+   return res
+      .status(200)
+      .json(new ApiResponse(200, null, "group name is available"));
+});
 export {
    CreateGroup,
    AddMembers,
@@ -287,5 +312,6 @@ export {
    DeleteGroup,
    AddAdmin,
    RemoveAdmin,
-   changeName
+   changeName,
+   checkGroupUniqueness,
 };

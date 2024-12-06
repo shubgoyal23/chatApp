@@ -56,6 +56,7 @@ const UserSchema = new mongoose.Schema(
       avatar: String,
       about: String,
       refreshToken: String,
+      accountType: String,
    },
    {
       timestamps: true,

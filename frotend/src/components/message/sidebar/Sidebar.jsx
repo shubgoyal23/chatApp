@@ -6,6 +6,7 @@ import Edituser from "./Edituser";
 import UserLabel from "./UserLabel";
 import { setConnections } from "../../../store/chatSlice";
 import conf from "../../../constance/conf";
+import Options from "./Options";
 
 function Sidebar({ sidNav, setSideNav }) {
    const [search, setSearch] = useState("");
@@ -109,12 +110,9 @@ function Sidebar({ sidNav, setSideNav }) {
             </div>
 
             <div
-               className="hidden lg:flex justify-center cursor-pointer items-center text-xl"
-               onClick={() => {
-                  setEdit((prev) => !prev);
-               }}
+               className="relative hidden lg:flex justify-center cursor-pointer items-center text-xl"
             >
-               <span className="material-symbols-outlined ">more_vert</span>
+               <Options />
             </div>
 
             <button

@@ -43,7 +43,7 @@ function MessageArea({ sidNav, setSideNav, setShowChattingWithDetails }) {
          from: user._id,
          to: chatwith._id,
          message: message,
-         type: "person",
+         type: chatwith.accountType ?? "user",
          replyTo: replyTo?.id,
          media: "",
       };

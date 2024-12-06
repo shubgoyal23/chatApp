@@ -134,6 +134,22 @@ func DeleteRedisSetMemeber(key string, val string) (bool, error) {
 	return true, nil
 }
 
+// get all redis set member
+func GetAllRedisSetMemeber(key string) ([]string, error) {
+	rc := RedigoConn.Get()
+	defer rc.Close()
+	if _, er := rc.Do("PING"); er != nil {
+		// LogError("DeleteRedisSetMemeber", "Redis not connected", er)
+		return nil, er
+	}
+	members, err := redis.Strings(rc.Do("SMEMBERS", key))
+	if err != nil {
+		// LogError("DeleteRedisSetMemeber", fmt.Sprintf("cannot delete in redis set key: %s with value: %s", key, val), err)
+		return nil, err
+	}
+	return members, nil
+}
+
 func GetRedisKeyVal(key string) (string, error) {
 	rc := RedigoConn.Get()
 	defer rc.Close()

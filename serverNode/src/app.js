@@ -19,7 +19,7 @@ import userRouter from "./routes/user.route.js";
 import messageRouter from "./routes/message.route.js";
 import groupRouter from "./routes/group.route.js";
 app.get("/ping", (req, res) => {
-   res.send("pong")
+   res.send("pong");
 })
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/message", messageRouter);
