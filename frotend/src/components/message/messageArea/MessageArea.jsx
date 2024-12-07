@@ -53,7 +53,9 @@ function MessageArea({ sidNav, setSideNav, setShowChattingWithDetails }) {
    };
 
    return (
-      <div className={`flex-1 grow bg-purple-50 bg-contained border-gray-300 flex flex-col`}>
+      <div
+         className={`flex-1 grow bg-purple-50 bg-contained border-gray-300 flex flex-col`}
+      >
          <div className="lg:w-full w-screen px-4 py-2 flex justify-between bg-gray-100">
             <div
                className="flex items-center gap-4"
@@ -98,9 +100,19 @@ function MessageArea({ sidNav, setSideNav, setShowChattingWithDetails }) {
          </div>
          <div className="lg:w-full w-screen border-gray-500 rounded-md flex flex-col">
             {showReplyBox ? (
-               <div className="w-full px-1 lg:px-4 pt-0 pb-0 lg:w-full border-[10px] w-screen bg-gray-50 px-6 lg:px-16 py-2 border-gray-100 ">
-                  replying to
-                  <div>{replyTo?.message}</div>
+               <div className="w-full px-1 lg:px-4 pt-0">
+                  <div className="flex h-16 justify-between items-center px-2 lg:px-4 py-[6px] rounded-lg bg-gray-100">
+                     <span className="text-sm text-red-500">replying to :</span>
+                     <span className="line-clamp-1 grow bg-black/10 h-full px-2 py-2 mx-2 rounded-md flex justify-start items-center">
+                        {replyTo?.message}
+                     </span>
+                     <span
+                        className="material-symbols-outlined transition-all ease-in-out duration-700 cursor-pointer"
+                        onClick={() => setShowReplyBox(false)}
+                     >
+                        close
+                     </span>
+                  </div>
                </div>
             ) : (
                ""

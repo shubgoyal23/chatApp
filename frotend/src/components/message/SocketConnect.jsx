@@ -57,17 +57,17 @@ function SocketConnect() {
    }, [socket]);
 
    return (
-      <div>
+      <div className="h-screen w-screen bg-[url('/earth.webp')] bg-cover">
          {socketConnected ? (
             <Suspense>
                <MessageApp />
             </Suspense>
          ) : (
             <div className="h-screen w-screen flex flex-col justify-center items-center">
-               <h1 className="mb-2 text-xl font-semibold">Loading Your Messages</h1>
-               <div className="max-w-[420px] w-full h-[6px] m-0 p-0 flex justify-center items-center overflow-hidden rounded-full">
+               <h1 className="mb-4 text-3xl text-white font-bold">Loading Your Messages</h1>
+               <div className="lg:max-w-[420px] w-3/5 h-1 m-0 p-0 flex justify-center items-center overflow-hidden rounded-full">
                <progress
-                  className="max-w-[420px] w-full h-[6px] bg-lime-500 m-0"
+                  className="lg:max-w-[420px] w-full h-1 m-0"
                   value={progress}
                   max={100}
                />
