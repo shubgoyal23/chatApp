@@ -4,11 +4,15 @@ import { connectSocket } from "../../helper/ConnectSocket";
 import { decryptDataAES, GetkeyAes } from "../../helper/AEShelper";
 import { socket } from "../../socket";
 import { messageHandler } from "../../store/chatSlice";
+import VideoCall from "../videocall/VideoCall";
+import { setIncommingCall } from "../../store/videoSlice";
+import { AcceptWebrtcAnswer, HandleWebrtcOffer } from "../../webrtc";
 
 function SocketConnect() {
    const dispatch = useDispatch();
 
    const user = useSelector((state) => state.login.userdata);
+   const isInCall = useSelector((state) => state.video.isInCall);
    const [socketConnected, setScoketConnected] = useState(false);
    const [progress, setProgress] = useState(10);
    const MessageApp = React.lazy(() => import("./MessageApp"));
@@ -45,6 +49,18 @@ function SocketConnect() {
          socket.onmessage = async (event) => {
             const msg = await decryptDataAES(event.data);
             const data = JSON.parse(msg);
+            if (data.type === "offer") {
+               if (!isInCall){
+                  dispatch(setIncommingCall(data));
+               }
+               return;
+            }
+            if (data.type === "answer") {
+               if (isInCall){
+                  AcceptWebrtcAnswer(data);
+               }
+               return;
+            }
             if (data) {
                const d = {
                   self: data.from === user._id,
@@ -57,21 +73,31 @@ function SocketConnect() {
    }, [socket]);
 
    return (
-      <div className="h-screen w-screen bg-[url('/earth.webp')] bg-cover">
-         {socketConnected ? (
-            <Suspense>
-               <MessageApp />
-            </Suspense>
-         ) : (
+      <div className="h-screen w-screen">
+         {isInCall ? (
             <div className="h-screen w-screen flex flex-col justify-center items-center">
-               <h1 className="mb-4 text-3xl text-white font-bold">Loading Your Messages</h1>
-               <div className="lg:max-w-[420px] w-3/5 h-1 m-0 p-0 flex justify-center items-center overflow-hidden rounded-full">
-               <progress
-                  className="lg:max-w-[420px] w-full h-1 m-0"
-                  value={progress}
-                  max={100}
-               />
-               </div>
+               <VideoCall />
+            </div>
+         ) : (
+            <div className="h-screen w-screen bg-[url('/earth.webp')] bg-cover">
+               {socketConnected ? (
+                  <Suspense>
+                     <MessageApp />
+                  </Suspense>
+               ) : (
+                  <div className="h-screen w-screen flex flex-col justify-center items-center">
+                     <h1 className="mb-4 text-3xl text-white font-bold">
+                        Loading Your Messages
+                     </h1>
+                     <div className="lg:max-w-[420px] w-3/5 h-1 m-0 p-0 flex justify-center items-center overflow-hidden rounded-full">
+                        <progress
+                           className="lg:max-w-[420px] w-full h-1 m-0"
+                           value={progress}
+                           max={100}
+                        />
+                     </div>
+                  </div>
+               )}
             </div>
          )}
       </div>

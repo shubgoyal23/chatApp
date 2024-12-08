@@ -155,6 +155,12 @@ func UserSocketHandler(userid string) {
 			go SendMessagestoGroup(msg)
 		} else if msg.Type == models.Chat {
 
+		} else if msg.Type == models.Offer {
+			go HandleWebrtcOffer(msg)
+			continue
+		} else if msg.Type == models.Answer {
+			go HandleWebrtcOffer(msg)
+			continue
 		} else {
 			continue
 		}
@@ -253,5 +259,22 @@ func CloseUserConnection(userid string) {
 	AllConns.Mu.Unlock()
 	if err := userconn.WS.Close(); err != nil {
 		fmt.Println("Error closing connection:", err)
+	}
+}
+
+func HandleWebrtcOffer(offer models.Message) {
+	to := offer.To
+
+	AllConns.Mu.RLock()
+	sendUser, ok := AllConns.Conn[to]
+	AllConns.Mu.RUnlock()
+	if !ok {
+		// todo
+		return
+	}
+	msg, _ := json.Marshal(offer)
+	m, _ := EncryptKeyAES(msg, sendUser.UserInfo, true)
+	if err := sendUser.WS.WriteMessage(websocket.TextMessage, []byte(m)); err != nil {
+		fmt.Println("Error sending message:", err)
 	}
 }
