@@ -57,4 +57,5 @@ const (
 	Ping   MsgType = "ping"
 	Offer  MsgType = "offer"
 	Answer MsgType = "answer"
+	Ice    MsgType = "candidate"
 )

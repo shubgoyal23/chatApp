@@ -155,10 +155,7 @@ func UserSocketHandler(userid string) {
 			go SendMessagestoGroup(msg)
 		} else if msg.Type == models.Chat {
 
-		} else if msg.Type == models.Offer {
-			go HandleWebrtcOffer(msg)
-			continue
-		} else if msg.Type == models.Answer {
+		} else if msg.Type == models.Offer || msg.Type == models.Ice || msg.Type == models.Answer {
 			go HandleWebrtcOffer(msg)
 			continue
 		} else {

@@ -2,89 +2,159 @@ import React, { useEffect, useState } from "react";
 import ReactPlayer from "react-player";
 import {
    AddTrackToWebconn,
+   CreateWebrtcIceConnection,
    GetVideoStream,
    HandleWebrtcAnswer,
    HandleWebrtcOffer,
    remotestream,
-   remoteStreamHnandler,
    setNewWebconn,
    stream,
+   webconn,
 } from "../../webrtc";
 import { useSelector } from "react-redux";
-import { set } from "lodash";
 
 function VideoCall() {
    const chatwith = useSelector((state) => state.chat.chattingwith);
    const user = useSelector((state) => state.login.userdata);
+   const isinCall = useSelector((state) => state.video.isinCall);
    const callType = useSelector((state) => state.video.callType);
+
    const [incoCall, setIncoCall] = useState(false);
-   const [remoteS, setRemoteS] = useState(null);
-   const [localS, setLocalS] = useState(null);
+   const [remoteS, setRemoteS] = useState(remotestream);
+   const [localS, setLocalS] = useState(stream);
 
    const [err, setErr] = useState(null);
 
-   const startVideo = async (to, from) => {
+   const HandelOutgoingCall = async () => {
       try {
-         await GetVideoStream();
+         console.log("called outgoing call");
          await setNewWebconn();
-         await AddTrackToWebconn();
-         const off = {
+         await GetVideoStream();
+         await HandleWebrtcOffer({
+            to: chatwith._id,
+            from: user._id,
             type: "offer",
-            to,
-            from,
-         };
-         await HandleWebrtcOffer(off);
-         // const remoteStream = remoteStreamHnandler();
-         // setRemoteStream(remoteStream);
+         });
+         await AddTrackToWebconn();
+         await CreateWebrtcIceConnection({
+            to: chatwith._id,
+            from: user._id,
+            type: "candidate",
+         });
+         console.log(webconn.iceGatheringState)
       } catch (error) {
-         setErr("unable to get video stream");
          console.log(error);
       }
    };
 
    const HandelIncommingCall = async () => {
-      setIncoCall(false);
-      await GetVideoStream();
-      await setNewWebconn();
-      await AddTrackToWebconn();
-      await HandleWebrtcAnswer(callType.incommingCall);
-      await remoteStreamHnandler();
-   };
-   useEffect(() => {
-      if (callType?.incommingCall) {
-         setIncoCall(true);
-      } else if (callType?.outgoingCall) {
-         startVideo(chatwith._id, user._id);
+      console.log("called incomming call");
+      try {
+         setIncoCall(false);
+         await setNewWebconn();
+         await GetVideoStream();
+         await HandleWebrtcAnswer(callType.incommingCall);
+         await AddTrackToWebconn();
+         await CreateWebrtcIceConnection({
+            type: "candidate",
+            to: callType.incommingCall.from,
+            from: callType.incommingCall.to,
+         });
+         console.log(webconn.iceGatheringState)
+      } catch (error) {
+         console.log(error);
       }
-      // return () => {
-      //    if (stream) {
-      //       stream.getTracks().forEach((track) => track.stop());
-      //    }
-      // };
-   }, [callType]);
+   };
 
    useEffect(() => {
-      console.log(stream);
+      console.log("call type", callType);
+
+      if (callType.outgoingCall) {
+         HandelOutgoingCall();
+      } else if (callType.incommingCall) {
+         setIncoCall(true);
+      }
+   }, []);
+
+   useEffect(() => {
       if (stream) {
          setLocalS(stream);
       }
-      // return () => {
-      //    if (stream) {
-      //       stream.getTracks().forEach((track) => track.stop());
-      //    }
-      // };
-   }, [stream]);
-   useEffect(() => {
-      console.log(remotestream);
       if (remotestream) {
          setRemoteS(remotestream);
       }
-      // return () => {
-      //    if (se) {
-      //       stream.getTracks().forEach((track) => track.stop());
-      //    }
-      // };
-   }, [remotestream]);
+   }, [remotestream, stream]);
+
+   // const startVideo = async (to, from) => {
+   //    try {
+   //       await GetVideoStream();
+   //       await setNewWebconn();
+   //       await AddTrackToWebconn();
+   //       const off = {
+   //          type: "offer",
+   //          to,
+   //          from,
+   //       };
+   //       await HandleWebrtcOffer(off);
+   //       await CreateWebrtcIceConnection({ type: "candidate", to, from });
+   //       // const remoteStream = remoteStreamHnandler();
+   //       // setRemoteStream(remoteStream);
+   //    } catch (error) {
+   //       setErr("unable to get video stream");
+   //       console.log(error);
+   //    }
+   // };
+
+   // const HandelIncommingCall_old = async () => {
+   //    setIncoCall(false);
+   //    await GetVideoStream();
+   //    await setNewWebconn();
+   //    await AddTrackToWebconn();
+   //    await HandleWebrtcAnswer(callType.incommingCall);
+   //    console.log(callType.incommingCall);
+   //    await remoteStreamHnandler();
+   //    let ansData = {
+   //       type: "candidate",
+   //       to: callType.incommingCall.from,
+   //       from: callType.incommingCall.to,
+   //    };
+   //    await CreateWebrtcIceConnection(ansData);
+   // };
+   // useEffect(() => {
+   //    if (callType?.incommingCall) {
+   //       setIncoCall(true);
+   //    } else if (callType?.outgoingCall) {
+   //       startVideo(chatwith._id, user._id);
+   //    }
+   //    // return () => {
+   //    //    if (stream) {
+   //    //       stream.getTracks().forEach((track) => track.stop());
+   //    //    }
+   //    // };
+   // }, [callType]);
+
+   // useEffect(() => {
+   //    console.log(stream);
+   //    if (stream) {
+   //       setLocalS(stream);
+   //    }
+   //    // return () => {
+   //    //    if (stream) {
+   //    //       stream.getTracks().forEach((track) => track.stop());
+   //    //    }
+   //    // };
+   // }, [stream]);
+   // useEffect(() => {
+   //    console.log(remotestream);
+   //    if (remotestream) {
+   //       setRemoteS(remotestream);
+   //    }
+   //    // return () => {
+   //    //    if (se) {
+   //    //       stream.getTracks().forEach((track) => track.stop());
+   //    //    }
+   //    // };
+   // }, [remotestream]);
 
    return (
       <div className="w-full h-full text-black">

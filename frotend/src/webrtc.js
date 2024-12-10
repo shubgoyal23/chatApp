@@ -3,13 +3,32 @@ import { sendMessage } from "./socket";
 export let webconn = null;
 export let stream = null;
 export let remotestream = null;
+export let ice = [];
+
+var configuration = {
+   iceServers: [
+      { urls: "stun:stun.l.google.com:19302" },
+      { urls: "stun:stun.l.google.com:5349" },
+      { urls: "stun:stun1.l.google.com:3478" },
+      { urls: "stun:stun1.l.google.com:5349" },
+      { urls: "stun:stun2.l.google.com:19302" },
+      { urls: "stun:stun2.l.google.com:5349" },
+      { urls: "stun:stun3.l.google.com:3478" },
+      { urls: "stun:stun3.l.google.com:5349" },
+      { urls: "stun:stun4.l.google.com:19302" },
+      { urls: "stun:stun4.l.google.com:5349" }
+   ],
+};
 export const setNewWebconn = async () => {
-   webconn = new RTCPeerConnection({
-      iceServers: [
-         { urls: "stun:stun.l.google.com:19302" },
-         { urls: "stun:global.stun.twilio.com:3478" },
-      ],
-   });
+   webconn = new RTCPeerConnection(configuration);
+
+   webconn.onicecandidate = async (event) => {
+      console.log("ice", event);
+      if (event.candidate) {
+         console.log(event.candidate);
+         ice.push(event.candidate);
+      }
+   };
    return webconn;
 };
 
@@ -25,34 +44,24 @@ export const GetVideoStream = async () => {
 export const HandleWebrtcOffer = async (data) => {
    const offer = await webconn?.createOffer();
    webconn.setLocalDescription(offer);
-   const ice = await webconn.getLocalPeerICECandidates();
    const f = JSON.stringify(offer);
-   const i = JSON.stringify(ice);
    data.message = f;
-   data.media = i;
-
    await sendMessage(data);
 };
 export const HandleWebrtcAnswer = async (data) => {
-   await webconn.setRemoteDescription(JSON.parse(data.message));
-   await webconn.seticeCandidates(JSON.parse(data.media));
+   await webconn.setRemoteDescription(
+      new RTCSessionDescription(JSON.parse(data.message))
+   );
 
    const answer = await webconn.createAnswer();
-   const ice = await webconn.getLocalPeerICECandidates();
    await webconn.setLocalDescription(answer);
    let ansData = {
       type: "answer",
       message: JSON.stringify(answer),
       to: data.from,
       from: data.to,
-      media: JSON.stringify(ice),
    };
    await sendMessage(ansData);
-};
-export const AcceptWebrtcAnswer = async (data) => {
-   await webconn.setRemoteDescription(JSON.parse(data.message));
-   await webconn.seticeCandidates(JSON.parse(data.media));
-   await remoteStreamHnandler();
 };
 
 export const AddTrackToWebconn = async () => {
@@ -62,21 +71,30 @@ export const AddTrackToWebconn = async () => {
    }
 };
 
+export const AcceptWebrtcAnswer = async (data) => {
+   await webconn.setRemoteDescription(
+      new RTCSessionDescription(JSON.parse(data.message))
+   );
+   await remoteStreamHnandler();
+};
+
 export const remoteStreamHnandler = async () => {
    webconn.ontrack = (event) => {
       console.log("remote stream", event);
       remotestream = event.streams;
    };
-   // webconn.addEventListener("track", (event) => {
-   //    console.log(event);
-   //    return event;
-   // });
-   // const remoteStream = event.streams;
-   // return remoteStream;
 };
 
 export const CreateWebrtcIceConnection = async (data) => {
-   const ice = await webconn.getLocalPeerICECandidates();
    data.message = JSON.stringify(ice);
    await sendMessage(data);
+};
+
+// new RTCSessionDescription(offer)
+
+export const AcceptWebrtcIceConnection = async (data) => {
+   let i = JSON.parse(data.message);
+   for (let c of i) {
+      await webconn.addIceCandidate(new RTCIceCandidate(c));
+   }
 };

@@ -6,7 +6,7 @@ import { socket } from "../../socket";
 import { messageHandler } from "../../store/chatSlice";
 import VideoCall from "../videocall/VideoCall";
 import { setIncommingCall } from "../../store/videoSlice";
-import { AcceptWebrtcAnswer, HandleWebrtcOffer } from "../../webrtc";
+import { AcceptWebrtcAnswer, AcceptWebrtcIceConnection } from "../../webrtc";
 
 function SocketConnect() {
    const dispatch = useDispatch();
@@ -35,7 +35,7 @@ function SocketConnect() {
       const conn = async () => {
          if (user) {
             await connectSocket(user);
-            await GetkeyAes(user, true); // for local key
+            await GetkeyAes(user, true);
             setScoketConnected(true);
             setProgress(100);
          }
@@ -57,7 +57,13 @@ function SocketConnect() {
             }
             if (data.type === "answer") {
                if (isInCall){
-                  AcceptWebrtcAnswer(data);
+                  AcceptWebrtcAnswer(data);                
+               }
+               return;
+            }
+            if (data.type === "candidate") {
+               if (isInCall){
+                  AcceptWebrtcIceConnection(data);                
                }
                return;
             }
