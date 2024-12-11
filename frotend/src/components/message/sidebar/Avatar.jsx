@@ -10,7 +10,7 @@ function Avatar({ avatar, setavatar }) {
    let avatarArray = avatar_public_ids;
 
    function changeAvatar(imgUrl) {
-      fetch("/api/v1/users/avatar", {
+      fetch(`${conf.API_URL}/users/avatar`, {
          method: "POST",
          credentials: "include",
          headers: {

@@ -1,12 +1,12 @@
 import { configureStore } from "@reduxjs/toolkit";
 import loginSlice from "./loginSlice";
 import chatSlice from "./chatSlice";
-import Socket from "./socketSlice";
+import callSlice from "./callSlice";
 const chatStore = configureStore({
    reducer: {
       login: loginSlice,
       chat: chatSlice,
-      Socket: Socket,
+      call: callSlice,
    },
 });
 

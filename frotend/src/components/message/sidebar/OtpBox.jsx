@@ -31,7 +31,7 @@ function OtpBox({ numberOfDigits = 6, details, setUserDetails, setOtpBox }) {
       details.otp = data;
       details.otpFor = "updateDetails";
 
-      fetch("/api/v1/users/user-edit", {
+      fetch(`${conf.API_URL}/users/user-edit`, {
          method: "POST",
          credentials: "include",
          headers: {

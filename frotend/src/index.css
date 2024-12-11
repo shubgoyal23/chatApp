@@ -32,3 +32,11 @@ body {
 ::-webkit-scrollbar-thumb:hover {
    background: #555;
 }
+
+/* progress bar */
+
+progress::-webkit-progress-value {
+   background-color: #4042d9;
+}
+
+

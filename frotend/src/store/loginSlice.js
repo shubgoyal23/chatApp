@@ -1,4 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { closeWebSocket } from "../socket";
 
 const loginSlice = createSlice({
    name: "Login",
@@ -12,6 +13,7 @@ const loginSlice = createSlice({
          state.userdata = action.payload;
       },
       logout(state, action) {
+         closeWebSocket()
          state.isLoggedin = false;
          state.userdata = null;
       },

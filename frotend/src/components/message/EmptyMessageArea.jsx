@@ -10,7 +10,7 @@ function EmptyMessageArea({sidNav, setSideNav}) {
          <div className="">
             <div className="">
                <div className="flex justify-center items-center" style={{ opacity: 1 }}>
-                  <span data-icon="intro-md-beta-logo-light" className="">
+                  {/* <span data-icon="intro-md-beta-logo-light" className="">
                      <svg
                         viewBox="0 0 303 172"
                         width={360}
@@ -112,17 +112,16 @@ function EmptyMessageArea({sidNav, setSideNav}) {
                            stroke="#316474"
                         />
                      </svg>
-                  </span>
+                  </span> */}
                </div>
                <div className="" style={{ opacity: 1 }}>
                   <div className="text-4xl text-gray-700 text-center mt-10">
                      <h1>Chatzz</h1>
                   </div>
                   <div className="text-sm text-gray-700 text-center mt-6">
-                     Send and receive messages without keeping your phone
-                     online.
+                     Send and receive messages without worrying about security
                      <br />
-                     Use WhatsApp on up to 4 linked devices and 1 phone at the
+                     Use Chatzz on up to 4 linked devices and 1 phone at the
                      same time.
                   </div>
                </div>

@@ -5,6 +5,7 @@ import Avatar from "./Avatar";
 import UpdateDetails from "./UpdateDetails";
 import { Cloudinay_URL, avatar_public_ids } from "../../../constance/data";
 import OtpBox from "./OtpBox";
+import conf from "../../../constance/conf";
 
 function Edituser({ edit, setEdit }) {
    const dispatch = useDispatch();
@@ -19,7 +20,7 @@ function Edituser({ edit, setEdit }) {
    const user = useSelector((state) => state.login.userdata);
 
    function logoutHandler() {
-      fetch("/api/v1/users/logout", {
+      fetch(`${conf.API_URL}/users/logout`, {
          credentials: "include",
       })
          .then((res) => res.json())
@@ -30,7 +31,7 @@ function Edituser({ edit, setEdit }) {
    }
 
    function detailsUpdateSendOTPHandler() {
-      fetch("/api/v1/users/user-edit-otp", {
+      fetch(`${conf.API_URL}/users/user-edit-otp`, {
          method: "POST",
          credentials: "include",
          headers: {
@@ -50,7 +51,7 @@ function Edituser({ edit, setEdit }) {
    }
 
    function detailsUpdateHandler() {
-      fetch("/api/v1/users/user-edit", {
+      fetch(`${conf.API_URL}/users/user-edit`, {
          method: "POST",
          credentials: "include",
          headers: {

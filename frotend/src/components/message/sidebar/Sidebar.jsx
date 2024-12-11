@@ -1,38 +1,42 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { debounce } from "lodash";
 import { Cloudinay_URL, avatar_public_ids } from "../../../constance/data";
 import Edituser from "./Edituser";
 import UserLabel from "./UserLabel";
+import { setConnections } from "../../../store/chatSlice";
+import conf from "../../../constance/conf";
+import Options from "./Options";
 
 function Sidebar({ sidNav, setSideNav }) {
    const [search, setSearch] = useState("");
    const [findlist, setFindList] = useState([]);
    const [cache, setCache] = useState({});
    const [edit, setEdit] = useState(false);
+   const dispatch = useDispatch();
 
    const user = useSelector((state) => state.login.userdata);
+   const Connections = useSelector((state) => state.chat.connections);
 
-   const userContacted = useMemo(() => {
-      return () => {
-         fetch("/api/v1/message/contacts", {
-            method: "POST",
-            credentials: "include",
-            headers: {
-               "Content-Type": "application/json",
-            },
+   useEffect(() => {
+      fetch(`${conf.API_URL}/message/contacts`, {
+         method: "POST",
+         credentials: "include",
+         headers: {
+            "Content-Type": "application/json",
+         },
+      })
+         .then((res) => res.json())
+         .then((data) => {
+            let list = data?.data?.filter((item) => item._id !== user?._id);
+            setFindList(list);
+            dispatch(setConnections(list));
          })
-            .then((res) => res.json())
-            .then((data) => {
-               let list = data?.data?.filter((item) => item._id !== user?._id);
-               setFindList(list);
-            })
-            .catch((error) => console.error(error));
-      };
+         .catch((error) => console.error(error));
    }, []);
 
    const findusers = (search) => {
-      fetch("/api/v1/users/list", {
+      fetch(`${conf.API_URL}/users/list`, {
          method: "POST",
          credentials: "include",
          headers: {
@@ -55,7 +59,11 @@ function Sidebar({ sidNav, setSideNav }) {
 
    useEffect(() => {
       if (search === "") {
-         userContacted();
+         let list = [];
+         Object.values(Connections).forEach((value) => {
+            list.push(value);
+         });
+         setFindList(list);
       } else {
          if (cache[search]) {
             setFindList(cache[search]);
@@ -66,7 +74,7 @@ function Sidebar({ sidNav, setSideNav }) {
       return () => {
          debouncedFindUsers.cancel();
       };
-   }, [search, cache, debouncedFindUsers, userContacted]);
+   }, [search, cache, debouncedFindUsers, Connections]);
 
    return (
       <div
@@ -102,12 +110,9 @@ function Sidebar({ sidNav, setSideNav }) {
             </div>
 
             <div
-               className="hidden lg:flex justify-center cursor-pointer items-center text-xl"
-               onClick={() => {
-                  setEdit((prev) => !prev);
-               }}
+               className="relative hidden lg:flex justify-center cursor-pointer items-center text-xl"
             >
-               <span className="material-symbols-outlined ">more_vert</span>
+               <Options />
             </div>
 
             <button
