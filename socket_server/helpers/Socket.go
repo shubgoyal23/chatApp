@@ -34,8 +34,23 @@ func SocketInit() {
 		Conn: make(map[string]models.UserConnection),
 	}
 	// create a new vm id
-	vm := uuid.New()
-	VmId = strings.Split(vm.String(), "-")[0]
+	vm := uuid.New().String()
+	VmId = strings.Split(vm, "-")[0]
+}
+
+// this function loops and checks for lost connections and old connections
+func RemoveLostConnections() {
+	for range time.Tick(time.Minute * 3) {
+		AllConns.Mu.Lock()
+		for k, v := range AllConns.Conn {
+			if v.WS == nil {
+				CloseUserConnection(k)
+			} else if (time.Now().Unix() - v.Epoch) > 180 {
+				CloseUserConnection(k)
+			}
+		}
+		AllConns.Mu.Unlock()
+	}
 }
 
 func UserAuthMiddlewareWS(c *gin.Context) {
@@ -75,13 +90,6 @@ func SocketConnectionHandler(c *gin.Context) {
 	}
 	userInfo := user.(models.User)
 
-	AllConns.Mu.Lock()
-	connExist, ok := AllConns.Conn[userInfo.ID]
-	if ok {
-		connExist.WS.Close()
-	}
-	AllConns.Mu.Unlock()
-
 	// upgrade the connection to a WebSocket connection
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
@@ -91,13 +99,7 @@ func SocketConnectionHandler(c *gin.Context) {
 		return
 	}
 
-	if err := SetRedisKeyVal(fmt.Sprintf("userVm:%s", userInfo.ID), VmId); err != nil {
-		c.JSON(500, gin.H{
-			"error": "Internal server error",
-		})
-		return
-	}
-	if err := SetKeyExpiry(fmt.Sprintf("userVm:%s", userInfo.ID), 5); err != nil {
+	if f := SetUserKeyAndExpiry(fmt.Sprintf("userVm:%s", userInfo.ID), 5); !f {
 		c.JSON(500, gin.H{
 			"error": "Internal server error",
 		})
@@ -105,7 +107,11 @@ func SocketConnectionHandler(c *gin.Context) {
 	}
 	userInfo.Epoch = time.Now().Unix()
 	AllConns.Mu.Lock()
-	AllConns.Conn[userInfo.ID] = models.UserConnection{WS: conn, UserInfo: userInfo}
+	connExist, ok := AllConns.Conn[userInfo.ID]
+	if ok {
+		connExist.WS.Close()
+	}
+	AllConns.Conn[userInfo.ID] = models.UserConnection{WS: conn, UserInfo: userInfo, Epoch: time.Now().Unix()}
 	AllConns.Mu.Unlock()
 
 	// handle the WebSocket connection for particlular user
@@ -147,47 +153,76 @@ func UserSocketHandler(userid string) {
 		msg.ID = uuid.NewString()
 		msg.Epoch = time.Now().Unix()
 		if msg.Media == "" && msg.Message == "" {
-			continue
+			continue // empty message
 		}
-		if msg.Type == models.P2p {
-			go SendMessagestoUser(msg, userconn)
+		if msg.Type == models.Ping {
+
+		} else if msg.Type == models.P2p {
+			go SendMessagestoUser(msg)
 		} else if msg.Type == models.Grp {
 			go SendMessagestoGroup(msg)
+			continue
 		} else if msg.Type == models.Chat {
-
+			continue
 		} else if msg.Type == models.Offer || msg.Type == models.Ice || msg.Type == models.Answer {
 			go HandleWebrtcOffer(msg)
 			continue
 		} else {
 			continue
 		}
-		go SavemessageToDB(msg)
+		mse, _ := json.Marshal(msg)
+		ms, _ := EncryptKeyAES(mse, userconn.UserInfo, true)
+		if err := userconn.WS.WriteMessage(websocket.TextMessage, []byte(ms)); err != nil {
+			fmt.Println("Error sending message:", err)
+		}
+		go SavemessageToDB(msg, "messages")
 	}
 }
 
-func SendMessagestoUser(message models.Message, sender models.UserConnection) {
+func SendMessagestoUser(message models.Message) {
+	defer func() {
+		if f := recover(); f != nil {
+			fmt.Println("Panic occurred in sendMessagetoUser:", f)
+			return
+		}
+	}()
 	to := message.To
 	AllConns.Mu.RLock()
 	sendUser, ok := AllConns.Conn[to]
 	AllConns.Mu.RUnlock()
 
-	// user is on other vm
-	if !ok {
-		// todo
-		return
+	var userOffline bool = false
+
+	// if user is on same vm and online
+	if ok {
+		msg, _ := json.Marshal(message)
+		m, _ := EncryptKeyAES(msg, sendUser.UserInfo, true)
+		if err := sendUser.WS.WriteMessage(websocket.TextMessage, []byte(m)); err != nil {
+			fmt.Println("Error sending message:", err)
+		}
 	}
-	msg, _ := json.Marshal(message)
-	m, _ := EncryptKeyAES(msg, sendUser.UserInfo, true)
-	if err := sendUser.WS.WriteMessage(websocket.TextMessage, []byte(m)); err != nil {
-		fmt.Println("Error sending message:", err)
+
+	// if user is on other vm
+	vm, err := GetRedisKeyVal(fmt.Sprintf("userVm:%s", to))
+	if err != nil {
+		userOffline = true
+	} else {
+		if f := SendMessageToOtherVm(message, vm); !f {
+			userOffline = true
+		}
 	}
-	ms, _ := EncryptKeyAES(msg, sender.UserInfo, true)
-	if err := sender.WS.WriteMessage(websocket.TextMessage, []byte(ms)); err != nil {
-		fmt.Println("Error sending message:", err)
+	if userOffline {
+		StoreOfflineMessages(message, to)
 	}
 }
 
 func SendMessagestoGroup(message models.Message) {
+	defer func() {
+		if f := recover(); f != nil {
+			fmt.Println("Panic occurred in sendMessagetoGroup:", f)
+			return
+		}
+	}()
 	to := message.To
 	members, err := GetAllRedisSetMemeber(fmt.Sprintf("group:%s", to))
 	if err != nil {
@@ -224,7 +259,13 @@ func SendMessagestoGroup(message models.Message) {
 }
 
 // save message to db
-func SavemessageToDB(msg models.Message) {
+func SavemessageToDB(msg models.Message, collection string) {
+	defer func() {
+		if f := recover(); f != nil {
+			fmt.Println("Panic occurred in savemessageToDB:", f)
+			return
+		}
+	}()
 	var m models.MongoMessage
 	from, _ := primitive.ObjectIDFromHex(msg.From)
 	to, _ := primitive.ObjectIDFromHex(msg.To)
@@ -240,13 +281,27 @@ func SavemessageToDB(msg models.Message) {
 	if err != nil {
 		fmt.Println("error marshalling data")
 	}
-	if f := MongoAddOncDoc("messages", data); !f {
+	if f := MongoAddOncDoc(collection, data); !f {
 		fmt.Println("error putting data to mongodb")
 	}
 }
 
 // send message to other vm
-func SendMessageToOtherVm(message models.Message, vmid string) {
+func SendMessageToOtherVm(message models.Message, vmid string) bool {
+	defer func() {
+		if f := recover(); f != nil {
+			fmt.Println("Panic occurred in sendMessageToOtherVm:", f)
+			return
+		}
+	}()
+	jsonmsg, err := json.Marshal(message)
+	if err != nil {
+		return false
+	}
+	if err := InsertRedisListLPush(fmt.Sprintf("vm:%s", vmid), []string{string(jsonmsg)}); err != nil {
+		return false
+	}
+	return true
 }
 
 func CloseUserConnection(userid string) {
@@ -254,9 +309,37 @@ func CloseUserConnection(userid string) {
 	userconn := AllConns.Conn[userid]
 	delete(AllConns.Conn, userid)
 	AllConns.Mu.Unlock()
-	if err := userconn.WS.Close(); err != nil {
-		fmt.Println("Error closing connection:", err)
+	if userconn.WS != nil {
+		if err := userconn.WS.Close(); err != nil {
+			fmt.Println("Error closing connection:", err)
+		}
 	}
+	if err := DelRedisKey(fmt.Sprintf("userVm:%s", userid)); err != nil {
+		fmt.Println("Error deleting key:", err)
+	}
+}
+
+func HandelPingMessage(userid string) {
+	AllConns.Mu.Lock()
+	userconn := AllConns.Conn[userid]
+	userconn.Epoch = time.Now().Unix()
+	AllConns.Conn[userid] = userconn
+	AllConns.Mu.Unlock()
+	if f := SetUserKeyAndExpiry(fmt.Sprintf("userVm:%s", userid), 5); !f {
+		fmt.Println("Error setting user key and expiry")
+	}
+}
+
+func SetUserKeyAndExpiry(userid string, dur int) bool {
+	if err := SetRedisKeyVal(userid, VmId); err != nil {
+		fmt.Println("Error setting key value:", err)
+		return false
+	}
+	if err := SetKeyExpiry(userid, dur); err != nil {
+		fmt.Println("Error setting key expiry:", err)
+		return false
+	}
+	return true
 }
 
 func HandleWebrtcOffer(offer models.Message) {
@@ -273,5 +356,44 @@ func HandleWebrtcOffer(offer models.Message) {
 	m, _ := EncryptKeyAES(msg, sendUser.UserInfo, true)
 	if err := sendUser.WS.WriteMessage(websocket.TextMessage, []byte(m)); err != nil {
 		fmt.Println("Error sending message:", err)
+	}
+}
+
+func ReadMessageQueue() {
+	for {
+		var failed []string = []string{}
+		res, err := GetRedisListRPOP("vm:"+VmId, 100)
+		if err != nil {
+			fmt.Println("Error getting message from redis list:", err)
+			time.Sleep(time.Second * 10)
+			continue
+		}
+
+		for _, msg := range res {
+			var message models.Message
+			if err := json.Unmarshal(msg, &message); err != nil {
+				fmt.Println("Error unmarshalling message:", err)
+				failed = append(failed, string(msg))
+				continue
+			}
+			SendMessagestoUser(message)
+		}
+
+		if len(failed) > 0 {
+			InsertRedisListLPush("vm:"+VmId, failed)
+		}
+	}
+}
+
+func StoreOfflineMessages(msg models.Message, to string) {
+	m := make(map[string]interface{})
+	by, err := json.Marshal(msg)
+	if err != nil {
+		fmt.Println("")
+	}
+	m["body"] = string(by)
+	m["to"] = to
+	if f := MongoAddOncDoc("offline", m); !f {
+		fmt.Println("error storing offline messages")
 	}
 }

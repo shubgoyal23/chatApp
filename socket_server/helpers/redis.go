@@ -193,3 +193,18 @@ func SetKeyExpiry(key string, dur int) error {
 	}
 	return nil
 }
+
+func DelRedisKey(key string) error {
+	rc := RedigoConn.Get()
+	defer rc.Close()
+	if _, er := rc.Do("PING"); er != nil {
+		// LogError("SetRedisKeyVal", "Redis not connected", er)
+		return er
+	}
+	_, err := rc.Do("DEL", key)
+	if err != nil {
+		// LogError("SetRedisKeyVal", fmt.Sprintf("cannot set in redis key: %s with value: %s", key, val), err)
+		return err
+	}
+	return nil
+}

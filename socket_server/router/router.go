@@ -36,6 +36,7 @@ func StartRouter() {
 		})
 	})
 	helpers.SocketInit()
+	go helpers.RemoveLostConnections()
 	loggedinuser := router.Group("/user", helpers.UserAuthMiddlewareCookie, helpers.UserAuthMiddlewareRSA)
 	{
 		loggedinuser.GET("/key", helpers.GetSecretKeyforUser)

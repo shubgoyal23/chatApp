@@ -24,6 +24,7 @@ type WSConn struct {
 type UserConnection struct {
 	WS       *websocket.Conn
 	UserInfo User
+	Epoch    int64
 }
 
 type Message struct {
