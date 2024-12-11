@@ -4,18 +4,27 @@ import { connectSocket } from "../../helper/ConnectSocket";
 import { decryptDataAES, GetkeyAes } from "../../helper/AEShelper";
 import { socket } from "../../socket";
 import { messageHandler } from "../../store/chatSlice";
-import VideoCall from "../videocall/VideoCall";
-import { setIncommingCall } from "../../store/videoSlice";
+import { setIncommingCall } from "../../store/callSlice";
 import { AcceptWebrtcAnswer, AcceptWebrtcIceConnection } from "../../webrtc";
+import CallHnadler from "../videocall/CallHnadler";
 
 function SocketConnect() {
    const dispatch = useDispatch();
 
    const user = useSelector((state) => state.login.userdata);
-   const isInCall = useSelector((state) => state.video.isInCall);
+   const isInCall = useSelector((state) => state.call.isInCall);
    const [socketConnected, setScoketConnected] = useState(false);
    const [progress, setProgress] = useState(10);
+   const [call, setcall] = useState(false);
    const MessageApp = React.lazy(() => import("./MessageApp"));
+
+   useEffect(() => {
+      if (isInCall) {
+         setcall(true);
+      } else {
+         setcall(false);
+      }
+   }, [isInCall]);
 
    useEffect(() => {
       let interval = setInterval(() => {
@@ -50,20 +59,20 @@ function SocketConnect() {
             const msg = await decryptDataAES(event.data);
             const data = JSON.parse(msg);
             if (data.type === "offer") {
-               if (!isInCall){
+               if (!isInCall) {
                   dispatch(setIncommingCall(data));
                }
                return;
             }
             if (data.type === "answer") {
-               if (isInCall){
-                  AcceptWebrtcAnswer(data);                
+               if (isInCall) {
+                  AcceptWebrtcAnswer(data);
                }
                return;
             }
             if (data.type === "candidate") {
-               if (isInCall){
-                  AcceptWebrtcIceConnection(data);                
+               if (isInCall) {
+                  AcceptWebrtcIceConnection(data);
                }
                return;
             }
@@ -80,9 +89,9 @@ function SocketConnect() {
 
    return (
       <div className="h-screen w-screen">
-         {isInCall ? (
+         {call ? (
             <div className="h-screen w-screen flex flex-col justify-center items-center">
-               <VideoCall />
+               <CallHnadler />
             </div>
          ) : (
             <div className="h-screen w-screen bg-[url('/earth.webp')] bg-cover">

@@ -1,6 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-const videoSlice = createSlice({
+const callSlice = createSlice({
    name: "video",
    initialState: {
       isInCall: false,
@@ -25,5 +25,5 @@ const videoSlice = createSlice({
    },
 });
 
-export const { StartCall, EndCall, setIncommingCall } = videoSlice.actions;
-export default videoSlice.reducer;
+export const { StartCall, EndCall, setIncommingCall } = callSlice.actions;
+export default callSlice.reducer;

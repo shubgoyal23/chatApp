@@ -91,7 +91,7 @@ function MessageArea({ sidNav, setSideNav, setShowChattingWithDetails }) {
                </div>
             </div>
 
-            <div className=" hidden lg:flex justify-center items-center text-xl">
+            <div className="hidden lg:flex justify-center items-center text-xl">
                {/* <span className="material-symbols-outlined ">more_vert</span> */}
                <Dropdown
                   menu={{
