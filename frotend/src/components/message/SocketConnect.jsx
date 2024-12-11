@@ -2,7 +2,7 @@ import React, { Suspense, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { connectSocket } from "../../helper/ConnectSocket";
 import { decryptDataAES, GetkeyAes } from "../../helper/AEShelper";
-import { socket } from "../../socket";
+import { sendMessage, socket } from "../../socket";
 import { messageHandler } from "../../store/chatSlice";
 import { setIncommingCall } from "../../store/callSlice";
 import { AcceptWebrtcAnswer, AcceptWebrtcIceConnection } from "../../webrtc";
@@ -53,6 +53,7 @@ function SocketConnect() {
    }, [user]);
 
    useEffect(() => {
+      let interval 
       if (socket) {
          console.log("listing messages");
          socket.onmessage = async (event) => {
@@ -84,7 +85,19 @@ function SocketConnect() {
                dispatch(messageHandler(d));
             }
          };
+
+          interval = setInterval(() => {
+            sendMessage({
+               from: user._id,
+               type: "ping",
+               message: "ping",
+            })
+         }, 120000);
       }
+
+      return () => {
+         clearInterval(interval);
+      };
    }, [socket]);
 
    return (

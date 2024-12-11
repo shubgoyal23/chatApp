@@ -156,7 +156,8 @@ func UserSocketHandler(userid string) {
 			continue // empty message
 		}
 		if msg.Type == models.Ping {
-
+			go HandelPingMessage(userid)
+			continue
 		} else if msg.Type == models.P2p {
 			go SendMessagestoUser(msg)
 		} else if msg.Type == models.Grp {
