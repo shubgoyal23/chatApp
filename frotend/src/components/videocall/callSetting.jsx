@@ -7,10 +7,10 @@ function ConnectCall() {
    const user = useSelector((state) => state.login.userdata);
    const dispatch = useDispatch();
 
-   const Callhandler = (calltype) => {
+   const Callhandler = (media) => {
       dispatch(
          StartCall({
-            Calltype: calltype,
+            media: media,
             to: chatwith._id,
             from: user._id,
          })

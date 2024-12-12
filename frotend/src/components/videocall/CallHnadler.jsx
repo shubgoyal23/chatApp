@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import ReactPlayer from "react-player";
 import {
    AddTrackToWebconn,
-   CreateWebrtcIceConnection,
    GetVideoStream,
    HandleWebrtcAnswer,
    HandleWebrtcOffer,
@@ -25,21 +24,22 @@ function CallHnadler() {
 
    const HandelOutgoingCall = async () => {
       try {
-         console.log("called outgoing call");
          await setNewWebconn();
-         const s = await GetVideoStream();
+         const s = await GetVideoStream(callType.outgoingCall.media);
          setLocalS(s);
          await HandleWebrtcOffer({
             to: callType.outgoingCall.to,
             from: callType.outgoingCall.from,
             type: "offer",
+            media: callType.outgoingCall.media,
          });
          await AddTrackToWebconn();
-         await CreateWebrtcIceConnection({
-            to: callType.outgoingCall.to,
-            from: callType.outgoingCall.from,
-            type: "candidate",
-         });
+         // await CreateWebrtcIceConnection({
+         //    to: callType.outgoingCall.to,
+         //    from: callType.outgoingCall.from,
+         //    type: "candidate",
+         //    media: callType.outgoingCall.media,
+         // });
          console.log(webconn.iceGatheringState);
       } catch (error) {
          console.log(error);
@@ -50,17 +50,21 @@ function CallHnadler() {
       console.log("called incomming call");
       try {
          setIncoCall(false);
-         await setNewWebconn();
-         const s = await GetVideoStream();
+         await setNewWebconn({
+            to: callType.incommingCall.to,
+            from: callType.incommingCall.from,
+         });
+         const s = await GetVideoStream(callType.incommingCall.media);
          console.log(s);
          setLocalS(s);
          await HandleWebrtcAnswer(callType.incommingCall);
          await AddTrackToWebconn();
-         await CreateWebrtcIceConnection({
-            type: "candidate",
-            to: callType.incommingCall.from,
-            from: callType.incommingCall.to,
-         });
+         // await CreateWebrtcIceConnection({
+         //    type: "candidate",
+         //    to: callType.incommingCall.from,
+         //    from: callType.incommingCall.to,
+         //    media: callType.incommingCall.media,
+         // });
          console.log(webconn.iceGatheringState);
       } catch (error) {
          console.log(error);
@@ -68,13 +72,12 @@ function CallHnadler() {
    };
 
    useEffect(() => {
-      console.log("call type", callType);
-      if (callType.outgoingCall) {
+      if (callType?.outgoingCall) {
          HandelOutgoingCall();
-      } else if (callType.incommingCall) {
+      } else if (callType?.incommingCall) {
          setIncoCall(true);
       }
-   }, []);
+   }, [isinCall]);
 
    useEffect(() => {
       if (remotestream) {
@@ -92,8 +95,6 @@ function CallHnadler() {
             </div>
          ) : (
             <div>
-               {/* <ReactPlayer url={stream} autoPlay muted />
-               <ReactPlayer url={remotestream} autoPlay /> */}
                {localS && (
                   <>
                      <h1>My Stream</h1>

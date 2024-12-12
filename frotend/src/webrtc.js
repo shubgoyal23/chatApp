@@ -3,7 +3,6 @@ import { sendMessage } from "./socket";
 export let webconn = null;
 export let stream = null;
 export let remotestream = null;
-export let ice = [];
 
 var configuration = {
    iceServers: [
@@ -11,26 +10,42 @@ var configuration = {
       { urls: "stun:stun.l.google.com:5349" },
    ],
 };
-export const setNewWebconn = async () => {
+export const setNewWebconn = async (data) => {
    webconn = new RTCPeerConnection(configuration);
 
    webconn.onicecandidate = async (event) => {
       console.log("ice", event);
       if (event.candidate) {
          console.log(event.candidate);
-         ice.push(event.candidate);
+         let d = {
+            type: "candidate",
+            message: JSON.stringify(event.candidate),
+            to: data.to,
+            from: data.from,
+         };
+         await sendMessage(d);
       }
    };
    return webconn;
 };
 
-export const GetVideoStream = async () => {
-   let s = await navigator.mediaDevices.getUserMedia({
-      video: true,
-      audio: true,
-   });
-   stream = s;
-   return s;
+export const GetVideoStream = async (media) => {
+   if (media === "audio") {
+      let s = await navigator.mediaDevices.getUserMedia({
+         video: false,
+         audio: true,
+      });
+      stream = s;
+      return s;
+   }
+   if (media === "video") {
+      let s = await navigator.mediaDevices.getUserMedia({
+         video: true,
+         audio: true,
+      });
+      stream = s;
+      return s;
+   }
 };
 
 export const HandleWebrtcOffer = async (data) => {
@@ -41,9 +56,7 @@ export const HandleWebrtcOffer = async (data) => {
    await sendMessage(data);
 };
 export const HandleWebrtcAnswer = async (data) => {
-   await webconn.setRemoteDescription(
-      new RTCSessionDescription(JSON.parse(data.message))
-   );
+   await webconn.setRemoteDescription(JSON.parse(data.message));
 
    const answer = await webconn.createAnswer();
    await webconn.setLocalDescription(answer);
@@ -64,9 +77,7 @@ export const AddTrackToWebconn = async () => {
 };
 
 export const AcceptWebrtcAnswer = async (data) => {
-   await webconn.setRemoteDescription(
-      new RTCSessionDescription(JSON.parse(data.message))
-   );
+   await webconn.setRemoteDescription(JSON.parse(data.message));
    await remoteStreamHnandler();
 };
 
@@ -77,16 +88,15 @@ export const remoteStreamHnandler = async () => {
    };
 };
 
-export const CreateWebrtcIceConnection = async (data) => {
-   data.message = JSON.stringify(ice);
-   await sendMessage(data);
-};
+// export const CreateWebrtcIceConnection = async (data) => {
+//    console.log(data)
+//    data.message = JSON.stringify(data.message);
+//    await sendMessage(data);
+// };
 
 // new RTCSessionDescription(offer)
 
 export const AcceptWebrtcIceConnection = async (data) => {
    let i = JSON.parse(data.message);
-   for (let c of i) {
-      await webconn.addIceCandidate(new RTCIceCandidate(c));
-   }
+   await webconn.addIceCandidate(i);
 };
