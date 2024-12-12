@@ -13,6 +13,20 @@ var configuration = {
 export const setNewWebconn = async (data) => {
    webconn = new RTCPeerConnection(configuration);
 
+   addEventListener("icecandidate", (event) => {
+      console.log("ice", event);
+      if (event.candidate) {
+         console.log(event.candidate);
+         let d = {
+            type: "candidate",
+            message: JSON.stringify(event.candidate),
+            to: data.to,
+            from: data.from,
+         };
+         sendMessage(d);
+      }
+   });
+
    webconn.onicecandidate = async (event) => {
       console.log("ice", event);
       if (event.candidate) {
@@ -50,7 +64,7 @@ export const GetVideoStream = async (media) => {
 
 export const HandleWebrtcOffer = async (data) => {
    const offer = await webconn?.createOffer();
-   webconn.setLocalDescription(offer);
+   webconn?.setLocalDescription(offer);
    const f = JSON.stringify(offer);
    data.message = f;
    await sendMessage(data);
@@ -78,7 +92,6 @@ export const AddTrackToWebconn = async () => {
 
 export const AcceptWebrtcAnswer = async (data) => {
    await webconn.setRemoteDescription(JSON.parse(data.message));
-   await remoteStreamHnandler();
 };
 
 export const remoteStreamHnandler = async () => {

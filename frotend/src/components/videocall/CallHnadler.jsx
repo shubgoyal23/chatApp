@@ -6,6 +6,7 @@ import {
    HandleWebrtcAnswer,
    HandleWebrtcOffer,
    remotestream,
+   remoteStreamHnandler,
    setNewWebconn,
    stream,
    webconn,
@@ -20,13 +21,14 @@ function CallHnadler() {
    const [remoteS, setRemoteS] = useState(remotestream);
    const [localS, setLocalS] = useState(stream);
 
-   const [err, setErr] = useState(null);
-
    const HandelOutgoingCall = async () => {
       try {
-         await setNewWebconn();
          const s = await GetVideoStream(callType.outgoingCall.media);
          setLocalS(s);
+         await setNewWebconn({
+            to: callType.outgoingCall.to,
+            from: callType.outgoingCall.from,
+         });
          await HandleWebrtcOffer({
             to: callType.outgoingCall.to,
             from: callType.outgoingCall.from,
@@ -34,13 +36,7 @@ function CallHnadler() {
             media: callType.outgoingCall.media,
          });
          await AddTrackToWebconn();
-         // await CreateWebrtcIceConnection({
-         //    to: callType.outgoingCall.to,
-         //    from: callType.outgoingCall.from,
-         //    type: "candidate",
-         //    media: callType.outgoingCall.media,
-         // });
-         console.log(webconn.iceGatheringState);
+         remoteStreamHnandler()
       } catch (error) {
          console.log(error);
       }
@@ -51,39 +47,27 @@ function CallHnadler() {
       try {
          setIncoCall(false);
          await setNewWebconn({
-            to: callType.incommingCall.to,
-            from: callType.incommingCall.from,
+            to: callType.incommingCall.from,
+            from: callType.incommingCall.to,
          });
          const s = await GetVideoStream(callType.incommingCall.media);
-         console.log(s);
          setLocalS(s);
          await HandleWebrtcAnswer(callType.incommingCall);
          await AddTrackToWebconn();
-         // await CreateWebrtcIceConnection({
-         //    type: "candidate",
-         //    to: callType.incommingCall.from,
-         //    from: callType.incommingCall.to,
-         //    media: callType.incommingCall.media,
-         // });
-         console.log(webconn.iceGatheringState);
+         remoteStreamHnandler();
       } catch (error) {
          console.log(error);
       }
    };
 
    useEffect(() => {
-      if (callType?.outgoingCall) {
+      if (callType.outgoingCall) {
          HandelOutgoingCall();
-      } else if (callType?.incommingCall) {
+      }
+      if (callType.incommingCall) {
          setIncoCall(true);
       }
    }, [isinCall]);
-
-   useEffect(() => {
-      if (remotestream) {
-         setRemoteS(remotestream);
-      }
-   }, [remotestream]);
 
    return (
       <div className="w-full h-full text-black">
