@@ -9,3 +9,4 @@ const conf = {
    GIN_URL: process.env.GIN_URL,
 };
 export default conf;
+
