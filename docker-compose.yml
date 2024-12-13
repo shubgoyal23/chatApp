@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  service1:
+    image: socket_server
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+
+  service2:
+    image: socket_server
+    ports:
+      - "3001:3000"
+    env_file:
+      - .env
+
+  service3:
+    image: api_server
+    ports:
+      - "8000:3000"
+    env_file:
+      - .env
+
+# The .env file should be in the same directory as this docker-compose.yml file
