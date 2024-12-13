@@ -145,7 +145,10 @@ const loginUser = asyncHandler(async (req, res) => {
    const options = {
       httpOnly: true,
       secure: true,
-      sameSite: "None",
+      sameSite: 'none',
+      domain: '.shubhamgoyal.dev',
+      path: '/',
+      expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
    };
 
    return res
@@ -177,6 +180,10 @@ const logoutUser = asyncHandler(async (req, res) => {
    const options = {
       httpOnly: true,
       secure: true,
+      sameSite: 'none',
+      domain: '.shubhamgoyal.dev',
+      path: '/',
+      expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
    };
 
    res.status(200)
