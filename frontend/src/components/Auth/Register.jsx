@@ -79,7 +79,7 @@ function Register() {
       }
    }, [otpSuccess]);
    return otpBox ? (
-      <div className="w-screen h-screen fixed top-0 left-0 bg-slate-200 flex justify-center items-center">
+      <div className="w-screen h-[100svh] fixed top-0 left-0 bg-slate-200 flex justify-center items-center">
          <OtpInputWithValidation
             setOtpSuccess={setOtpSuccess}
             details={details}

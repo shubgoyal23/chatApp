@@ -49,7 +49,7 @@ function ForgotPassword({ closebtn }) {
    };
 
    return (
-      <div className="fixed top-0 left-0 w-screen h-screen bg-gray-200 flex flex-col justify-center items-center">
+      <div className="fixed top-0 left-0 w-screen h-[100svh] bg-gray-200 flex flex-col justify-center items-center">
          <span
             className="material-symbols-outlined cursor-pointer absolute top-2 right-2"
             onClick={() => {

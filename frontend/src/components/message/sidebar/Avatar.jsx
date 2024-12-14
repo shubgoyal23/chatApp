@@ -26,7 +26,7 @@ function Avatar({ avatar, setavatar }) {
       <div
          className={`${
             avatar ? "block" : "hidden"
-         } absolute top-0 z-30 left-0 w-full border-2 border-gray-100 h-screen bg-white rounded-lg shadow-lg p-3 overflow-y-scroll`}
+         } absolute top-0 z-30 left-0 w-full border-2 border-gray-100 h-[100svh] bg-white rounded-lg shadow-lg p-3 overflow-y-scroll`}
       >
          <div
             className="absolute top-2 right-2 cursor-pointer"
