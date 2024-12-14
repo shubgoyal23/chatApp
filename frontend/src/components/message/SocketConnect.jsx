@@ -101,19 +101,19 @@ function SocketConnect() {
    }, [socket]);
 
    return (
-      <div className="h-screen w-screen">
+      <div className="h-[100svh] w-screen">
          {call ? (
-            <div className="h-screen w-screen flex flex-col justify-center items-center">
+            <div className="h-[100svh] w-screen flex flex-col justify-center items-center">
                <CallHnadler />
             </div>
          ) : (
-            <div className="h-screen w-screen bg-[url('/earth.webp')] bg-cover">
+            <div className="h-[100svh] w-screen bg-[url('/earth.webp')] bg-cover">
                {socketConnected ? (
                   <Suspense>
                      <MessageApp />
                   </Suspense>
                ) : (
-                  <div className="h-screen w-screen flex flex-col justify-center items-center">
+                  <div className="h-[100svh] w-screen flex flex-col justify-center items-center">
                      <h1 className="mb-4 text-3xl text-white font-bold">
                         Loading Your Messages
                      </h1>
