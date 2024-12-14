@@ -97,7 +97,7 @@ func GetSecretKeyforUser(c *gin.Context) {
 		})
 		return
 	}
-	if f := SetKeyExpiry(fmt.Sprintf("usersk:%s", userInfo.ID), 5); f != nil {
+	if f := SetKeyExpiry(fmt.Sprintf("usersk:%s", userInfo.ID), 86400); f != nil {
 		c.JSON(500, gin.H{
 			"error": "Internal server error",
 		})

@@ -28,7 +28,7 @@ var upgrader = websocket.Upgrader{
 var AllConns *models.WSConn
 var VmId string
 
-func SocketInit() {
+func RegisterVmid() {
 	AllConns = &models.WSConn{
 		Mu:   &sync.RWMutex{},
 		Conn: make(map[string]models.UserConnection),
@@ -36,20 +36,24 @@ func SocketInit() {
 	// create a new vm id
 	vm := uuid.New().String()
 	VmId = strings.Split(vm, "-")[0]
+
+	go RemoveLostConnections()
+	go ReadMessageQueue()
 }
 
 // this function loops and checks for lost connections and old connections
 func RemoveLostConnections() {
-	for range time.Tick(time.Minute * 3) {
+	for range time.Tick(time.Minute * 1) {
 		AllConns.Mu.Lock()
-		for k, v := range AllConns.Conn {
+		allcon := AllConns
+		AllConns.Mu.Unlock()
+		for k, v := range allcon.Conn {
 			if v.WS == nil {
 				CloseUserConnection(k)
 			} else if (time.Now().Unix() - v.Epoch) > 180 {
 				CloseUserConnection(k)
 			}
 		}
-		AllConns.Mu.Unlock()
 	}
 }
 
@@ -200,6 +204,9 @@ func SendMessagestoUser(message models.Message) {
 		m, _ := EncryptKeyAES(msg, sendUser.UserInfo, true)
 		if err := sendUser.WS.WriteMessage(websocket.TextMessage, []byte(m)); err != nil {
 			fmt.Println("Error sending message:", err)
+			CloseUserConnection(to)
+		} else {
+			return
 		}
 	}
 

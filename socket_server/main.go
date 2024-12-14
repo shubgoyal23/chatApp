@@ -21,5 +21,6 @@ func main() {
 		log.Fatalf("Error initializing mongo")
 	}
 	helpers.LoadRsaKey()
+	helpers.RegisterVmid()
 	router.StartRouter()
 }

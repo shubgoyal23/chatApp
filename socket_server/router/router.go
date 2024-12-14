@@ -23,7 +23,7 @@ func StartRouter() {
 		MaxAge:           12 * time.Hour,
 	}))
 	router.GET("/ping", func(c *gin.Context) {
-		c.String(200, "pong")
+		c.String(200, "pong"+helpers.VmId)
 	})
 	router.GET("/publickey", func(c *gin.Context) {
 		c.JSON(200, gin.H{
@@ -35,8 +35,6 @@ func StartRouter() {
 			"error": "Page not found",
 		})
 	})
-	helpers.SocketInit()
-	go helpers.RemoveLostConnections()
 	loggedinuser := router.Group("/user", helpers.UserAuthMiddlewareCookie, helpers.UserAuthMiddlewareRSA)
 	{
 		loggedinuser.GET("/key", helpers.GetSecretKeyforUser)
