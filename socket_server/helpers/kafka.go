@@ -92,7 +92,9 @@ func produce() {
 
 func consume() {
 	// creates a new consumer and subscribes to your topic
-	consumer, err := kafka.NewConsumer(configMap)
+	co := configMap
+	co.SetKey("group.id", "message-queue")
+	consumer, err := kafka.NewConsumer(co)
 	if err != nil {
 		fmt.Println("Error creating consumer:", err)
 		return

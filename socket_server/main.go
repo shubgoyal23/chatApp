@@ -27,10 +27,12 @@ func main() {
 	if mongo := helpers.MongoInit(os.Getenv("MONGODB_URI"), os.Getenv("MONGO_DB")); !mongo {
 		log.Fatalf("Error initializing mongo")
 	}
-	go helpers.KafkaInit()
-	go helpers.LoadRsaKey()
-	go helpers.RegisterVmid()
+	helpers.RegisterVmid()
+	helpers.LoadRsaKey()
+	helpers.KafkaInit()
 	go router.StartRouter()
+	go helpers.RemoveLostConnections()
+	go helpers.ReadMessageQueue()
 
 	// shutdown the server
 	<-stop

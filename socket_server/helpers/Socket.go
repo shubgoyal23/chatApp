@@ -38,9 +38,6 @@ func RegisterVmid() {
 	// create a new vm id
 	vm := uuid.New().String()
 	VmId = strings.Split(vm, "-")[0]
-
-	go RemoveLostConnections()
-	go ReadMessageQueue()
 }
 
 // this function loops and checks for lost connections and old connections
