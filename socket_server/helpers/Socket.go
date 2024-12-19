@@ -4,11 +4,13 @@ import (
 	"chatapp/models"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -306,9 +308,14 @@ func SendMessageToOtherVm(message models.Message, vmid string) bool {
 	if err != nil {
 		return false
 	}
-	if err := InsertRedisListLPush(fmt.Sprintf("vm:%s", vmid), []string{string(jsonmsg)}); err != nil {
-		return false
-	}
+	KafkaProducer.Produce(&kafka.Message{
+		TopicPartition: kafka.TopicPartition{Topic: &vmid, Partition: kafka.PartitionAny},
+		Key:            []byte(message.To),
+		Value:          jsonmsg,
+	}, nil)
+	// if err := InsertRedisListLPush(fmt.Sprintf("vm:%s", vmid), []string{string(jsonmsg)}); err != nil {
+	// 	return false
+	// }
 	return true
 }
 
@@ -369,28 +376,24 @@ func HandleWebrtcOffer(offer models.Message) {
 
 func ReadMessageQueue() {
 	for {
-		var failed []string = []string{}
-		res, err := GetRedisListRPOP("vm:"+VmId, 100)
+		msg, err := KafkaConsumer.ReadMessage(-1)
 		if err != nil {
-			fmt.Println("Error getting message from redis list:", err)
-			time.Sleep(time.Second * 10)
+			// Handle errors
+			if kafkaErr, ok := err.(kafka.Error); ok && kafkaErr.IsFatal() {
+				log.Fatalf("Fatal error: %v\n", kafkaErr)
+			} else {
+				log.Printf("Error consuming message: %v\n", err)
+			}
 			continue
 		}
-
-		for _, msg := range res {
-			var message models.Message
-			if err := json.Unmarshal(msg, &message); err != nil {
-				fmt.Println("Error unmarshalling message:", err)
-				failed = append(failed, string(msg))
-				continue
-			}
-			SendMessagestoUser(message)
+		var message models.Message
+		if err := json.Unmarshal(msg.Value, &message); err != nil {
+			fmt.Println("Error unmarshalling message:", err)
+			continue
 		}
-
-		if len(failed) > 0 {
-			InsertRedisListLPush("vm:"+VmId, failed)
-		}
+		SendMessagestoUser(message)
 	}
+
 }
 
 func StoreOfflineMessages(msg models.Message, to string) {
