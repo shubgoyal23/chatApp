@@ -16,7 +16,7 @@ function Login() {
    } = useForm({
       defaultValues: {
          username: "testuser",
-         password: "Testuser@123",
+         password: "RuDRBhu%IRvW9tR&LUJ9",
       },
    });
 
