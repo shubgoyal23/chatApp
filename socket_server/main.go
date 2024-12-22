@@ -15,7 +15,7 @@ import (
 func main() {
 	// Create a channel to listen for OS signals
 	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 
 	// Load environment variables
 	godotenv.Load()
