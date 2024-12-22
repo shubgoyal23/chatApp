@@ -23,8 +23,8 @@ func CleaupOnShutDown() {
 		fmt.Println("Error creating admin client:", err)
 		return
 	}
-	kafkaAdmin.Close()
 	kafkaAdmin.DeleteTopics(context.TODO(), []string{VmId})
+	kafkaAdmin.Close()
 	KafkaProducer.Produce(&kafka.Message{
 		TopicPartition: kafka.TopicPartition{Topic: &VmId, Partition: kafka.PartitionAny},
 		Key:            []byte(""),

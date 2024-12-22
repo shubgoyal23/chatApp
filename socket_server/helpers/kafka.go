@@ -3,6 +3,7 @@ package helpers
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
@@ -61,33 +62,6 @@ func produce() {
 		return
 	}
 	KafkaProducer = p
-
-	// go-routine to handle message delivery reports and
-	// possibly other event types (errors, stats, etc)
-	// go func() {
-	// 	for e := range p.Events() {
-	// 		switch ev := e.(type) {
-	// 		case *kafka.Message:
-	// 			if ev.TopicPartition.Error != nil {
-	// 				fmt.Printf("Failed to deliver message: %v\n", ev.TopicPartition)
-	// 			} else {
-	// 				fmt.Printf("Produced event to topic %s: key = %-10s value = %s\n",
-	// 					*ev.TopicPartition.Topic, string(ev.Key), string(ev.Value))
-	// 			}
-	// 		}
-	// 	}
-	// }()
-
-	// produces a sample message to the user-created topic
-	// p.Produce(&kafka.Message{
-	// 	TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
-	// 	Key:            []byte("key"),
-	// 	Value:          []byte("value"),
-	// }, nil)
-
-	// send any outstanding or buffered messages to the Kafka broker and close the connection
-	// p.Flush(15 * 1000)
-	// p.Close()
 }
 
 func consume() {
@@ -105,19 +79,31 @@ func consume() {
 	}
 
 	KafkaConsumer = consumer
+}
 
-	// run := true
-	// for run {
-	// 	// consumes messages from the subscribed topic and prints them to the console
-	// 	e := consumer.Poll(1000)
-	// 	switch ev := e.(type) {
-	// 	case *kafka.Message:
-	// 		// application-specific processing
-	// 		fmt.Printf("Consumed event from topic %s: key = %-10s value = %s\n",
-	// 			*ev.TopicPartition.Topic, string(ev.Key), string(ev.Value))
-	// 	case kafka.Error:
-	// 		fmt.Fprintf(os.Stderr, "%% Error: %v\n", ev)
-	// 		run = false
-	// 	}
-	// }
+func DeleteAllKafkaTopics() {
+	KafkaConsumer, err := kafka.NewProducer(configMap)
+	if err != nil {
+		fmt.Println("Error creating producer:", err)
+		return
+	}
+	metadata, err := KafkaConsumer.GetMetadata(nil, true, 1000)
+	if err != nil {
+		log.Fatalf("Failed to list topics: %v", err)
+	}
+
+	var topicNames []string
+	for _, topic := range metadata.Topics {
+		topicNames = append(topicNames, topic.Topic)
+	}
+	adminClient, err := kafka.NewAdminClient(configMap)
+	if err != nil {
+		fmt.Println("Error creating admin client:", err)
+		return
+	}
+	defer adminClient.Close()
+	_, errd := adminClient.DeleteTopics(context.Background(), topicNames)
+	if errd != nil {
+		fmt.Printf("Failed to delete topics: %v", err)
+	}
 }
