@@ -56,7 +56,12 @@ const (
 	Grp    MsgType = "group"
 	Chat   MsgType = "chat"
 	Ping   MsgType = "ping"
+	Call   MsgType = "call"
 	Offer  MsgType = "offer"
 	Answer MsgType = "answer"
 	Ice    MsgType = "candidate"
 )
+
+// call - offer - for incomming call
+// call - busy - if call is busy
+// call - recject - if call is rejected

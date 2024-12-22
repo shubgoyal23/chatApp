@@ -3,10 +3,11 @@ import { useSelector } from "react-redux";
 import { convertTime } from "../../../helper/convertDate";
 import Action from "./Action";
 
-function IndividualMsg({ data }) {
+function IndividualMsg({ data, msglist }) {
    const user = useSelector((state) => state.login.userdata);
    const connections = useSelector((state) => state.chat.connections);
    const [you, SetYou] = useState(false);
+   const [reply, setReply] = useState({});
    const date = convertTime(data.epoch);
 
    if (data.type === "datechange") {
@@ -23,6 +24,12 @@ function IndividualMsg({ data }) {
       if (data.from === user._id) {
          SetYou(true);
       }
+      if (data.replyTo != "") {
+         let ms = msglist?.find((m) => m.id === data.replyTo);
+         if (ms) {
+            setReply(ms);
+         }
+      }
    }, [data]);
 
    return (
@@ -32,7 +39,7 @@ function IndividualMsg({ data }) {
          }`}
       >
          <div
-            className={`relative flex flex-col max-w-[80%] w-content pl-2 pt-2 pb-1 pr-1 rounded-lg shadow-lg shadow-gray-400 ${
+            className={`relative flex flex-col max-w-[80%] min-w-28 w-content pl-2 pt-2 pb-1 pr-2 rounded-lg shadow-lg shadow-gray-400 ${
                you ? " bg-lime-400" : "bg-amber-200 "
             }`}
          >
@@ -60,8 +67,13 @@ function IndividualMsg({ data }) {
             ) : (
                <span></span>
             )}
-            <h2 className="mb-1 pr-6">{data?.message}</h2>
-            <span className="text-[10px] w-full text-end bottom-0 right-0">
+            {reply?.message && (
+               <div className="w-full min-h-14 mb-2 text-sm bg-lime-600/60 backdrop-blur-md rounded-md flex items-center px-2">
+                  {reply?.message}
+               </div>
+            )}
+            <h2 className="pr-6 text-[14px]">{data?.message}</h2>
+            <span className="text-[10px] w-full text-end bottom-0 right-0 -mt-2">
                {date}
             </span>
          </div>

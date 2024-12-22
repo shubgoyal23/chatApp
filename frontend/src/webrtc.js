@@ -2,114 +2,110 @@ import { sendMessage } from "./socket";
 
 export let webconn = null;
 export let stream = null;
-export let remotestream = null;
+export let remotestream = new MediaStream();
 
 var configuration = {
    iceServers: [
-      { urls: "stun:stun.l.google.com:19302" },
-      { urls: "stun:stun.l.google.com:5349" },
+      {
+         urls: [
+            "stun:stun1.l.google.com:19302",
+            "stun:stun2.l.google.com:19302",
+         ],
+      },
    ],
 };
 export const setNewWebconn = async (data) => {
    webconn = new RTCPeerConnection(configuration);
-
-   addEventListener("icecandidate", (event) => {
-      console.log("ice", event);
-      if (event.candidate) {
-         console.log(event.candidate);
-         let d = {
-            type: "candidate",
-            message: JSON.stringify(event.candidate),
-            to: data.to,
-            from: data.from,
-         };
-         sendMessage(d);
-      }
-   });
-
-   webconn.onicecandidate = async (event) => {
-      console.log("ice", event);
-      if (event.candidate) {
-         console.log(event.candidate);
-         let d = {
-            type: "candidate",
-            message: JSON.stringify(event.candidate),
-            to: data.to,
-            from: data.from,
-         };
-         await sendMessage(d);
-      }
-   };
+   listners(webconn, data);
    return webconn;
 };
 
-export const GetVideoStream = async (media) => {
-   if (media === "audio") {
-      let s = await navigator.mediaDevices.getUserMedia({
-         video: false,
-         audio: true,
+const listners = (webconn, dataD) => {
+   let data = { ...dataD };
+   webconn.onicecandidate = async (event) => {
+      if (event.candidate) {
+         data.type = "candidate";
+         data.message = JSON.stringify(event.candidate);
+         await sendMessage(data);
+      }
+   };
+   webconn.ontrack = (event) => {
+      event.streams[0].getTracks().forEach((track) => {
+         remotestream.addTrack(track);
       });
-      stream = s;
-      return s;
-   }
-   if (media === "video") {
-      let s = await navigator.mediaDevices.getUserMedia({
-         video: true,
-         audio: true,
-      });
-      stream = s;
-      return s;
+   };
+};
+
+export const GetLocalStreams = async (media) => {
+   try {
+      if (media === "audio") {
+         let s = await navigator.mediaDevices.getUserMedia({
+            video: false,
+            audio: true,
+         });
+         stream = s;
+      }
+      if (media === "video") {
+         let s = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: true,
+         });
+         stream = s;
+      }
+      return stream;
+   } catch (error) {
+      console.log(error);
    }
 };
 
-export const HandleWebrtcOffer = async (data) => {
+export const AddStreamToWebconn = async () => {
+   stream?.getTracks().forEach((track) => {
+      webconn.addTrack(track, stream);
+   });
+};
+
+export const CreatewebRTCOffer = async (dataf) => {
+   let data = { ...dataf };
    const offer = await webconn?.createOffer();
    webconn?.setLocalDescription(offer);
    const f = JSON.stringify(offer);
+   data.type = "offer";
    data.message = f;
    await sendMessage(data);
 };
-export const HandleWebrtcAnswer = async (data) => {
-   await webconn.setRemoteDescription(JSON.parse(data.message));
-
-   const answer = await webconn.createAnswer();
-   await webconn.setLocalDescription(answer);
-   let ansData = {
-      type: "answer",
-      message: JSON.stringify(answer),
-      to: data.from,
+export const CreatewebRTCAnswer = async (data) => {
+   const answer = await webconn?.createAnswer();
+   webconn?.setLocalDescription(answer);
+   const f = JSON.stringify(answer);
+   let d = {
       from: data.to,
+      to: data.from,
+      type: "answer",
+      message: f,
    };
-   await sendMessage(ansData);
+   await sendMessage(d);
 };
-
-export const AddTrackToWebconn = async () => {
-   const track = stream.getTracks();
-   for (let k of track) {
-      await webconn.addTrack(k, stream);
-   }
-};
-
 export const AcceptWebrtcAnswer = async (data) => {
-   await webconn.setRemoteDescription(JSON.parse(data.message));
+   let answer = new RTCSessionDescription(JSON.parse(data.message));
+   await webconn.setRemoteDescription(answer);
 };
-
-export const remoteStreamHnandler = async () => {
-   webconn.ontrack = (event) => {
-      console.log("remote stream", event);
-      remotestream = event.streams;
-   };
+export const AcceptWebrtcOffer = async (data) => {
+   let offer = new RTCSessionDescription(JSON.parse(data.message));
+   await webconn.setRemoteDescription(offer);
+   CreatewebRTCAnswer(data);
 };
-
-// export const CreateWebrtcIceConnection = async (data) => {
-//    console.log(data)
-//    data.message = JSON.stringify(data.message);
-//    await sendMessage(data);
-// };
-
-// new RTCSessionDescription(offer)
 
 export const AcceptWebrtcIceConnection = async (data) => {
-   let i = JSON.parse(data.message);
+   let i = new RTCIceCandidate(JSON.parse(data.message));
    await webconn.addIceCandidate(i);
+};
+
+export const WebRtcWeMessageHandler = async (data) => {
+   if (data.type === "offer") {
+      AcceptWebrtcOffer(data);
+   } else if (data.type === "answer") {
+      AcceptWebrtcAnswer(data);
+   } else if (data.type === "candidate") {
+      AcceptWebrtcIceConnection(data);
+   }
 };

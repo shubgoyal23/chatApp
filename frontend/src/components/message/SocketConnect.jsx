@@ -4,8 +4,8 @@ import { connectSocket } from "../../helper/ConnectSocket";
 import { decryptDataAES, GetkeyAes } from "../../helper/AEShelper";
 import { sendMessage, socket } from "../../socket";
 import { messageHandler } from "../../store/chatSlice";
-import { setIncommingCall } from "../../store/callSlice";
-import { AcceptWebrtcAnswer, AcceptWebrtcIceConnection } from "../../webrtc";
+import { SetCallSettings } from "../../store/callSlice";
+import { WebRtcWeMessageHandler } from "../../webrtc";
 import CallHnadler from "../videocall/CallHnadler";
 
 function SocketConnect() {
@@ -53,28 +53,33 @@ function SocketConnect() {
    }, [user]);
 
    useEffect(() => {
-      let interval 
+      let interval;
       if (socket) {
          console.log("listing messages");
          socket.onmessage = async (event) => {
             const msg = await decryptDataAES(event.data);
             const data = JSON.parse(msg);
-            if (data.type === "offer") {
-               if (!isInCall) {
-                  dispatch(setIncommingCall(data));
+            if (data.type === "call" && data.to == user._id) {
+               if (isInCall && data.message === "offer") {
+                  sendMessage({
+                     from: data.to,
+                     to: data.from,
+                     type: "call",
+                     message: "busy",
+                  });
+               } else if (data.message == "offer") {
+                  dispatch(SetCallSettings(data));
+               } else {
+                  dispatch(SetCallSettings(data));
                }
                return;
             }
-            if (data.type === "answer") {
-               if (isInCall) {
-                  AcceptWebrtcAnswer(data);
-               }
-               return;
-            }
-            if (data.type === "candidate") {
-               if (isInCall) {
-                  AcceptWebrtcIceConnection(data);
-               }
+            if (
+               data.type === "offer" ||
+               data.type === "answer" ||
+               data.type === "candidate"
+            ) {
+               WebRtcWeMessageHandler(data);
                return;
             }
             if (data) {
@@ -86,13 +91,13 @@ function SocketConnect() {
             }
          };
 
-          interval = setInterval(() => {
+         interval = setInterval(() => {
             sendMessage({
                from: user._id,
                type: "ping",
                message: "ping",
-            })
-         }, 120000);
+            });
+         }, 60000);
       }
 
       return () => {

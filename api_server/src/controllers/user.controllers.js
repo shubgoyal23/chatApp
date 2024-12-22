@@ -10,6 +10,7 @@ import { transporter } from "../utils/transporter.js";
 import forgotPasswordEmailTemplate from "../utils/EmailTemplate/forgotPassword.js";
 import VerificationEmailTemplate from "../utils/EmailTemplate/verifyAccount.js";
 import { Verify } from "../models/verification.model.js";
+import { Group } from "../models/group.model.js";
 
 const generateAccessAndRefereshTokens = async function (userid) {
    try {
@@ -76,7 +77,9 @@ const registerUser = asyncHandler(async (req, res) => {
       accountType: "user",
    });
 
-   const user = await User.findById(userCreated._id).select("_id email username fullname avatar");
+   const user = await User.findById(userCreated._id).select(
+      "_id email username fullname avatar"
+   );
 
    if (!user) {
       throw new ApiError(400, "failed to regiter user Try again later");
@@ -145,10 +148,10 @@ const loginUser = asyncHandler(async (req, res) => {
    const options = {
       httpOnly: true,
       secure: true,
-      sameSite: 'none',
+      sameSite: "none",
       domain: '.shubhamgoyal.dev',
-      path: '/',
-      expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      path: "/",
+      expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
    };
 
    return res
@@ -180,10 +183,10 @@ const logoutUser = asyncHandler(async (req, res) => {
    const options = {
       httpOnly: true,
       secure: true,
-      sameSite: 'none',
+      sameSite: "none",
       domain: '.shubhamgoyal.dev',
-      path: '/',
-      expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      path: "/",
+      expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
    };
 
    res.status(200)
@@ -199,6 +202,21 @@ const currentUser = asyncHandler(async (req, res) => {
       fullname: req.user.fullname,
       _id: req.user._id,
    };
+   return res
+      .status(200)
+      .json(new ApiResponse(200, r, "User fetched successfully"));
+});
+
+const getUserInfo = asyncHandler(async (req, res) => {
+   let id = req.query.id;
+   let r = await User.findById(id).select("username fullname _id avatar");
+   if (!r) {
+      let g = await Group.findById(id);
+      if (!g) {
+         throw new ApiError(404, "User not found");
+      }
+      r = g;
+   }
    return res
       .status(200)
       .json(new ApiResponse(200, r, "User fetched successfully"));
@@ -513,4 +531,5 @@ export {
    checkOtp,
    resetPassword,
    editUserDetailsSendOtp,
+   getUserInfo,
 };

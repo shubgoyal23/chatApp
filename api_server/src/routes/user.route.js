@@ -13,6 +13,7 @@ import {
    checkOtp,
    resetPassword,
    editUserDetailsSendOtp,
+   getUserInfo,
 } from "../controllers/user.controllers.js";
 import { verifyJWT } from "../middleware/auth.middleware.js";
 import { upload } from "../middleware/upload.middleware.js";
@@ -26,10 +27,12 @@ router.route("/forgot-password").post(forgotPassword);
 router.route("/check-otp").post(checkOtp);
 router.route("/reset-password").post(resetPassword);
 
+
 // secure route
 
 router.route("/logout").get(verifyJWT, logoutUser);
 
+router.route("/info").get(verifyJWT,getUserInfo);
 router.route("/user").get(verifyJWT, currentUser);
 router.route("/user-edit").post(verifyJWT, editUserDetails);
 router.route("/user-edit-otp").post(verifyJWT, editUserDetailsSendOtp);

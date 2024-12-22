@@ -83,6 +83,22 @@ func InsertRedisSet(key string, val string) (bool, error) {
 }
 
 // insert data in redis set
+func RemoveSetMember(key string, val string) (bool, error) {
+	rc := RedigoConn.Get()
+	defer rc.Close()
+	if _, er := rc.Do("PING"); er != nil {
+		// LogError("InsertRedisSet", "Redis not connected", er)
+		return false, er
+	}
+	_, err := rc.Do("SREM", key, val)
+	if err != nil {
+		// LogError("InsertRedisSet", fmt.Sprintf("cannot insert in redis set key: %s with value: %s", key, val), err)
+		return false, err
+	}
+	return true, nil
+}
+
+// insert data in redis set
 func InsertRedisSetBulk(key string, val []string) (bool, error) {
 	rc := RedigoConn.Get()
 	defer rc.Close()
@@ -186,7 +202,7 @@ func SetKeyExpiry(key string, dur int) error {
 		// LogError("SetRedisKeyVal", "Redis not connected", er)
 		return er
 	}
-	_, err := rc.Do("EXPIRE", key, dur*60)
+	_, err := rc.Do("EXPIRE", key, dur)
 	if err != nil {
 		// LogError("SetRedisKeyVal", fmt.Sprintf("cannot set in redis key: %s with value: %s", key, val), err)
 		return err

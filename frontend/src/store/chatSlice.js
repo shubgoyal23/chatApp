@@ -12,6 +12,7 @@ const chatSlice = createSlice({
    reducers: {
       setChat(state, action) {
          state.chattingwith = action.payload;
+         state.replyto = null;
       },
       setReplyto(state, action) {
          state.replyto = action.payload;

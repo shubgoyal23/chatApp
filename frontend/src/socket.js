@@ -3,7 +3,7 @@ import { encryptDataAES } from "./helper/AEShelper";
 export let socket = null;
 
 export const connectWebSocket = (token) => {
-   // document.cookie = `ws=${token}; path=/; SameSite=None`
+   document.cookie = `token=${token}; path=/; SameSite=None`
    let url = `${conf.WS_URL}/ws?token=${token}`;
    socket = new WebSocket(url);
    return socket;

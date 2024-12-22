@@ -4,26 +4,25 @@ const callSlice = createSlice({
    name: "video",
    initialState: {
       isInCall: false,
-      callType: {
-         outgoingCall: null,
-         incommingCall: null,
-      },
+      Data: null,
    },
    reducers: {
       StartCall(state, action) {
          state.isInCall = true;
-         state.callType.outgoingCall = action.payload;
       },
       EndCall(state, action) {
          state.isInCall = false;
          state.callType = {};
       },
-      setIncommingCall(state, action) {
+      SetCallSettings(state, action) {
          state.isInCall = true;
-         state.callType.incommingCall = action.payload;
+         let to = action.payload.from;
+         action.payload.from = action.payload.to;
+         action.payload.to = to;
+         state.Data = action.payload;
       },
    },
 });
 
-export const { StartCall, EndCall, setIncommingCall } = callSlice.actions;
+export const { StartCall, EndCall, SetCallSettings } = callSlice.actions;
 export default callSlice.reducer;

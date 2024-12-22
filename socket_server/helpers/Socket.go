@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"chatapp/models"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -18,12 +19,19 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+var Origins []string
+
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
-		// Allow all origins, for production consider specific origins
-		return true
+		origin := r.Header.Get("Origin")
+		for _, v := range Origins {
+			if v == origin {
+				return true
+			}
+		}
+		return false
 	},
 }
 
@@ -38,6 +46,7 @@ func RegisterVmid() {
 	// create a new vm id
 	vm := uuid.New().String()
 	VmId = strings.Split(vm, "-")[0]
+	InsertRedisSet("VMsRunning", VmId)
 }
 
 // this function loops and checks for lost connections and old connections
@@ -49,8 +58,14 @@ func RemoveLostConnections() {
 		for k, v := range allcon.Conn {
 			if v.WS == nil {
 				CloseUserConnection(k)
+				continue
 			} else if (time.Now().Unix() - v.Epoch) > 180 {
 				CloseUserConnection(k)
+				continue
+			}
+			if err := v.WS.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
+				CloseUserConnection(k)
+				continue
 			}
 		}
 	}
@@ -102,7 +117,7 @@ func SocketConnectionHandler(c *gin.Context) {
 		return
 	}
 
-	if f := SetUserKeyAndExpiry(fmt.Sprintf("userVm:%s", userInfo.ID), 5); !f {
+	if f := SetUserKeyAndExpiry(fmt.Sprintf("userVm:%s", userInfo.ID), 300); !f {
 		c.JSON(500, gin.H{
 			"error": "Internal server error",
 		})
@@ -158,39 +173,50 @@ func UserSocketHandler(userid string) {
 		if msg.Media == "" && msg.Message == "" {
 			continue // empty message
 		}
-		if msg.Type == models.Ping {
-			go HandelPingMessage(userid)
+		if msg.To == "" || msg.From != userid {
+			continue // invalid message
+		}
+		switch msg.Type {
+		case models.Ping:
+			HandelPingMessage(userid)
 			continue
-		} else if msg.Type == models.P2p {
-			go SendMessagestoUser(msg)
-		} else if msg.Type == models.Grp {
+		case models.P2p:
+			go SendMessagestoUser(msg, msg.To)
+			mse, _ := json.Marshal(msg)
+			ms, _ := EncryptKeyAES(mse, userconn.UserInfo, true)
+			if err := userconn.WS.WriteMessage(websocket.TextMessage, []byte(ms)); err != nil {
+				fmt.Println("Error sending message:", err)
+			}
+		case models.Grp:
 			go SendMessagestoGroup(msg)
+		case models.Chat:
 			continue
-		} else if msg.Type == models.Chat {
-			continue
-		} else if msg.Type == models.Offer || msg.Type == models.Ice || msg.Type == models.Answer {
+		case models.Call:
 			go HandleWebrtcOffer(msg)
 			continue
-		} else {
+		case models.Offer:
+			go HandleWebrtcOffer(msg)
+		case models.Ice:
+			go HandleWebrtcOffer(msg)
+		case models.Answer:
+			go HandleWebrtcOffer(msg)
+		default:
 			continue
-		}
-		mse, _ := json.Marshal(msg)
-		ms, _ := EncryptKeyAES(mse, userconn.UserInfo, true)
-		if err := userconn.WS.WriteMessage(websocket.TextMessage, []byte(ms)); err != nil {
-			fmt.Println("Error sending message:", err)
 		}
 		go SavemessageToDB(msg, "messages")
 	}
 }
 
-func SendMessagestoUser(message models.Message) {
+func SendMessagestoUser(message models.Message, to string) (f bool) {
+	f = true
 	defer func() {
 		if f := recover(); f != nil {
 			fmt.Println("Panic occurred in sendMessagetoUser:", f)
 			return
 		}
 	}()
-	to := message.To
+
+	// check if user is on same vm
 	AllConns.Mu.RLock()
 	sendUser, ok := AllConns.Conn[to]
 	AllConns.Mu.RUnlock()
@@ -220,7 +246,9 @@ func SendMessagestoUser(message models.Message) {
 	}
 	if userOffline {
 		StoreOfflineMessages(message, to)
+		f = false
 	}
+	return
 }
 
 func SendMessagestoGroup(message models.Message) {
@@ -235,34 +263,10 @@ func SendMessagestoGroup(message models.Message) {
 	if err != nil {
 		return
 	}
-	sendTo := []models.UserConnection{}
-	offline := []string{}
 
-	AllConns.Mu.RLock()
 	for _, userid := range members {
-		reciever, ok := AllConns.Conn[userid]
-		if ok {
-			sendTo = append(sendTo, reciever)
-		} else {
-			offline = append(offline, userid)
-		}
+		go SendMessagestoUser(message, userid)
 	}
-	AllConns.Mu.RUnlock()
-	msg, _ := json.Marshal(message)
-	go func() {
-		for _, sendUser := range sendTo {
-			m, _ := EncryptKeyAES(msg, sendUser.UserInfo, true)
-			if err := sendUser.WS.WriteMessage(websocket.TextMessage, []byte(m)); err != nil {
-				fmt.Println("Error sending message:", err)
-			}
-		}
-	}()
-
-	// handle offline users and users on other vm
-	if len(offline) > 0 {
-		// todo
-	}
-
 }
 
 // save message to db
@@ -337,7 +341,7 @@ func HandelPingMessage(userid string) {
 	userconn.Epoch = time.Now().Unix()
 	AllConns.Conn[userid] = userconn
 	AllConns.Mu.Unlock()
-	if f := SetUserKeyAndExpiry(fmt.Sprintf("userVm:%s", userid), 5); !f {
+	if f := SetUserKeyAndExpiry(fmt.Sprintf("userVm:%s", userid), 300); !f {
 		fmt.Println("Error setting user key and expiry")
 	}
 }
@@ -355,42 +359,41 @@ func SetUserKeyAndExpiry(userid string, dur int) bool {
 }
 
 func HandleWebrtcOffer(offer models.Message) {
-	to := offer.To
-
-	AllConns.Mu.RLock()
-	sendUser, ok := AllConns.Conn[to]
-	AllConns.Mu.RUnlock()
-	if !ok {
-		// todo
+	if offer.Type == models.Call {
+		if f := SendMessagestoUser(offer, offer.To); !f {
+			offer.Message = "offline"
+			SendMessagestoUser(offer, offer.From)
+			return
+		}
 		return
 	}
-	msg, _ := json.Marshal(offer)
-	m, _ := EncryptKeyAES(msg, sendUser.UserInfo, true)
-	if err := sendUser.WS.WriteMessage(websocket.TextMessage, []byte(m)); err != nil {
-		fmt.Println("Error sending message:", err)
-	}
+	to := offer.To
+	SendMessagestoUser(offer, to)
 }
 
-func ReadMessageQueue() {
+func ReadMessageQueue(ctx context.Context) {
 	for {
-		msg, err := KafkaConsumer.ReadMessage(-1)
-		if err != nil {
-			// Handle errors
-			if kafkaErr, ok := err.(kafka.Error); ok && kafkaErr.IsFatal() {
-				log.Fatalf("Fatal error: %v\n", kafkaErr)
-			} else {
-				log.Printf("Error consuming message: %v\n", err)
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			msg, err := KafkaConsumer.ReadMessage(-1)
+			if err != nil {
+				if kafkaErr, ok := err.(kafka.Error); ok && kafkaErr.IsFatal() {
+					log.Fatalf("Fatal error: %v\n", kafkaErr)
+				} else {
+					log.Printf("Error consuming message: %v\n", err)
+				}
+				continue
 			}
-			continue
+			var message models.Message
+			if err := json.Unmarshal(msg.Value, &message); err != nil {
+				fmt.Println("Error unmarshalling message:", err)
+				continue
+			}
+			SendMessagestoUser(message, message.To)
 		}
-		var message models.Message
-		if err := json.Unmarshal(msg.Value, &message); err != nil {
-			fmt.Println("Error unmarshalling message:", err)
-			continue
-		}
-		SendMessagestoUser(message)
 	}
-
 }
 
 func StoreOfflineMessages(msg models.Message, to string) {

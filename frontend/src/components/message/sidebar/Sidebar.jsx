@@ -4,7 +4,7 @@ import { debounce } from "lodash";
 import { Cloudinay_URL, avatar_public_ids } from "../../../constance/data";
 import Edituser from "./Edituser";
 import UserLabel from "./UserLabel";
-import { setConnections } from "../../../store/chatSlice";
+import { addConnection, setConnections } from "../../../store/chatSlice";
 import conf from "../../../constance/conf";
 import Options from "./Options";
 
@@ -17,6 +17,36 @@ function Sidebar({ sidNav, setSideNav }) {
 
    const user = useSelector((state) => state.login.userdata);
    const Connections = useSelector((state) => state.chat.connections);
+   const messagesQue = useSelector((state) => state.chat.messagesQue);
+
+   useEffect(() => {
+      console.log("findlist", findlist);
+      let newlist = Object.keys(messagesQue).filter((item) => {
+         let val = findlist.find((val) => val._id === item);
+         if (!val) {
+            return true;
+         }
+      });
+      console.log("newlist", newlist);
+      if (newlist.length > 0) {
+         for (let i = 0; i < newlist.length; i++) {
+            if (newlist[i] === user?._id) return;
+            fetch(`${conf.API_URL}/users/info?id=${newlist[i]}`, {
+               method: "GET",
+               credentials: "include",
+               headers: {
+                  "Content-Type": "application/json",
+               },
+            })
+               .then((res) => res.json())
+               .then((data) => {
+                  setFindList((list) => [...list, data.data]);
+                  dispatch(addConnection(data.data));
+               })
+               .catch((error) => console.error(error));
+         }
+      }
+   }, [messagesQue]);
 
    useEffect(() => {
       fetch(`${conf.API_URL}/message/contacts`, {
@@ -109,9 +139,7 @@ function Sidebar({ sidNav, setSideNav }) {
                <Edituser edit={edit} setEdit={setEdit} />
             </div>
 
-            <div
-               className="relative hidden lg:flex justify-center cursor-pointer items-center text-xl"
-            >
+            <div className="relative hidden lg:flex justify-center cursor-pointer items-center text-xl">
                <Options />
             </div>
 

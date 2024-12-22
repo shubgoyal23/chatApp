@@ -1,6 +1,7 @@
 import React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { StartCall } from "../../store/callSlice";
+import { sendMessage } from "../../socket";
 
 function ConnectCall() {
    const chatwith = useSelector((state) => state.chat.chattingwith);
@@ -8,13 +9,14 @@ function ConnectCall() {
    const dispatch = useDispatch();
 
    const Callhandler = (media) => {
-      dispatch(
-         StartCall({
-            media: media,
-            to: chatwith._id,
-            from: user._id,
-         })
-      );
+      sendMessage({
+         from: user._id,
+         to: chatwith._id,
+         type: "call",
+         message: "offer",
+         media: media,
+      });
+      dispatch(StartCall());
    };
 
    return (

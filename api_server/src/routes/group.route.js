@@ -12,8 +12,19 @@ import {
    RemoveMembers,
 } from "../controllers/group.controller.js";
 import { ApiError } from "../utils/ApiError.js";
+import { ConnectRedis } from "../db/Redis.js";
 
 const router = Router();
+
+router.use(async (req, res, next) => {
+   await ConnectRedis().catch((err) =>
+      res.status(500).json({
+         success: false,
+         message: "Internal Server Error",
+      })
+   );
+   next();
+});
 
 // router.route("/new").post(verifyJWT, newMessage);
 router.route("/new").post(verifyJWT, CreateGroup);

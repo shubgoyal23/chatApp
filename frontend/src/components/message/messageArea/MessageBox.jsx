@@ -4,7 +4,7 @@ import IndividualMsg from "./IndividualMsg";
 import { EmptyMessages } from "../../../store/chatSlice";
 import { GetMessageFromLS } from "../../../helper/MessageStorage";
 import { convertDate } from "../../../helper/convertDate";
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
 function MessageBox() {
    const dispatch = useDispatch();
    const chatwith = useSelector((state) => state.chat.chattingwith);
@@ -25,7 +25,7 @@ function MessageBox() {
                id: uuidv4(),
             };
             workingdata.push(datedata);
-            prevDate = date
+            prevDate = date;
          }
          workingdata.push(data[i]);
       }
@@ -58,7 +58,7 @@ function MessageBox() {
    return (
       <div className="h-full w-full p-0 m-0">
          {msgList.map((item) => (
-            <IndividualMsg key={item.id} data={item} />
+            <IndividualMsg key={item.id} data={item} msglist={msgList} />
          ))}
          <span ref={scrollref}></span>
       </div>
