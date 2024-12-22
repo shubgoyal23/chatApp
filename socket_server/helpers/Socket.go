@@ -179,7 +179,6 @@ func UserSocketHandler(userid string) {
 		switch msg.Type {
 		case models.Ping:
 			HandelPingMessage(userid)
-			continue
 		case models.P2p:
 			go SendMessagestoUser(msg, msg.To)
 			mse, _ := json.Marshal(msg)
@@ -187,13 +186,13 @@ func UserSocketHandler(userid string) {
 			if err := userconn.WS.WriteMessage(websocket.TextMessage, []byte(ms)); err != nil {
 				fmt.Println("Error sending message:", err)
 			}
+			go SavemessageToDB(msg, "messages")
 		case models.Grp:
 			go SendMessagestoGroup(msg)
+			go SavemessageToDB(msg, "messages")
 		case models.Chat:
-			continue
 		case models.Call:
 			go HandleWebrtcOffer(msg)
-			continue
 		case models.Offer:
 			go HandleWebrtcOffer(msg)
 		case models.Ice:
@@ -201,9 +200,7 @@ func UserSocketHandler(userid string) {
 		case models.Answer:
 			go HandleWebrtcOffer(msg)
 		default:
-			continue
 		}
-		go SavemessageToDB(msg, "messages")
 	}
 }
 

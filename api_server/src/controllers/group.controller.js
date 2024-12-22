@@ -49,7 +49,8 @@ const CreateGroup = asyncHandler(async (req, res) => {
    members.push(user._id.toString());
    let val = await Redisclient.SADD(`group:${grp._id}`, members);
    if (val !== members.length) {
-      await grp.remove();
+      await Group.findByIdAndDelete(grp._id);
+      Redisclient.DEL(`group:${grp._id}`);
       throw new ApiError(400, `Failed to create group, Try again later`);
    }
 
