@@ -41,7 +41,7 @@ var VmId string
 func RegisterVmid() {
 	AllConns = &models.WSConn{
 		Mu:   &sync.RWMutex{},
-		Conn: make(map[string]models.UserConnection),
+		Conn: make(map[string]*models.UserConnection),
 	}
 	// create a new vm id
 	vm := uuid.New().String()
@@ -129,7 +129,7 @@ func SocketConnectionHandler(c *gin.Context) {
 	if ok {
 		connExist.WS.Close()
 	}
-	AllConns.Conn[userInfo.ID] = models.UserConnection{WS: conn, UserInfo: userInfo, Epoch: time.Now().Unix()}
+	AllConns.Conn[userInfo.ID] = &models.UserConnection{WS: conn, UserInfo: userInfo, Epoch: time.Now().Unix()}
 	AllConns.Mu.Unlock()
 
 	// handle the WebSocket connection for particlular user
@@ -191,6 +191,21 @@ func UserSocketHandler(userid string) {
 			go SendMessagestoGroup(msg)
 			go SavemessageToDB(msg, "messages")
 		case models.Chat:
+		case models.Online:
+			go func() {
+				online := CheckUserOnline(msg.To)
+				switch online {
+				case true:
+					msg.Message = "online"
+				case false:
+					msg.Message = "offline"
+				}
+				mse, _ := json.Marshal(msg)
+				ms, _ := EncryptKeyAES(mse, userconn.UserInfo, true)
+				if err := userconn.WS.WriteMessage(websocket.TextMessage, []byte(ms)); err != nil {
+					fmt.Println("Error sending message:", err)
+				}
+			}()
 		case models.Call:
 			go HandleWebrtcOffer(msg)
 		case models.Offer:
@@ -334,9 +349,7 @@ func CloseUserConnection(userid string) {
 
 func HandelPingMessage(userid string) {
 	AllConns.Mu.Lock()
-	userconn := AllConns.Conn[userid]
-	userconn.Epoch = time.Now().Unix()
-	AllConns.Conn[userid] = userconn
+	AllConns.Conn[userid].Epoch = time.Now().Unix()
 	AllConns.Mu.Unlock()
 	if f := SetUserKeyAndExpiry(fmt.Sprintf("userVm:%s", userid), 300); !f {
 		fmt.Println("Error setting user key and expiry")
@@ -404,4 +417,12 @@ func StoreOfflineMessages(msg models.Message, to string) {
 	if f := MongoAddOncDoc("offline", m); !f {
 		fmt.Println("error storing offline messages")
 	}
+}
+
+func CheckUserOnline(userid string) bool {
+	vm, err := GetRedisKeyVal(fmt.Sprintf("userVm:%s", userid))
+	if err != nil || vm == "" {
+		return false
+	}
+	return true
 }

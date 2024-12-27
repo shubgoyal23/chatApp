@@ -18,7 +18,7 @@ type User struct {
 
 type WSConn struct {
 	Mu   *sync.RWMutex
-	Conn map[string]UserConnection
+	Conn map[string]*UserConnection
 }
 
 type UserConnection struct {
@@ -54,6 +54,7 @@ type MsgType string
 const (
 	P2p    MsgType = "user"
 	Grp    MsgType = "group"
+	Online MsgType = "useronline"
 	Chat   MsgType = "chat"
 	Ping   MsgType = "ping"
 	Call   MsgType = "call"
