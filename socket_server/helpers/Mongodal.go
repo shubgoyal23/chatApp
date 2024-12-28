@@ -3,6 +3,7 @@ package helpers
 import (
 	"context"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -55,4 +56,20 @@ func MongoAddManyDoc(collection string, doc []interface{}) (f bool) {
 		return
 	}
 	return true
+}
+
+// get many doc from mongo db
+func MongoGetManyDoc(collection string, filter interface{}) (doc []bson.M, f bool) {
+	doc = []bson.M{}
+	f = false
+	client := MongoConn.Database(MongoDb).Collection(collection)
+	cursor, err := client.Find(context.TODO(), filter)
+	if err != nil {
+		return
+	}
+	err = cursor.All(context.TODO(), &doc)
+	if err != nil {
+		return
+	}
+	return
 }

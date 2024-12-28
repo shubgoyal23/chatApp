@@ -84,10 +84,11 @@ func GetSecretKeyforUser(c *gin.Context) {
 	jwtInfo := jwtToken.(jwt.MapClaims)
 	userInfo := user.(models.User)
 
-	if jwtInfo["_id"] != userInfo.ID {
+	if jwtInfo["_id"] != userInfo.ID.Hex() {
 		c.JSON(401, gin.H{
 			"error": "Unauthorized",
 		})
+		return
 	}
 
 	sk := uuid.New().String()

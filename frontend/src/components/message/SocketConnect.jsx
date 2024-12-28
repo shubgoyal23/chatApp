@@ -94,6 +94,7 @@ function SocketConnect() {
          interval = setInterval(() => {
             sendMessage({
                from: user._id,
+               to: user._id,
                type: "ping",
                message: "ping",
             });

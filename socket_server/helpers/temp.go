@@ -33,7 +33,7 @@ func StoreUserPublicKey(c *gin.Context) {
 		return
 	}
 	var upk = map[string]string{
-		"userId":     userInfo.ID,
+		"userId":     userInfo.ID.Hex(),
 		"PrivateKey": publicKey.PrivateKey,
 		"PublicKey":  publicKey.PublicKey,
 	}
