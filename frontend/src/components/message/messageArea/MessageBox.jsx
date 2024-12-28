@@ -33,12 +33,6 @@ function MessageBox() {
    };
 
    useEffect(() => {
-      if (scrollref.current) {
-         scrollref.current.scrollIntoView({ behavior: "smooth" });
-      }
-   }, [msgList]);
-
-   useEffect(() => {
       const f = async () => {
          let m = await GetMessageFromLS(chatwith._id);
          m = setDateinData(m);
@@ -54,6 +48,12 @@ function MessageBox() {
          setMsgList((prev) => [...prev, ...message]); // Append new messages
       }
    }, [messagesQue, chatwith._id]);
+
+   useEffect(() => {
+      if (scrollref.current) {
+         scrollref.current.scrollIntoView({ behavior: "smooth" });
+      }
+   }, [msgList]);
 
    return (
       <div className="h-full w-full p-0 m-0">

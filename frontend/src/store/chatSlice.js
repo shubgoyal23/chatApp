@@ -70,6 +70,9 @@ const chatSlice = createSlice({
             state.messagesQue[action.payload] = [];
          }
       },
+      SetUserOnlineStatus(state, action) {
+         state.chattingwith.status = action.payload;
+      },
    },
 });
 
@@ -81,5 +84,6 @@ export const {
    EmptyMessages,
    setReplyto,
    clearReplyto,
+   SetUserOnlineStatus,
 } = chatSlice.actions;
 export default chatSlice.reducer;

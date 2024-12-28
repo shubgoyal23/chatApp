@@ -8,17 +8,17 @@ import (
 )
 
 type User struct {
-	ID       string `json:"_id" binding:"required"`
-	Name     string `json:"fullName" binding:"required"`
-	Email    string `json:"email" binding:"required"`
-	UserName string `json:"username" binding:"required"`
-	KEY      string `json:"key"`
-	Epoch    int64  `json:"epoch"`
+	ID       primitive.ObjectID `json:"_id" binding:"required"`
+	Name     string             `json:"fullName" binding:"required"`
+	Email    string             `json:"email" binding:"required"`
+	UserName string             `json:"username" binding:"required"`
+	KEY      string             `json:"key"`
+	Epoch    int64              `json:"epoch"`
 }
 
 type WSConn struct {
 	Mu   *sync.RWMutex
-	Conn map[string]*UserConnection
+	Conn map[primitive.ObjectID]*UserConnection
 }
 
 type UserConnection struct {
@@ -28,39 +28,29 @@ type UserConnection struct {
 }
 
 type Message struct {
-	ID      string  `json:"id"`
-	From    string  `json:"from" binding:"required"`
-	To      string  `json:"to" binding:"required"`
-	Message string  `json:"message"`
-	Media   string  `json:"media"`
-	Type    MsgType `json:"type" binding:"required"`
-	ReplyTo string  `json:"replyTo"`
-	Epoch   int64   `json:"epoch"`
-}
-
-type MongoMessage struct {
-	ID      string             `json:"id"`
-	From    primitive.ObjectID `json:"from" binding:"required"`
-	To      primitive.ObjectID `json:"to" binding:"required"`
-	Message string             `json:"message"`
-	Media   string             `json:"media"`
-	Type    MsgType            `json:"type" binding:"required"`
-	ReplyTo string             `json:"replyTo"`
-	Epoch   int64              `json:"epoch"`
+	ID      string             `json:"id" bson:"message_id"`
+	From    primitive.ObjectID `json:"from" binding:"required" bson:"from"`
+	To      primitive.ObjectID `json:"to" binding:"required" bson:"to"`
+	Message string             `json:"message" bson:"message"`
+	Media   string             `json:"media" bson:"media"`
+	Type    MsgType            `json:"type" binding:"required" bson:"type"`
+	ReplyTo string             `json:"replyTo" bson:"replyTo"`
+	Epoch   int64              `json:"epoch" bson:"epoch"`
 }
 
 type MsgType string
 
 const (
-	P2p    MsgType = "user"
-	Grp    MsgType = "group"
-	Online MsgType = "useronline"
-	Chat   MsgType = "chat"
-	Ping   MsgType = "ping"
-	Call   MsgType = "call"
-	Offer  MsgType = "offer"
-	Answer MsgType = "answer"
-	Ice    MsgType = "candidate"
+	P2p        MsgType = "user"
+	Grp        MsgType = "group"
+	UserOnline MsgType = "useronline" // to send is user is online or offline
+	Chat       MsgType = "chat"
+	Ping       MsgType = "ping"
+	Call       MsgType = "call"
+	Offer      MsgType = "offer"
+	Answer     MsgType = "answer"
+	Ice        MsgType = "candidate"
+	CallEnd    MsgType = "callend"
 )
 
 // call - offer - for incomming call

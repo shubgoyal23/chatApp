@@ -109,3 +109,10 @@ export const WebRtcWeMessageHandler = async (data) => {
       AcceptWebrtcIceConnection(data);
    }
 };
+
+export const CloseWebconn = () => {
+   webconn?.close();
+   stream?.getTracks().forEach((track) => {
+      track.stop();
+   });
+};

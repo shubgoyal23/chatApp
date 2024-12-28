@@ -4,7 +4,7 @@ import { emoji } from "../../../constance/EmojiList";
 import MessageBox from "./MessageBox";
 import { Cloudinay_URL, avatar_public_ids } from "../../../constance/data";
 import { sendMessage } from "../../../socket";
-import { clearReplyto, setReplyto } from "../../../store/chatSlice";
+import { clearReplyto } from "../../../store/chatSlice";
 import ConnectCall from "../../videocall/callSetting";
 import { Dropdown, Space } from "antd";
 
@@ -23,6 +23,7 @@ function MessageArea({ sidNav, setSideNav, setShowChattingWithDetails }) {
    const [showEmoji, setShowEmoji] = useState(false);
    const [showAttachment, setShowAttachment] = useState(false);
    const [showReplyBox, setShowReplyBox] = useState(false);
+   const [userOnlne, setUserOnlne] = useState(false);
    const dispatch = useDispatch();
 
    const fileInputRef = useRef(null);
@@ -39,7 +40,21 @@ function MessageArea({ sidNav, setSideNav, setShowChattingWithDetails }) {
 
    useEffect(() => {
       dispatch(clearReplyto());
+      sendMessage({
+         from: user._id,
+         to: chatwith._id,
+         type: "useronline",
+         message: "useronline",
+      });
    }, [chatwith._id]);
+
+   useEffect(() => {
+      if (chatwith.status === "online") {
+         setUserOnlne(true);
+      } else {
+         setUserOnlne(false);
+      }
+   }, [chatwith.status]);
 
    useEffect(() => {
       const set = replyTo ? true : false;
@@ -63,7 +78,7 @@ function MessageArea({ sidNav, setSideNav, setShowChattingWithDetails }) {
 
    return (
       <div
-         className={`flex-1 grow bg-purple-50 bg-contained border-gray-300 flex flex-col`}
+         className={`flex-1 grow bg-purple-200 bg-blend-luminosity  border-gray-300 flex flex-col`}
       >
          <div className="lg:w-full w-screen px-4 py-2 flex justify-between bg-gray-100">
             <div
@@ -83,11 +98,11 @@ function MessageArea({ sidNav, setSideNav, setShowChattingWithDetails }) {
                   <h1 className="text-xl font-sans capitalize text-end cursor-pointer">
                      {chatwith?.fullname || "anonymous"}
                   </h1>
-                  <span className="text-gray-900 text-xs">
-                     {/* {userOnline.some((item) => item._id === chatwith._id)
-                        ? "online"
-                        : "offline"} */}
-                  </span>
+                  {chatwith.accountType !== "group" ? (
+                     <span className="text-gray-900 text-xs">
+                        {userOnlne ? "online" : "offline"}
+                     </span>
+                  ) : null}
                </div>
             </div>
 
@@ -130,7 +145,10 @@ function MessageArea({ sidNav, setSideNav, setShowChattingWithDetails }) {
                      </span>
                      <span
                         className="material-symbols-outlined transition-all ease-in-out duration-700 cursor-pointer"
-                        onClick={() => setShowReplyBox(false)}
+                        onClick={() => {
+                           setShowReplyBox(false);
+                           dispatch(clearReplyto());
+                        }}
                      >
                         close
                      </span>
@@ -239,11 +257,13 @@ function MessageArea({ sidNav, setSideNav, setShowChattingWithDetails }) {
                         setMessage(e.target.value);
                      }}
                   />
-                  <button className="flex justify-center items-center">
-                     <span className="material-symbols-outlined">
-                        {message ? "arrow_right_alt" : ""}
-                     </span>
-                  </button>
+                  {message && (
+                     <button className="flex justify-center items-center w-10">
+                        <span className="material-symbols-outlined">
+                           arrow_right_alt
+                        </span>
+                     </button>
+                  )}
                </form>
             </div>
          </div>

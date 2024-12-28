@@ -41,7 +41,7 @@ var VmId string
 func RegisterVmid() {
 	AllConns = &models.WSConn{
 		Mu:   &sync.RWMutex{},
-		Conn: make(map[string]*models.UserConnection),
+		Conn: make(map[primitive.ObjectID]*models.UserConnection),
 	}
 	// create a new vm id
 	vm := uuid.New().String()
@@ -51,6 +51,11 @@ func RegisterVmid() {
 
 // this function loops and checks for lost connections and old connections
 func RemoveLostConnections() {
+	defer func() {
+		if f := recover(); f != nil {
+			log.Println(f)
+		}
+	}()
 	for range time.Tick(time.Minute * 1) {
 		AllConns.Mu.Lock()
 		allcon := AllConns
@@ -100,6 +105,11 @@ func UserAuthMiddlewareWS(c *gin.Context) {
 }
 
 func SocketConnectionHandler(c *gin.Context) {
+	defer func() {
+		if f := recover(); f != nil {
+			fmt.Println("Panic occurred:", f)
+		}
+	}()
 	user, f := c.Get("user")
 	if !f {
 		c.JSON(401, gin.H{
@@ -117,7 +127,7 @@ func SocketConnectionHandler(c *gin.Context) {
 		return
 	}
 
-	if f := SetUserKeyAndExpiry(fmt.Sprintf("userVm:%s", userInfo.ID), 300); !f {
+	if f := SetUserKeyAndExpiry(fmt.Sprintf("userVm:%s", userInfo.ID.Hex()), 300); !f {
 		c.JSON(500, gin.H{
 			"error": "Internal server error",
 		})
@@ -134,9 +144,10 @@ func SocketConnectionHandler(c *gin.Context) {
 
 	// handle the WebSocket connection for particlular user
 	go UserSocketHandler(userInfo.ID)
+	go GetOfflineMessages(userInfo.ID)
 }
 
-func UserSocketHandler(userid string) {
+func UserSocketHandler(userid primitive.ObjectID) {
 	defer func() {
 		if f := recover(); f != nil {
 			fmt.Println("Panic occurred:", f)
@@ -173,25 +184,21 @@ func UserSocketHandler(userid string) {
 		if msg.Media == "" && msg.Message == "" {
 			continue // empty message
 		}
-		if msg.To == "" || msg.From != userid {
+		if msg.To == primitive.NilObjectID || msg.From != userid {
 			continue // invalid message
 		}
 		switch msg.Type {
 		case models.Ping:
-			HandelPingMessage(userid)
+			go HandelPingMessage(userid)
 		case models.P2p:
 			go SendMessagestoUser(msg, msg.To)
-			mse, _ := json.Marshal(msg)
-			ms, _ := EncryptKeyAES(mse, userconn.UserInfo, true)
-			if err := userconn.WS.WriteMessage(websocket.TextMessage, []byte(ms)); err != nil {
-				fmt.Println("Error sending message:", err)
-			}
+			go SendMessagestoSelf(msg, userconn)
 			go SavemessageToDB(msg, "messages")
 		case models.Grp:
 			go SendMessagestoGroup(msg)
 			go SavemessageToDB(msg, "messages")
 		case models.Chat:
-		case models.Online:
+		case models.UserOnline:
 			go func() {
 				online := CheckUserOnline(msg.To)
 				switch online {
@@ -200,11 +207,7 @@ func UserSocketHandler(userid string) {
 				case false:
 					msg.Message = "offline"
 				}
-				mse, _ := json.Marshal(msg)
-				ms, _ := EncryptKeyAES(mse, userconn.UserInfo, true)
-				if err := userconn.WS.WriteMessage(websocket.TextMessage, []byte(ms)); err != nil {
-					fmt.Println("Error sending message:", err)
-				}
+				SendMessagestoSelf(msg, userconn)
 			}()
 		case models.Call:
 			go HandleWebrtcOffer(msg)
@@ -214,12 +217,22 @@ func UserSocketHandler(userid string) {
 			go HandleWebrtcOffer(msg)
 		case models.Answer:
 			go HandleWebrtcOffer(msg)
+		case models.CallEnd:
+			go HandleWebrtcOffer(msg)
 		default:
 		}
 	}
 }
 
-func SendMessagestoUser(message models.Message, to string) (f bool) {
+func SendMessagestoSelf(msg models.Message, userconn *models.UserConnection) {
+	mse, _ := json.Marshal(msg)
+	ms, _ := EncryptKeyAES(mse, userconn.UserInfo, true)
+	if err := userconn.WS.WriteMessage(websocket.TextMessage, []byte(ms)); err != nil {
+		fmt.Println("Error sending message:", err)
+	}
+}
+
+func SendMessagestoUser(message models.Message, to primitive.ObjectID) (f bool) {
 	f = true
 	defer func() {
 		if f := recover(); f != nil {
@@ -275,9 +288,9 @@ func SendMessagestoGroup(message models.Message) {
 	if err != nil {
 		return
 	}
-
 	for _, userid := range members {
-		go SendMessagestoUser(message, userid)
+		ui, _ := primitive.ObjectIDFromHex(userid)
+		go SendMessagestoUser(message, ui)
 	}
 }
 
@@ -289,18 +302,7 @@ func SavemessageToDB(msg models.Message, collection string) {
 			return
 		}
 	}()
-	var m models.MongoMessage
-	from, _ := primitive.ObjectIDFromHex(msg.From)
-	to, _ := primitive.ObjectIDFromHex(msg.To)
-	m.Epoch = msg.Epoch
-	m.From = from
-	m.To = to
-	m.ID = msg.ID
-	m.Media = msg.Media
-	m.Message = msg.Message
-	m.ReplyTo = msg.ReplyTo
-	m.Type = msg.Type
-	data, err := bson.Marshal(m)
+	data, err := bson.Marshal(msg)
 	if err != nil {
 		fmt.Println("error marshalling data")
 	}
@@ -323,7 +325,7 @@ func SendMessageToOtherVm(message models.Message, vmid string) bool {
 	}
 	KafkaProducer.Produce(&kafka.Message{
 		TopicPartition: kafka.TopicPartition{Topic: &vmid, Partition: kafka.PartitionAny},
-		Key:            []byte(message.To),
+		Key:            []byte(message.To.Hex()),
 		Value:          jsonmsg,
 	}, nil)
 	// if err := InsertRedisListLPush(fmt.Sprintf("vm:%s", vmid), []string{string(jsonmsg)}); err != nil {
@@ -332,7 +334,13 @@ func SendMessageToOtherVm(message models.Message, vmid string) bool {
 	return true
 }
 
-func CloseUserConnection(userid string) {
+func CloseUserConnection(userid primitive.ObjectID) {
+	defer func() {
+		if f := recover(); f != nil {
+			fmt.Println("Panic occurred in closeUserConnection:", f)
+			return
+		}
+	}()
 	AllConns.Mu.Lock()
 	userconn := AllConns.Conn[userid]
 	delete(AllConns.Conn, userid)
@@ -347,7 +355,7 @@ func CloseUserConnection(userid string) {
 	}
 }
 
-func HandelPingMessage(userid string) {
+func HandelPingMessage(userid primitive.ObjectID) {
 	AllConns.Mu.Lock()
 	AllConns.Conn[userid].Epoch = time.Now().Unix()
 	AllConns.Mu.Unlock()
@@ -406,23 +414,37 @@ func ReadMessageQueue(ctx context.Context) {
 	}
 }
 
-func StoreOfflineMessages(msg models.Message, to string) {
-	m := make(map[string]interface{})
-	by, err := json.Marshal(msg)
-	if err != nil {
-		fmt.Println("")
-	}
-	m["body"] = string(by)
-	m["to"] = to
-	if f := MongoAddOncDoc("offline", m); !f {
+func StoreOfflineMessages(msg models.Message, to primitive.ObjectID) {
+	if f := MongoAddOncDoc("offline", msg); !f {
 		fmt.Println("error storing offline messages")
 	}
 }
 
-func CheckUserOnline(userid string) bool {
-	vm, err := GetRedisKeyVal(fmt.Sprintf("userVm:%s", userid))
+func CheckUserOnline(userid primitive.ObjectID) bool {
+	vm, err := GetRedisKeyVal(fmt.Sprintf("userVm:%s", userid.Hex()))
 	if err != nil || vm == "" {
 		return false
 	}
 	return true
+}
+
+func GetOfflineMessages(userid primitive.ObjectID) {
+	messages, err := MongoGetManyDoc("offline", bson.M{"to": userid})
+	if !err {
+		fmt.Println("error getting offline messages")
+		return
+	}
+	ids := []primitive.ObjectID{}
+	for _, message := range messages {
+		ids = append(ids, message["_id"].(primitive.ObjectID))
+		bydata, _ := bson.Marshal(message)
+		message := []byte(string(bydata))
+		var msg models.Message
+		bson.Unmarshal(message, &msg)
+		SendMessagestoUser(msg, userid)
+	}
+
+	if f := MongoDeleteManyDoc("offline", bson.M{"_id": bson.M{"$in": ids}}); !f {
+		fmt.Println("error deleting offline messages")
+	}
 }
