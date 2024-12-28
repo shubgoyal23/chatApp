@@ -38,7 +38,6 @@ type Message struct {
 	Epoch   int64              `json:"epoch" bson:"epoch"`
 }
 
-
 type MsgType string
 
 const (
@@ -51,7 +50,6 @@ const (
 	Offer      MsgType = "offer"
 	Answer     MsgType = "answer"
 	Ice        MsgType = "candidate"
-	OffMessage MsgType = "offmessage" // to send offline messages
 )
 
 // call - offer - for incomming call

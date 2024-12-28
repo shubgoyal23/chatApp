@@ -51,6 +51,11 @@ func RegisterVmid() {
 
 // this function loops and checks for lost connections and old connections
 func RemoveLostConnections() {
+	defer func() {
+		if f := recover(); f != nil {
+			log.Println(f)
+		}
+	}()
 	for range time.Tick(time.Minute * 1) {
 		AllConns.Mu.Lock()
 		allcon := AllConns
@@ -100,6 +105,11 @@ func UserAuthMiddlewareWS(c *gin.Context) {
 }
 
 func SocketConnectionHandler(c *gin.Context) {
+	defer func() {
+		if f := recover(); f != nil {
+			fmt.Println("Panic occurred:", f)
+		}
+	}()
 	user, f := c.Get("user")
 	if !f {
 		c.JSON(401, gin.H{
@@ -290,17 +300,6 @@ func SavemessageToDB(msg models.Message, collection string) {
 			return
 		}
 	}()
-	// var m models.MongoMessage
-	// from, _ := primitive.ObjectIDFromHex(msg.From)
-	// to, _ := primitive.ObjectIDFromHex(msg.To)
-	// m.Epoch = msg.Epoch
-	// m.From = from
-	// m.To = to
-	// m.ID = msg.ID
-	// m.Media = msg.Media
-	// m.Message = msg.Message
-	// m.ReplyTo = msg.ReplyTo
-	// m.Type = msg.Type
 	data, err := bson.Marshal(msg)
 	if err != nil {
 		fmt.Println("error marshalling data")
@@ -426,12 +425,17 @@ func GetOfflineMessages(userid primitive.ObjectID) {
 	if !err {
 		fmt.Println("error getting offline messages")
 	}
+	ids := []primitive.ObjectID{}
 	for _, message := range messages {
+		ids = append(ids, message["_id"].(primitive.ObjectID))
 		bydata, _ := bson.Marshal(message)
 		message := []byte(string(bydata))
 		var msg models.Message
-		msg.Type = models.OffMessage
-		json.Unmarshal(message, &msg)
+		bson.Unmarshal(message, &msg)
 		SendMessagestoUser(msg, userid)
+	}
+
+	if f := MongoDeleteManyDoc("offline", bson.M{"_id": bson.M{"$in": ids}}); !f {
+		fmt.Println("error deleting offline messages")
 	}
 }

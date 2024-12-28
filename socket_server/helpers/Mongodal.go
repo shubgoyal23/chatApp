@@ -73,3 +73,14 @@ func MongoGetManyDoc(collection string, filter interface{}) (doc []bson.M, f boo
 	}
 	return
 }
+
+// delete many doc from mongo db
+func MongoDeleteManyDoc(collection string, filter interface{}) (f bool) {
+	f = false
+	client := MongoConn.Database(MongoDb).Collection(collection)
+	_, err := client.DeleteMany(context.TODO(), filter)
+	if err != nil {
+		return
+	}
+	return true
+}
