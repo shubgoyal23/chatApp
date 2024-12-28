@@ -14,7 +14,7 @@ func CleaupOnShutDown() {
 		if v.WS != nil {
 			v.WS.Close()
 		}
-		DelRedisKey(fmt.Sprintf("userVm:%s", v.UserInfo.ID))
+		DelRedisKey(fmt.Sprintf("userVm:%s", v.UserInfo.ID.Hex()))
 	}
 	RemoveSetMember("VMsRunning", VmId)
 	AllConns.Mu.RUnlock()

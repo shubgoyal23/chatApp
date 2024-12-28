@@ -92,13 +92,13 @@ func GetSecretKeyforUser(c *gin.Context) {
 	}
 
 	sk := uuid.New().String()
-	if f := SetRedisKeyVal(fmt.Sprintf("usersk:%s", userInfo.ID), sk); f != nil {
+	if f := SetRedisKeyVal(fmt.Sprintf("usersk:%s", userInfo.ID.Hex()), sk); f != nil {
 		c.JSON(500, gin.H{
 			"error": "Internal server error",
 		})
 		return
 	}
-	if f := SetKeyExpiry(fmt.Sprintf("usersk:%s", userInfo.ID), 86400); f != nil {
+	if f := SetKeyExpiry(fmt.Sprintf("usersk:%s", userInfo.ID.Hex()), 86400); f != nil {
 		c.JSON(500, gin.H{
 			"error": "Internal server error",
 		})

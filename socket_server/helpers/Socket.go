@@ -94,7 +94,7 @@ func UserAuthMiddlewareWS(c *gin.Context) {
 		c.AbortWithStatusJSON(401, gin.H{"error": "Unauthorized"})
 		return
 	}
-	key, f := GetRedisKeyVal(fmt.Sprintf("usersk:%s", userd.ID))
+	key, f := GetRedisKeyVal(fmt.Sprintf("usersk:%s", userd.ID.Hex()))
 	if f != nil || key == "" {
 		c.AbortWithStatusJSON(401, gin.H{"error": "Unauthorized"})
 		return
@@ -261,7 +261,7 @@ func SendMessagestoUser(message models.Message, to primitive.ObjectID) (f bool) 
 	}
 
 	// if user is on other vm
-	vm, err := GetRedisKeyVal(fmt.Sprintf("userVm:%s", to))
+	vm, err := GetRedisKeyVal(fmt.Sprintf("userVm:%s", to.Hex()))
 	if err != nil {
 		userOffline = true
 	} else {
@@ -350,7 +350,7 @@ func CloseUserConnection(userid primitive.ObjectID) {
 			fmt.Println("Error closing connection:", err)
 		}
 	}
-	if err := DelRedisKey(fmt.Sprintf("userVm:%s", userid)); err != nil {
+	if err := DelRedisKey(fmt.Sprintf("userVm:%s", userid.Hex())); err != nil {
 		fmt.Println("Error deleting key:", err)
 	}
 }
@@ -359,7 +359,7 @@ func HandelPingMessage(userid primitive.ObjectID) {
 	AllConns.Mu.Lock()
 	AllConns.Conn[userid].Epoch = time.Now().Unix()
 	AllConns.Mu.Unlock()
-	if f := SetUserKeyAndExpiry(fmt.Sprintf("userVm:%s", userid), 300); !f {
+	if f := SetUserKeyAndExpiry(fmt.Sprintf("userVm:%s", userid.Hex()), 300); !f {
 		fmt.Println("Error setting user key and expiry")
 	}
 }
