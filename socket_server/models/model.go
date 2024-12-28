@@ -50,6 +50,7 @@ const (
 	Offer      MsgType = "offer"
 	Answer     MsgType = "answer"
 	Ice        MsgType = "candidate"
+	CallEnd    MsgType = "callend"
 )
 
 // call - offer - for incomming call

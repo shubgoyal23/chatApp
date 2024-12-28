@@ -217,6 +217,8 @@ func UserSocketHandler(userid primitive.ObjectID) {
 			go HandleWebrtcOffer(msg)
 		case models.Answer:
 			go HandleWebrtcOffer(msg)
+		case models.CallEnd:
+			go HandleWebrtcOffer(msg)
 		default:
 		}
 	}
@@ -333,6 +335,12 @@ func SendMessageToOtherVm(message models.Message, vmid string) bool {
 }
 
 func CloseUserConnection(userid primitive.ObjectID) {
+	defer func() {
+		if f := recover(); f != nil {
+			fmt.Println("Panic occurred in closeUserConnection:", f)
+			return
+		}
+	}()
 	AllConns.Mu.Lock()
 	userconn := AllConns.Conn[userid]
 	delete(AllConns.Conn, userid)

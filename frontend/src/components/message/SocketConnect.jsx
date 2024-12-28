@@ -4,8 +4,8 @@ import { connectSocket } from "../../helper/ConnectSocket";
 import { decryptDataAES, GetkeyAes } from "../../helper/AEShelper";
 import { sendMessage, socket } from "../../socket";
 import { messageHandler } from "../../store/chatSlice";
-import { SetCallSettings } from "../../store/callSlice";
-import { WebRtcWeMessageHandler } from "../../webrtc";
+import { EndCall, SetCallSettings } from "../../store/callSlice";
+import { CloseWebconn, WebRtcWeMessageHandler } from "../../webrtc";
 import CallHnadler from "../videocall/CallHnadler";
 
 function SocketConnect() {
@@ -74,6 +74,11 @@ function SocketConnect() {
                }
                return;
             }
+            if (data.type === "callend"){
+               CloseWebconn();
+               dispatch(EndCall());
+               return;
+            }
             if (
                data.type === "offer" ||
                data.type === "answer" ||
@@ -109,9 +114,7 @@ function SocketConnect() {
    return (
       <div className="h-[100svh] w-screen">
          {call ? (
-            <div className="h-[100svh] w-screen flex flex-col justify-center items-center">
-               <CallHnadler />
-            </div>
+            <CallHnadler />
          ) : (
             <div className="h-[100svh] w-screen bg-[url('/earth.webp')] bg-cover">
                {socketConnected ? (
