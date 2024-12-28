@@ -43,7 +43,7 @@ function IndividualMsg({ data, msglist }) {
                you ? " bg-lime-400" : "bg-amber-200 "
             }`}
          >
-            <span className="absolute right-0 top-1 cursor-pointer opacity-0 hover:opacity-100 group w-6 h-6">
+            <span className="absolute right-0 top-1 cursor-pointer opacity-0 hover:opacity-100 group w-6 h-6 z-10">
                <span className="material-symbols-outlined">
                   keyboard_arrow_down
                </span>
@@ -68,11 +68,11 @@ function IndividualMsg({ data, msglist }) {
                <span></span>
             )}
             {reply?.message && (
-               <div className="w-full min-h-14 mb-2 text-sm bg-lime-600/60 backdrop-blur-md rounded-md flex items-center px-2">
+               <div className={`w-full min-h-14 mb-2 text-sm backdrop-blur-md rounded-md flex items-center px-2 ${you ? "bg-lime-600/60" : "bg-amber-400/60"}`}>
                   {reply?.message}
                </div>
             )}
-            <h2 className="pr-6 text-[14px]">{data?.message}</h2>
+            <h2 className="pr-3 text-[14px] pb-2">{data?.message}</h2>
             <span className="text-[10px] w-full text-end bottom-0 right-0 -mt-2">
                {date}
             </span>

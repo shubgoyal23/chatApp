@@ -14,11 +14,10 @@ import {
 import { EndCall } from "../../store/callSlice";
 
 function CallHnadler() {
-   const isinCall = useSelector((state) => state.call.isinCall);
+   // const isinCall = useSelector((state) => state.call.isinCall);
    const callData = useSelector((state) => state.call.Data);
    const [incoCall, setIncoCall] = useState(false);
    const [localStream, setLocalStream] = useState(null);
-   const [remoteStream, setRemoteStream] = useState(remotestream);
    const [ringing, setRinging] = useState(false);
    const dispatch = useDispatch();
 
@@ -128,13 +127,13 @@ function CallHnadler() {
             </div>
          ) : (
             <div className="w-full h-full p-2 relative">
-               {remoteStream && (
+               {remotestream && (
                   <div className="w-auto h-auto overflow-hidden">
                      <ReactPlayer
                         playing
                         height="100%"
                         width="100%"
-                        url={remoteStream}
+                        url={remotestream}
                      />
                   </div>
                )}

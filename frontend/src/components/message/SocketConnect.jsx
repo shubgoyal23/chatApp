@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { connectSocket } from "../../helper/ConnectSocket";
 import { decryptDataAES, GetkeyAes } from "../../helper/AEShelper";
 import { sendMessage, socket } from "../../socket";
-import { messageHandler } from "../../store/chatSlice";
+import { messageHandler, SetUserOnlineStatus } from "../../store/chatSlice";
 import { EndCall, SetCallSettings } from "../../store/callSlice";
 import { CloseWebconn, WebRtcWeMessageHandler } from "../../webrtc";
 import CallHnadler from "../videocall/CallHnadler";
@@ -77,6 +77,10 @@ function SocketConnect() {
             if (data.type === "callend"){
                CloseWebconn();
                dispatch(EndCall());
+               return;
+            }
+            if (data.type === "useronline"){
+               dispatch(SetUserOnlineStatus(data.message));
                return;
             }
             if (

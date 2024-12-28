@@ -421,7 +421,7 @@ func StoreOfflineMessages(msg models.Message, to primitive.ObjectID) {
 }
 
 func CheckUserOnline(userid primitive.ObjectID) bool {
-	vm, err := GetRedisKeyVal(fmt.Sprintf("userVm:%s", userid))
+	vm, err := GetRedisKeyVal(fmt.Sprintf("userVm:%s", userid.Hex()))
 	if err != nil || vm == "" {
 		return false
 	}
