@@ -20,14 +20,12 @@ function Sidebar({ sidNav, setSideNav }) {
    const messagesQue = useSelector((state) => state.chat.messagesQue);
 
    useEffect(() => {
-      console.log("findlist", findlist);
       let newlist = Object.keys(messagesQue).filter((item) => {
          let val = findlist.find((val) => val._id === item);
          if (!val) {
             return true;
          }
       });
-      console.log("newlist", newlist);
       if (newlist.length > 0) {
          for (let i = 0; i < newlist.length; i++) {
             if (newlist[i] === user?._id) return;
