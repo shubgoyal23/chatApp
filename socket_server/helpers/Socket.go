@@ -424,6 +424,7 @@ func GetOfflineMessages(userid primitive.ObjectID) {
 	messages, err := MongoGetManyDoc("offline", bson.M{"to": userid})
 	if !err {
 		fmt.Println("error getting offline messages")
+		return
 	}
 	ids := []primitive.ObjectID{}
 	for _, message := range messages {
