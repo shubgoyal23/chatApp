@@ -415,6 +415,19 @@ func ReadMessageQueue(ctx context.Context) {
 }
 
 func StoreOfflineMessages(msg models.Message, to primitive.ObjectID) {
+	if msg.Type == models.Grp {
+		jsonmsg, _ := json.Marshal(msg)
+		var m map[string]interface{}
+		if err := json.Unmarshal(jsonmsg, &m); err != nil {
+			fmt.Println("Error unmarshalling message:", err)
+			return
+		}
+		m["toUser"] = to
+		if f := MongoAddOncDoc("offline", m); !f {
+			fmt.Println("error storing offline messages")
+		}
+		return
+	}
 	if f := MongoAddOncDoc("offline", msg); !f {
 		fmt.Println("error storing offline messages")
 	}
@@ -429,7 +442,7 @@ func CheckUserOnline(userid primitive.ObjectID) bool {
 }
 
 func GetOfflineMessages(userid primitive.ObjectID) {
-	messages, err := MongoGetManyDoc("offline", bson.M{"to": userid})
+	messages, err := MongoGetManyDoc("offline", bson.M{"$or": []bson.M{{"to": userid}, {"toUser": userid}}})
 	if !err {
 		fmt.Println("error getting offline messages")
 		return
@@ -442,7 +455,7 @@ func GetOfflineMessages(userid primitive.ObjectID) {
 			fmt.Println("Error unmarshalling message:", err)
 			continue
 		}
-		SendMessagestoUser(msg, userid)
+		go SendMessagestoUser(msg, userid)
 		ids = append(ids, message["_id"].(primitive.ObjectID))
 	}
 
