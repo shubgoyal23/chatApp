@@ -284,7 +284,7 @@ func SendMessagestoGroup(message models.Message) {
 		}
 	}()
 	to := message.To
-	members, err := GetAllRedisSetMemeber(fmt.Sprintf("group:%s", to))
+	members, err := GetAllRedisSetMemeber(fmt.Sprintf("group:%s", to.Hex()))
 	if err != nil {
 		return
 	}
