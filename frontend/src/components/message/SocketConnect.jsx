@@ -59,7 +59,7 @@ function SocketConnect() {
          socket.onmessage = async (event) => {
             const msg = await decryptDataAES(event.data);
             const data = JSON.parse(msg);
-            if (data.type === "call" && data.to == user._id) {
+            if (data.type === "call") {
                if (isInCall && data.message === "offer") {
                   sendMessage({
                      from: data.to,
@@ -67,19 +67,17 @@ function SocketConnect() {
                      type: "call",
                      message: "busy",
                   });
-               } else if (data.message == "offer") {
-                  dispatch(SetCallSettings(data));
                } else {
                   dispatch(SetCallSettings(data));
                }
                return;
             }
-            if (data.type === "callend"){
+            if (data.type === "callend") {
                CloseWebconn();
                dispatch(EndCall());
                return;
             }
-            if (data.type === "useronline"){
+            if (data.type === "useronline") {
                dispatch(SetUserOnlineStatus(data.message));
                return;
             }
