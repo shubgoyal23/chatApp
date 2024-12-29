@@ -71,6 +71,7 @@ func MongoGetManyDoc(collection string, filter interface{}) (doc []bson.M, f boo
 	if err != nil {
 		return
 	}
+	f = true
 	return
 }
 

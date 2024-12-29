@@ -436,12 +436,14 @@ func GetOfflineMessages(userid primitive.ObjectID) {
 	}
 	ids := []primitive.ObjectID{}
 	for _, message := range messages {
-		ids = append(ids, message["_id"].(primitive.ObjectID))
 		bydata, _ := bson.Marshal(message)
-		message := []byte(string(bydata))
 		var msg models.Message
-		bson.Unmarshal(message, &msg)
+		if err := bson.Unmarshal(bydata, &msg); err != nil {
+			fmt.Println("Error unmarshalling message:", err)
+			continue
+		}
 		SendMessagestoUser(msg, userid)
+		ids = append(ids, message["_id"].(primitive.ObjectID))
 	}
 
 	if f := MongoDeleteManyDoc("offline", bson.M{"_id": bson.M{"$in": ids}}); !f {
