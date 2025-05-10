@@ -145,7 +145,7 @@ function CallHnadler() {
                            muted
                            height="100%"
                            width="100%"
-                           className="rounded full"
+                           className="rounded-sm full"
                            url={localStream}
                         />
                      </div>

@@ -72,7 +72,7 @@ function Login() {
                   type="text"
                   id="LastName"
                   name="username"
-                  className="mt-1 w-full border-b-2 rounded-md border-gray-200 bg-white text-sm text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 outline-none"
+                  className="mt-1 w-full border-b-2 rounded-md border-gray-200 bg-white text-sm text-gray-700 shadow-xs dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 outline-hidden"
                   {...register("username", { required: true })}
                />
             </div>
@@ -88,13 +88,13 @@ function Login() {
                   type="password"
                   id="Password"
                   name="password"
-                  className="mt-1 w-full border-b-2 rounded-md border-gray-200 bg-white text-sm text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 outline-none"
+                  className="mt-1 w-full border-b-2 rounded-md border-gray-200 bg-white text-sm text-gray-700 shadow-xs dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 outline-hidden"
                   {...register("password", { required: true })}
                />
             </div>
 
             <div className="col-span-6 sm:flex sm:items-center sm:gap-4">
-               <button className="inline-block shrink-0 rounded-md border border-blue-600 bg-blue-600 px-12 py-3 text-sm font-medium text-white transition hover:bg-transparent hover:text-blue-600 focus:outline-none focus:ring active:text-blue-500 dark:hover:bg-blue-700 dark:hover:text-white">
+               <button className="inline-block shrink-0 rounded-md border border-blue-600 bg-blue-600 px-12 py-3 text-sm font-medium text-white transition hover:bg-transparent hover:text-blue-600 focus:outline-hidden focus:ring-3 active:text-blue-500 dark:hover:bg-blue-700 dark:hover:text-white">
                   Login
                </button>
             </div>

@@ -251,7 +251,7 @@ function MessageArea({ sidNav, setSideNav, setShowChattingWithDetails }) {
                   <input
                      type="text"
                      placeholder="Type a message"
-                     className="w-full outline-none bg-white pl-4 h-12 rounded-md"
+                     className="w-full outline-hidden bg-white pl-4 h-12 rounded-md"
                      value={message}
                      onChange={(e) => {
                         setMessage(e.target.value);

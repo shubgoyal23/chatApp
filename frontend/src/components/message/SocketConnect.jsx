@@ -117,17 +117,17 @@ function SocketConnect() {
    }, [socket]);
 
    return (
-      <div className="h-[100svh] w-screen">
+      <div className="h-svh w-screen">
          {call ? (
             <CallHnadler />
          ) : (
-            <div className="h-[100svh] w-screen bg-[url('/earth.webp')] bg-cover">
+            <div className="h-svh w-screen bg-[url('/earth.webp')] bg-cover">
                {socketConnected ? (
                   <Suspense>
                      <MessageApp />
                   </Suspense>
                ) : (
-                  <div className="h-[100svh] w-screen flex flex-col justify-center items-center">
+                  <div className="h-svh w-screen flex flex-col justify-center items-center">
                      <h1 className="mb-4 text-3xl text-white font-bold">
                         Loading Your Messages
                      </h1>

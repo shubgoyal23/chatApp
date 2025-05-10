@@ -12,7 +12,7 @@ export default function MessageApp() {
       useState(false);
 
    return (
-      <div className="relative h-[100svh] w-screen overflow-hidden flex">
+      <div className="relative h-svh w-screen overflow-hidden flex">
          <Sidebar sidNav={sidNav} setSideNav={setSideNav} />
          <SidebarRight
             sidNav={showChattingWithUserDetails}

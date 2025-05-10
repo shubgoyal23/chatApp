@@ -82,7 +82,7 @@ function OtpBox({ numberOfDigits = 6, details, setUserDetails, setOtpBox }) {
                   ref={(reference) =>
                      (otpBoxReference.current[index] = reference)
                   }
-                  className={`border w-12 flex justify-center items-center h-auto text-white p-3 rounded-md bg-black focus:border-2 focus:outline-none appearance-none`}
+                  className={`border w-12 flex justify-center items-center h-auto text-white p-3 rounded-md bg-black focus:border-2 focus:outline-hidden appearance-none`}
                />
             ))}
          </div>

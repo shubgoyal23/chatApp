@@ -19,7 +19,7 @@ function UpdateDetails({ name, label, logo, setUserDetails }) {
          <div className="w-14 place-self-start text-gray-600">
             <span className="material-symbols-outlined">{logo}</span>
          </div>
-         <div className="flex-1 text-start border-b-[1px] border-gray-300 pb-3">
+         <div className="flex-1 text-start border-b border-gray-300 pb-3">
             <h1 className="text-sm text-gray-600 font-normal leading-3	">
                {label || "label"}
             </h1>
@@ -30,7 +30,7 @@ function UpdateDetails({ name, label, logo, setUserDetails }) {
                   ) : (
                      <div className="flex justify-center items-center h-8">
                         <input
-                           className="w-4/5 h-8 text-sm outline-none border border-gray-700 font-normal bg-gray-300 z-10 rounded-lg px-1 bg-transparent"
+                           className="w-4/5 h-8 text-sm outline-hidden border border-gray-700 font-normal bg-gray-300 z-10 rounded-lg px-1 bg-transparent"
                            value={value}
                            onChange={(e) => setValue(e.target.value)}
                            maxLength={50}

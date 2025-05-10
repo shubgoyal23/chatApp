@@ -9,7 +9,7 @@ function SidebarRight({ sidNav, setSideNav }) {
       <div
          className={`${
             sidNav ? "right-0" : "-right-[1020px]"
-         } absolute h-[100svh] w-screen transition-all ease-in duration-300 z-10 bg-lime-50 lg:w-96 border-l-2 border-gray-300 flex flex-col`}
+         } absolute h-svh w-screen transition-all ease-in duration-300 z-10 bg-lime-50 lg:w-96 border-l-2 border-gray-300 flex flex-col`}
       >
          <div className="h-16 w-full bg-gray-100 px-5 flex justify-start items-center gap-6">
             <span

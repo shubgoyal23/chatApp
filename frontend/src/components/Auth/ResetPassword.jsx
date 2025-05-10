@@ -77,7 +77,7 @@ function ResetPassword({ details, closebtn }) {
                         type="password"
                         id="newPassword"
                         name="newPassword"
-                        className="mt-1 w-full border-b-2 h-10 px-2 rounded-md border-gray-200 bg-white text-sm text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 outline-none"
+                        className="mt-1 w-full border-b-2 h-10 px-2 rounded-md border-gray-200 bg-white text-sm text-gray-700 shadow-xs dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 outline-hidden"
                         {...register("newPassword", {
                            required: "This field is required.",
                            pattern: {
@@ -104,7 +104,7 @@ function ResetPassword({ details, closebtn }) {
                         type="password"
                         id="confirmPassword"
                         name="confirmPassword"
-                        className="mt-1 w-full border-b-2 h-10 px-2 rounded-md border-gray-200 bg-white text-sm text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 outline-none"
+                        className="mt-1 w-full border-b-2 h-10 px-2 rounded-md border-gray-200 bg-white text-sm text-gray-700 shadow-xs dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 outline-hidden"
                         {...register("confirmPassword", {
                            required: "This field is required.",
                            pattern: {
@@ -123,7 +123,7 @@ function ResetPassword({ details, closebtn }) {
 
                   <div className=" sm:flex sm:items-center sm:gap-4 mt-3">
                      <button
-                        className="inline-block shrink-0 rounded-md border border-blue-600 bg-blue-600 px-12 py-3 text-sm font-medium text-white transition hover:bg-transparent hover:text-blue-600 focus:outline-none focus:ring w-full active:text-blue-500 dark:hover:bg-blue-700 dark:hover:text-white"
+                        className="inline-block shrink-0 rounded-md border border-blue-600 bg-blue-600 px-12 py-3 text-sm font-medium text-white transition hover:bg-transparent hover:text-blue-600 focus:outline-hidden focus:ring-3 w-full active:text-blue-500 dark:hover:bg-blue-700 dark:hover:text-white"
                         disabled={loading}
                      >
                         {loading ? "Sending..." : "Submit"}

@@ -76,7 +76,7 @@ function Edituser({ edit, setEdit }) {
       <div
          className={`${
             edit ? "block" : "hidden"
-         } absolute top-0 z-20 left-0 w-full border-2 border-gray-100 h-[100svh] bg-lime-100 rounded-lg shadow-lg p-3 overflow-y-scroll`}
+         } absolute top-0 z-20 left-0 w-full border-2 border-gray-100 h-svh bg-lime-100 rounded-lg shadow-lg p-3 overflow-y-scroll`}
       >
          <div
             className="absolute top-2 right-2 cursor-pointer"

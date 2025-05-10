@@ -108,7 +108,7 @@ function Sidebar({ sidNav, setSideNav }) {
       <div
          className={`${
             sidNav ? "left-0" : "-left-[1020px]"
-         } lg:left-0 absolute h-[100svh] lg:relative w-screen transition-all ease-in duration-300 z-10 bg-white lg:w-96 border-r-2 border-gray-300 flex flex-col`}
+         } lg:left-0 absolute h-svh lg:relative w-screen transition-all ease-in duration-300 z-10 bg-white lg:w-96 border-r-2 border-gray-300 flex flex-col`}
       >
          <div className="relative w-full px-4 py-2 flex justify-between bg-gray-100">
             <div className="flex items-center gap-4">
@@ -150,7 +150,7 @@ function Sidebar({ sidNav, setSideNav }) {
                </span>
             </button>
          </div>
-         <div className="relative w-full h-14 px-4 py-2 border-gray-200 border-b-2 shadow-sm">
+         <div className="relative w-full h-14 px-4 py-2 border-gray-200 border-b-2 shadow-xs">
             <form
                className="h-10 w-full flex justify-center items-center px-4 rounded-lg bg-gray-100"
                onSubmit={(e) => e.preventDefault()}
@@ -163,7 +163,7 @@ function Sidebar({ sidNav, setSideNav }) {
                <input
                   type="text"
                   placeholder="Search"
-                  className="outline-none bg-transparent pl-4 w-[90%]"
+                  className="outline-hidden bg-transparent pl-4 w-[90%]"
                   value={search}
                   onChange={(e) => {
                      setSearch(e.target.value);

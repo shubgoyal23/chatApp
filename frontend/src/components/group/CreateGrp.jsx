@@ -141,7 +141,7 @@ function CreateGrp() {
                         type="text"
                         id="groupname"
                         name="groupname"
-                        className="mt-1 w-full border-b-2 rounded-md border-gray-200 bg-white text-sm text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 outline-none"
+                        className="mt-1 w-full border-b-2 rounded-md border-gray-200 bg-white text-sm text-gray-700 shadow-xs dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 outline-hidden"
                         {...register("groupname", { required: true })}
                      />
                   </div>
@@ -157,7 +157,7 @@ function CreateGrp() {
                         id="groupUniqueName"
                         name="groupUniqueName"
                         placeholder="this will be used to find the group"
-                        className="mt-1 w-full border-b-2 rounded-md border-gray-200 bg-white text-sm text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 outline-none"
+                        className="mt-1 w-full border-b-2 rounded-md border-gray-200 bg-white text-sm text-gray-700 shadow-xs dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 outline-hidden"
                         {...register("groupUniqueName", { required: true })}
                         value={grpUserName}
                         onChange={(e) => {
@@ -178,7 +178,7 @@ function CreateGrp() {
                         id="description"
                         name="description"
                         placeholder="Enter group description, Members will be able to see this"
-                        className="mt-1 w-full border-b-2 rounded-md border-gray-200 bg-white text-sm text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 outline-none"
+                        className="mt-1 w-full border-b-2 rounded-md border-gray-200 bg-white text-sm text-gray-700 shadow-xs dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 outline-hidden"
                         {...register("description", { required: true })}
                      />
                   </div>
@@ -198,7 +198,7 @@ function CreateGrp() {
                   <div className="col-span-6 mb-6">
                      <button
                         type="submit"
-                        className="w-full text-white bg-lime-500 hover:bg-lime-600 focus:ring-4 focus:outline-none focus:ring-lime-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
+                        className="w-full text-white bg-lime-500 hover:bg-lime-600 focus:ring-4 focus:outline-hidden focus:ring-lime-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
                      >
                         Create Group
                      </button>

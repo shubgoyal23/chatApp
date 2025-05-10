@@ -79,7 +79,7 @@ function Register() {
       }
    }, [otpSuccess]);
    return otpBox ? (
-      <div className="w-screen h-[100svh] fixed top-0 left-0 bg-slate-200 flex justify-center items-center">
+      <div className="w-screen h-svh fixed top-0 left-0 bg-slate-200 flex justify-center items-center">
          <OtpInputWithValidation
             setOtpSuccess={setOtpSuccess}
             details={details}
@@ -105,7 +105,7 @@ function Register() {
                   type="text"
                   id="FirstName"
                   name="fullname"
-                  className="mt-1 w-full rounded-md border-gray-200 bg-white text-sm text-gray-700 shadow-sm dark:border-gray-700 border-b-2 dark:bg-gray-800 dark:text-gray-200 outline-none"
+                  className="mt-1 w-full rounded-md border-gray-200 bg-white text-sm text-gray-700 shadow-xs dark:border-gray-700 border-b-2 dark:bg-gray-800 dark:text-gray-200 outline-hidden"
                   {...register("fullname", { required: true })}
                />
             </div>
@@ -120,7 +120,7 @@ function Register() {
                   type="text"
                   id="LastName"
                   name="username"
-                  className="mt-1 w-full rounded-md border-gray-200 border-b-2 bg-white text-sm text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 outline-none"
+                  className="mt-1 w-full rounded-md border-gray-200 border-b-2 bg-white text-sm text-gray-700 shadow-xs dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 outline-hidden"
                   {...register("username", { required: true })}
                />
             </div>
@@ -135,7 +135,7 @@ function Register() {
                   type="email"
                   id="Email"
                   name="email"
-                  className="mt-1 w-full rounded-md border-b-2 border-gray-200 bg-white text-sm text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 outline-none"
+                  className="mt-1 w-full rounded-md border-b-2 border-gray-200 bg-white text-sm text-gray-700 shadow-xs dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 outline-hidden"
                   {...register("email", { required: true })}
                />
             </div>
@@ -150,7 +150,7 @@ function Register() {
                   type="password"
                   id="Password"
                   name="password"
-                  className="mt-1 w-full border-b-2 rounded-md border-gray-200 bg-white text-sm text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 outline-none"
+                  className="mt-1 w-full border-b-2 rounded-md border-gray-200 bg-white text-sm text-gray-700 shadow-xs dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 outline-hidden"
                   {...register("password", { required: true })}
                />
             </div>
@@ -165,7 +165,7 @@ function Register() {
                   type="password"
                   id="PasswordConfirmation"
                   name="password_confirmation"
-                  className="mt-1 w-full rounded-md border-b-2 border-gray-200 bg-white text-sm text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 outline-none"
+                  className="mt-1 w-full rounded-md border-b-2 border-gray-200 bg-white text-sm text-gray-700 shadow-xs dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 outline-hidden"
                   {...register("confirm_password", { required: true })}
                />
             </div>
@@ -178,7 +178,7 @@ function Register() {
             </div>
             <div className="col-span-6 sm:flex sm:items-center sm:gap-4">
                <button
-                  className="inline-block shrink-0 rounded-md border border-blue-600 bg-blue-600 px-12 py-3 text-sm font-medium text-white transition hover:bg-transparent hover:text-blue-600 focus:outline-none focus:ring active:text-blue-500 dark:hover:bg-blue-700 dark:hover:text-white"
+                  className="inline-block shrink-0 rounded-md border border-blue-600 bg-blue-600 px-12 py-3 text-sm font-medium text-white transition hover:bg-transparent hover:text-blue-600 focus:outline-hidden focus:ring-3 active:text-blue-500 dark:hover:bg-blue-700 dark:hover:text-white"
                   type="submit"
                >
                   Create an account
