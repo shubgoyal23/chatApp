@@ -1,10 +1,7 @@
 package helpers
 
 import (
-	"context"
 	"fmt"
-
-	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 )
 
 func CleaupOnShutDown() {
@@ -18,20 +15,20 @@ func CleaupOnShutDown() {
 	}
 	RemoveSetMember("VMsRunning", VmId)
 	AllConns.Mu.RUnlock()
-	kafkaAdmin, err := kafka.NewAdminClient(configMap)
-	if err != nil {
-		fmt.Println("Error creating admin client:", err)
-		return
-	}
-	kafkaAdmin.DeleteTopics(context.TODO(), []string{VmId})
-	kafkaAdmin.Close()
-	KafkaProducer.Produce(&kafka.Message{
-		TopicPartition: kafka.TopicPartition{Topic: &VmId, Partition: kafka.PartitionAny},
-		Key:            []byte(""),
-		Value:          []byte(""),
-	}, nil)
-	KafkaProducer.Flush(1000)
-	KafkaProducer.Close()
-	KafkaConsumer.Close()
+	// kafkaAdmin, err := kafka.NewAdminClient(configMap)
+	// if err != nil {
+	// 	fmt.Println("Error creating admin client:", err)
+	// 	return
+	// }
+	// kafkaAdmin.DeleteTopics(context.TODO(), []string{VmId})
+	// kafkaAdmin.Close()
+	// KafkaProducer.Produce(&kafka.Message{
+	// 	TopicPartition: kafka.TopicPartition{Topic: &VmId, Partition: kafka.PartitionAny},
+	// 	Key:            []byte(""),
+	// 	Value:          []byte(""),
+	// }, nil)
+	// KafkaProducer.Flush(1000)
+	// KafkaProducer.Close()
+	// KafkaConsumer.Close()
 	fmt.Println("cleaning up done, closing server")
 }

@@ -2,7 +2,6 @@ package helpers
 
 import (
 	"chatapp/models"
-	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -11,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -319,15 +317,15 @@ func SendMessageToOtherVm(message models.Message, vmid string) bool {
 			return
 		}
 	}()
-	jsonmsg, err := json.Marshal(message)
-	if err != nil {
-		return false
-	}
-	KafkaProducer.Produce(&kafka.Message{
-		TopicPartition: kafka.TopicPartition{Topic: &vmid, Partition: kafka.PartitionAny},
-		Key:            []byte(message.To.Hex()),
-		Value:          jsonmsg,
-	}, nil)
+	// jsonmsg, err := json.Marshal(message)
+	// if err != nil {
+	// 	return false
+	// }
+	// KafkaProducer.Produce(&kafka.Message{
+	// 	TopicPartition: kafka.TopicPartition{Topic: &vmid, Partition: kafka.PartitionAny},
+	// 	Key:            []byte(message.To.Hex()),
+	// 	Value:          jsonmsg,
+	// }, nil)
 	// if err := InsertRedisListLPush(fmt.Sprintf("vm:%s", vmid), []string{string(jsonmsg)}); err != nil {
 	// 	return false
 	// }
@@ -389,30 +387,30 @@ func HandleWebrtcOffer(offer models.Message) {
 	SendMessagestoUser(offer, to)
 }
 
-func ReadMessageQueue(ctx context.Context) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			msg, err := KafkaConsumer.ReadMessage(-1)
-			if err != nil {
-				if kafkaErr, ok := err.(kafka.Error); ok && kafkaErr.IsFatal() {
-					log.Fatalf("Fatal error: %v\n", kafkaErr)
-				} else {
-					log.Printf("Error consuming message: %v\n", err)
-				}
-				continue
-			}
-			var message models.Message
-			if err := json.Unmarshal(msg.Value, &message); err != nil {
-				fmt.Println("Error unmarshalling message:", err)
-				continue
-			}
-			SendMessagestoUser(message, message.To)
-		}
-	}
-}
+// func ReadMessageQueue(ctx context.Context) {
+// 	for {
+// 		select {
+// 		case <-ctx.Done():
+// 			return
+// 		default:
+// 			msg, err := KafkaConsumer.ReadMessage(-1)
+// 			if err != nil {
+// 				if kafkaErr, ok := err.(kafka.Error); ok && kafkaErr.IsFatal() {
+// 					log.Fatalf("Fatal error: %v\n", kafkaErr)
+// 				} else {
+// 					log.Printf("Error consuming message: %v\n", err)
+// 				}
+// 				continue
+// 			}
+// 			var message models.Message
+// 			if err := json.Unmarshal(msg.Value, &message); err != nil {
+// 				fmt.Println("Error unmarshalling message:", err)
+// 				continue
+// 			}
+// 			SendMessagestoUser(message, message.To)
+// 		}
+// 	}
+// }
 
 func StoreOfflineMessages(msg models.Message, to primitive.ObjectID) {
 	if msg.Type == models.Grp {

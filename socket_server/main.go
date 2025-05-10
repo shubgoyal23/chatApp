@@ -3,7 +3,6 @@ package main
 import (
 	"chatapp/helpers"
 	"chatapp/router"
-	"context"
 	"log"
 	"os"
 	"os/signal"
@@ -28,17 +27,17 @@ func main() {
 	if mongo := helpers.MongoInit(os.Getenv("MONGODB_URI"), os.Getenv("MONGO_DB")); !mongo {
 		log.Fatalf("Error initializing mongo")
 	}
-	ctx, cancel := context.WithCancel(context.Background())
+	// ctx, cancel := context.WithCancel(context.Background())
 	helpers.RegisterVmid()
 	helpers.LoadRsaKey()
-	helpers.KafkaInit()
+	// helpers.KafkaInit()
 	go router.StartRouter()
 	go helpers.RemoveLostConnections()
-	go helpers.ReadMessageQueue(ctx)
+	// go helpers.ReadMessageQueue(ctx)
 
 	// shutdown the server
 	<-stop
 	log.Println("Shutting down server...")
-	cancel()
+	// cancel()
 	helpers.CleaupOnShutDown()
 }
