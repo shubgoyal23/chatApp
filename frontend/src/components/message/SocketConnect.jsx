@@ -59,6 +59,9 @@ function SocketConnect() {
          socket.onmessage = async (event) => {
             const msg = await decryptDataAES(event.data);
             const data = JSON.parse(msg);
+            if (data.type === "pong") {
+               return;
+            }
             if (data.type === "call") {
                if (isInCall && data.message === "offer") {
                   sendMessage({

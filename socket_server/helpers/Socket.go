@@ -355,7 +355,14 @@ func CloseUserConnection(userid primitive.ObjectID) {
 
 func HandelPingMessage(userid primitive.ObjectID) {
 	AllConns.Mu.Lock()
-	AllConns.Conn[userid].Epoch = time.Now().Unix()
+	user := AllConns.Conn[userid]
+	user.Epoch = time.Now().Unix()
+	msg, _ := json.Marshal(models.Message{Type: models.Pong, From: userid})
+	m, _ := EncryptKeyAES(msg, user.UserInfo, true)
+	if err := user.WS.WriteMessage(websocket.TextMessage, []byte(m)); err != nil {
+		fmt.Println("Error sending message:", err)
+		CloseUserConnection(userid)
+	}
 	AllConns.Mu.Unlock()
 	if f := SetUserKeyAndExpiry(fmt.Sprintf("userVm:%s", userid.Hex()), 300); !f {
 		fmt.Println("Error setting user key and expiry")

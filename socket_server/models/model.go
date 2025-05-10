@@ -46,6 +46,7 @@ const (
 	UserOnline MsgType = "useronline" // to send is user is online or offline
 	Chat       MsgType = "chat"
 	Ping       MsgType = "ping"
+	Pong       MsgType = "pong"
 	Call       MsgType = "call"
 	Offer      MsgType = "offer"
 	Answer     MsgType = "answer"
