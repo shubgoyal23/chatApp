@@ -72,7 +72,7 @@ function IndividualMsg({ data, msglist }) {
                   {reply?.message}
                </div>
             )}
-            <h2 className="pr-3 text-[14px] pb-2 break-words">{data?.message}</h2>
+            <h2 className="pr-3 text-[14px] pb-2 break-words break-all">{data?.message}</h2>
             <span className="text-[10px] w-full text-end bottom-0 right-0 -mt-2">
                {date}
             </span>

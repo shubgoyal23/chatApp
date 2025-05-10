@@ -12,23 +12,23 @@ export default function MessageApp() {
       useState(false);
 
    return (
-      <div className="relative h-svh w-screen overflow-hidden flex bg-purple-50 bg-blend-luminosity border-gray-300">
+      <div className="relative h-full w-screen overflow-hidden flex bg-purple-50 bg-blend-luminosity border-gray-300">
          <Sidebar sidNav={sidNav} setSideNav={setSideNav} />
          <SidebarRight
             sidNav={showChattingWithUserDetails}
             setSideNav={setShowChattingWithUserDetails}
          />
-         <main className="flex-1 w-full box-border h-screen">
+         <div className="flex-grow h-full">
             {chatwith._id ? (
-            <MessageArea
-               sidNav={sidNav}
-               setSideNav={setSideNav}
-               setShowChattingWithDetails={setShowChattingWithUserDetails}
-            />
-         ) : (
-            <EmptyMessageArea sidNav={sidNav} setSideNav={setSideNav} />
-         )}
-         </main>
+               <MessageArea
+                  sidNav={sidNav}
+                  setSideNav={setSideNav}
+                  setShowChattingWithDetails={setShowChattingWithUserDetails}
+               />
+            ) : (
+               <EmptyMessageArea sidNav={sidNav} setSideNav={setSideNav} />
+            )}
+         </div>
       </div>
    );
 }

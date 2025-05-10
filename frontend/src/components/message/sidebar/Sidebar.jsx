@@ -108,7 +108,7 @@ function Sidebar({ sidNav, setSideNav }) {
       <div
          className={`${
             sidNav ? "left-0" : "-left-[1020px]"
-         } lg:left-0 absolute h-svh lg:relative w-screen transition-all ease-in duration-300 z-10 bg-white lg:w-96 border-r-2 border-gray-300 flex flex-col`}
+         } lg:left-0 absolute h-svh lg:relative w-screen transition-all ease-in duration-300 z-10 bg-white lg:w-100 border-r-2 border-gray-300 flex flex-col`}
       >
          <div className="relative w-full px-4 py-2 flex justify-between bg-gray-100">
             <div className="flex items-center gap-4">
