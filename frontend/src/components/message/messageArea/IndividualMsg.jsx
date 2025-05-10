@@ -34,7 +34,7 @@ function IndividualMsg({ data, msglist }) {
 
    return (
       <div
-         className={`w-full flex items-center p-2 px-10 z-10 ${
+         className={`w-full flex items-center p-2 lg:px-10 z-10 ${
             you ? "justify-end" : "justify-start"
          }`}
       >
@@ -72,7 +72,7 @@ function IndividualMsg({ data, msglist }) {
                   {reply?.message}
                </div>
             )}
-            <h2 className="pr-3 text-[14px] pb-2">{data?.message}</h2>
+            <h2 className="pr-3 text-[14px] pb-2 max-w-150 overflow-hidden">{data?.message}</h2>
             <span className="text-[10px] w-full text-end bottom-0 right-0 -mt-2">
                {date}
             </span>

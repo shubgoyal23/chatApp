@@ -78,9 +78,9 @@ function MessageArea({ sidNav, setSideNav, setShowChattingWithDetails }) {
 
    return (
       <div
-         className={`flex-1 grow bg-purple-200 bg-blend-luminosity  border-gray-300 flex flex-col`}
+         className={`w-full h-full flex flex-col`}
       >
-         <div className="lg:w-full w-screen px-4 py-2 flex justify-between bg-gray-100">
+         <div className="lg:w-full w-full px-4 py-2 flex justify-between bg-gray-100">
             <div
                className="flex items-center gap-4"
                onClick={() => setShowChattingWithDetails(true)}
@@ -135,7 +135,7 @@ function MessageArea({ sidNav, setSideNav, setShowChattingWithDetails }) {
          <div className="w-full flex-auto  p-0 m-0 overflow-y-scroll scroll-smooth">
             <MessageBox />
          </div>
-         <div className="lg:w-full w-screen border-gray-500 rounded-md flex flex-col">
+         <div className="lg:w-full w-full border-gray-500 rounded-md flex flex-col">
             {showReplyBox ? (
                <div className="w-full px-1 lg:px-4 pt-0">
                   <div className="flex h-16 justify-between items-center px-2 lg:px-4 py-[6px] rounded-lg bg-gray-100">
