@@ -20,7 +20,7 @@ export const sendMessage = async (message) => {
       if (!token) {
          return;
       }
-      connectWebSocket();
+      connectWebSocket(token);
       if (socket && socket.readyState === WebSocket.OPEN) {
          const msgStr = JSON.stringify(message);
          const msg = await encryptDataAES(msgStr);
