@@ -11,11 +11,13 @@ const loginSlice = createSlice({
       login(state, action) {
          state.isLoggedin = true;
          state.userdata = action.payload;
+         localStorage.clear();
       },
       logout(state, action) {
          closeWebSocket()
          state.isLoggedin = false;
          state.userdata = null;
+         localStorage.clear();
       },
    },
 });

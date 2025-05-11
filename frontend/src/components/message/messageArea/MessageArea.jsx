@@ -7,6 +7,7 @@ import { sendMessage } from "../../../socket";
 import { clearReplyto } from "../../../store/chatSlice";
 import ConnectCall from "../../videocall/callSetting";
 import { Dropdown, Space } from "antd";
+import EmojiBox from "./EmojiBox";
 
 const items = [
    {
@@ -25,6 +26,7 @@ function MessageArea({ sidNav, setSideNav, setShowChattingWithDetails }) {
    const [showReplyBox, setShowReplyBox] = useState(false);
    const [userOnlne, setUserOnlne] = useState(false);
    const dispatch = useDispatch();
+   const boxRef = useRef(null);
 
    const fileInputRef = useRef(null);
 
@@ -76,10 +78,21 @@ function MessageArea({ sidNav, setSideNav, setShowChattingWithDetails }) {
       setMessage("");
    };
 
+   useEffect(() => {
+      const handleClickOutside = (event) => {
+         if (boxRef.current && !boxRef.current.contains(event.target)) {
+            setShowEmoji(false);
+         }
+      };
+
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => {
+         document.removeEventListener("mousedown", handleClickOutside);
+      };
+   }, []);
+
    return (
-      <div
-         className={`w-full h-full flex flex-col`}
-      >
+      <div className={`w-full h-full flex flex-col`}>
          <div className="lg:w-full w-full px-4 py-2 flex justify-between bg-gray-100">
             <div
                className="flex items-center gap-4"
@@ -163,30 +176,29 @@ function MessageArea({ sidNav, setSideNav, setShowChattingWithDetails }) {
                   onSubmit={messageHandler}
                >
                   {/* EmojiList */}
-                  <button
-                     type="button"
-                     className="flex relative justify-center items-center rounded-xl mx-2"
-                     onClick={() => setShowEmoji((prev) => !prev)}
-                  >
-                     <span className="material-symbols-outlined transition-all ease-in duration-500">
-                        {showEmoji ? "close" : "sentiment_satisfied"}
-                     </span>
+                  <div className="relative">
+                     <button
+                        type="button"
+                        className="flex relative justify-center items-center rounded-xl mx-2"
+                        onClick={() => setShowEmoji((prev) => !prev)}
+                     >
+                        <span className="material-symbols-outlined transition-all ease-in duration-500">
+                           {showEmoji ? "close" : "sentiment_satisfied"}
+                        </span>
+                     </button>
                      <div
+                        ref={boxRef}
                         className={`${
                            showEmoji ? "block" : "hidden"
                         } w-72 h-80 grid grid-cols-9 gap-1 overflow-x-hidden overflow-y-scroll border-2 rounded-xl border-slate-100 absolute -top-80 bg-white p-4 shadow-2xl shadow-gray-600 left-0 transition-all ease-in-out duration-500 pr-2`}
                      >
-                        {emoji.map((item) => (
-                           <span
-                              className=""
-                              key={item}
-                              onClick={() => setMessage((prev) => prev + item)}
-                           >
-                              {item}
-                           </span>
-                        ))}
+                        <EmojiBox
+                           onchange={(emoji) =>
+                              setMessage((prev) => prev + emoji)
+                           }
+                        />
                      </div>
-                  </button>
+                  </div>
                   {/* attachment */}
                   <button
                      type="button"
