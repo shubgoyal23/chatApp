@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/joho/godotenv"
+	"go.uber.org/zap"
 )
 
 func main() {
@@ -27,17 +28,25 @@ func main() {
 	if mongo := helpers.MongoInit(os.Getenv("MONGODB_URI"), os.Getenv("MONGO_DB")); !mongo {
 		log.Fatalf("Error initializing mongo")
 	}
+	logger, err := helpers.InitLogger()
+	if err != nil {
+		log.Fatalf("Error initializing logger: %v", err)
+	}
 	// ctx, cancel := context.WithCancel(context.Background())
 	helpers.RegisterVmid()
+	logger.Info("VM ID registered", zap.String("vmid", helpers.VmId))
 	helpers.LoadRsaKey()
 	// helpers.KafkaInit()
+	if err := helpers.InitStream(); err != nil {
+		log.Fatalf("Error initializing stream: %v", err)
+	}
 	go router.StartRouter()
 	go helpers.RemoveLostConnections()
 	// go helpers.ReadMessageQueue(ctx)
 
 	// shutdown the server
 	<-stop
-	log.Println("Shutting down server...")
+	logger.Info("Shutting down server...")
 	// cancel()
 	helpers.CleaupOnShutDown()
 }

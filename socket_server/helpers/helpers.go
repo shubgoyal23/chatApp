@@ -5,7 +5,7 @@ import (
 )
 
 func CleaupOnShutDown() {
-	fmt.Println("cleaning up on shutdown")
+	Logger.Info("cleaning up on shutdown")
 	AllConns.Mu.RLock()
 	for _, v := range AllConns.Conn {
 		if v.WS != nil {
@@ -30,5 +30,5 @@ func CleaupOnShutDown() {
 	// KafkaProducer.Flush(1000)
 	// KafkaProducer.Close()
 	// KafkaConsumer.Close()
-	fmt.Println("cleaning up done, closing server")
+	Logger.Info("cleaning up done, closing server")
 }

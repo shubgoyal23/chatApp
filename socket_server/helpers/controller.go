@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 func UserAuthMiddlewareRSA(c *gin.Context) {
@@ -19,13 +20,13 @@ func UserAuthMiddlewareRSA(c *gin.Context) {
 	}
 	userstr, err := DecryptRsaDatabyPrivateKey(tokenS)
 	if err != nil {
-		fmt.Println("Error decoding token:", err)
+		Logger.Error("Error decoding token:", zap.Error(err))
 		c.AbortWithStatusJSON(401, gin.H{"error": "Unauthorized"})
 		return
 	}
 	var user models.User
 	if err := json.Unmarshal([]byte(userstr), &user); err != nil {
-		fmt.Println("Error unmarshalling token:", err)
+		Logger.Error("Error unmarshalling token:", zap.Error(err))
 		c.AbortWithStatusJSON(401, gin.H{"error": "Unauthorized"})
 		return
 	}
@@ -53,7 +54,8 @@ func UserAuthMiddlewareCookie(c *gin.Context) {
 		return secretKey, nil
 	})
 	if err != nil {
-		fmt.Println("Error decoding token:", err)
+		Logger.Error("Error parsing token:", zap.Error(err))
+		c.AbortWithStatusJSON(401, gin.H{"error": "Unauthorized"})
 		return
 	}
 
@@ -61,7 +63,9 @@ func UserAuthMiddlewareCookie(c *gin.Context) {
 		// fmt.Println("Decoded JWT claims:", claims)
 		c.Set("jwt", claims)
 	} else {
-		fmt.Println("Invalid token")
+		Logger.Error("Invalid token")
+		c.AbortWithStatusJSON(401, gin.H{"error": "Unauthorized"})
+		return
 	}
 	c.Next()
 }
@@ -93,12 +97,14 @@ func GetSecretKeyforUser(c *gin.Context) {
 
 	sk := uuid.New().String()
 	if f := SetRedisKeyVal(fmt.Sprintf("usersk:%s", userInfo.ID.Hex()), sk); f != nil {
+		Logger.Error("Error setting key:", zap.Error(f))
 		c.JSON(500, gin.H{
 			"error": "Internal server error",
 		})
 		return
 	}
 	if f := SetKeyExpiry(fmt.Sprintf("usersk:%s", userInfo.ID.Hex()), 86400); f != nil {
+		Logger.Error("Error setting key expiry:", zap.Error(f))
 		c.JSON(500, gin.H{
 			"error": "Internal server error",
 		})
@@ -111,6 +117,7 @@ func GetSecretKeyforUser(c *gin.Context) {
 
 	data, err := EncryptKeyAES(b, userInfo, true)
 	if err != nil {
+		Logger.Error("Error encrypting key:", zap.Error(err))
 		c.JSON(500, gin.H{
 			"error": "Internal server error",
 		})

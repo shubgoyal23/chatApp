@@ -4,7 +4,6 @@ import (
 	"chatapp/models"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 	"sync"
@@ -15,6 +14,7 @@ import (
 	"github.com/gorilla/websocket"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.uber.org/zap"
 )
 
 var Origins []string
@@ -51,7 +51,7 @@ func RegisterVmid() {
 func RemoveLostConnections() {
 	defer func() {
 		if f := recover(); f != nil {
-			log.Println(f)
+			Logger.Error("Panic occurred:", zap.Error(fmt.Errorf("%v", f)))
 		}
 	}()
 	for range time.Tick(time.Minute * 1) {
@@ -105,14 +105,16 @@ func UserAuthMiddlewareWS(c *gin.Context) {
 func SocketConnectionHandler(c *gin.Context) {
 	defer func() {
 		if f := recover(); f != nil {
-			fmt.Println("Panic occurred:", f)
+			Logger.Error("Panic occurred:", zap.Error(fmt.Errorf("%v", f)))
 		}
 	}()
 	user, f := c.Get("user")
 	if !f {
+		Logger.Error("User not found")
 		c.JSON(401, gin.H{
 			"error": "Unauthorized",
 		})
+		return
 	}
 	userInfo := user.(models.User)
 
@@ -148,7 +150,7 @@ func SocketConnectionHandler(c *gin.Context) {
 func UserSocketHandler(userid primitive.ObjectID) {
 	defer func() {
 		if f := recover(); f != nil {
-			fmt.Println("Panic occurred:", f)
+			Logger.Error("Panic occurred:", zap.Error(fmt.Errorf("%v", f)))
 			CloseUserConnection(userid)
 			return
 		}
@@ -163,18 +165,18 @@ func UserSocketHandler(userid primitive.ObjectID) {
 	for {
 		_, message, err := userconn.WS.ReadMessage()
 		if err != nil {
-			fmt.Println("Error reading message:", err)
+			Logger.Error("Error reading message:", zap.Error(err))
 			break
 		}
 		dmessage, err := DecryptKeyAES(message, userconn.UserInfo, true)
 		if err != nil {
-			fmt.Println("Error decrypting message:", err)
+			Logger.Error("Error decrypting message:", zap.Error(err))
 			break
 		}
 
 		var msg models.Message
 		if e := json.Unmarshal(dmessage, &msg); e != nil {
-			fmt.Println("Error unmarshalling message:", e)
+			Logger.Error("Error unmarshalling message:", zap.Error(e))
 			continue
 		}
 		msg.ID = uuid.NewString()
@@ -226,7 +228,7 @@ func SendMessagestoSelf(msg models.Message, userconn *models.UserConnection) {
 	mse, _ := json.Marshal(msg)
 	ms, _ := EncryptKeyAES(mse, userconn.UserInfo, true)
 	if err := userconn.WS.WriteMessage(websocket.TextMessage, []byte(ms)); err != nil {
-		fmt.Println("Error sending message:", err)
+		Logger.Error("Error sending message:", zap.Error(err))
 	}
 }
 
@@ -234,7 +236,7 @@ func SendMessagestoUser(message models.Message, to primitive.ObjectID) (f bool) 
 	f = true
 	defer func() {
 		if f := recover(); f != nil {
-			fmt.Println("Panic occurred in sendMessagetoUser:", f)
+			Logger.Error("Panic occurred in sendMessagetoUser:", zap.Error(fmt.Errorf("%v", f)))
 			return
 		}
 	}()
@@ -251,7 +253,7 @@ func SendMessagestoUser(message models.Message, to primitive.ObjectID) (f bool) 
 		msg, _ := json.Marshal(message)
 		m, _ := EncryptKeyAES(msg, sendUser.UserInfo, true)
 		if err := sendUser.WS.WriteMessage(websocket.TextMessage, []byte(m)); err != nil {
-			fmt.Println("Error sending message:", err)
+			Logger.Error("Error sending message:", zap.Error(err))
 			CloseUserConnection(to)
 		} else {
 			return
@@ -277,7 +279,7 @@ func SendMessagestoUser(message models.Message, to primitive.ObjectID) (f bool) 
 func SendMessagestoGroup(message models.Message) {
 	defer func() {
 		if f := recover(); f != nil {
-			fmt.Println("Panic occurred in sendMessagetoGroup:", f)
+			Logger.Error("Panic occurred in sendMessagetoGroup:", zap.Error(fmt.Errorf("%v", f)))
 			return
 		}
 	}()
@@ -296,16 +298,16 @@ func SendMessagestoGroup(message models.Message) {
 func SavemessageToDB(msg models.Message, collection string) {
 	defer func() {
 		if f := recover(); f != nil {
-			fmt.Println("Panic occurred in savemessageToDB:", f)
+			Logger.Error("Panic occurred in savemessageToDB:", zap.Error(fmt.Errorf("%v", f)))
 			return
 		}
 	}()
 	data, err := bson.Marshal(msg)
 	if err != nil {
-		fmt.Println("error marshalling data")
+		Logger.Error("Error marshalling data:", zap.Error(err))
 	}
 	if f := MongoAddOncDoc(collection, data); !f {
-		fmt.Println("error putting data to mongodb")
+		Logger.Error("Error putting data to mongodb:", zap.Error(err))
 	}
 }
 
@@ -313,7 +315,7 @@ func SavemessageToDB(msg models.Message, collection string) {
 func SendMessageToOtherVm(message models.Message, vmid string) bool {
 	defer func() {
 		if f := recover(); f != nil {
-			fmt.Println("Panic occurred in sendMessageToOtherVm:", f)
+			Logger.Error("Panic occurred in sendMessageToOtherVm:", zap.Error(fmt.Errorf("%v", f)))
 			return
 		}
 	}()
@@ -335,7 +337,7 @@ func SendMessageToOtherVm(message models.Message, vmid string) bool {
 func CloseUserConnection(userid primitive.ObjectID) {
 	defer func() {
 		if f := recover(); f != nil {
-			fmt.Println("Panic occurred in closeUserConnection:", f)
+			Logger.Error("Panic occurred in closeUserConnection:", zap.Error(fmt.Errorf("%v", f)))
 			return
 		}
 	}()
@@ -345,11 +347,11 @@ func CloseUserConnection(userid primitive.ObjectID) {
 	AllConns.Mu.Unlock()
 	if userconn.WS != nil {
 		if err := userconn.WS.Close(); err != nil {
-			fmt.Println("Error closing connection:", err)
+			Logger.Error("Error closing connection:", zap.Error(err))
 		}
 	}
 	if err := DelRedisKey(fmt.Sprintf("userVm:%s", userid.Hex())); err != nil {
-		fmt.Println("Error deleting key:", err)
+		Logger.Error("Error deleting key:", zap.Error(err))
 	}
 }
 
@@ -360,22 +362,22 @@ func HandelPingMessage(userid primitive.ObjectID) {
 	msg, _ := json.Marshal(models.Message{Type: models.Pong, From: userid})
 	m, _ := EncryptKeyAES(msg, user.UserInfo, true)
 	if err := user.WS.WriteMessage(websocket.TextMessage, []byte(m)); err != nil {
-		fmt.Println("Error sending message:", err)
+		Logger.Error("Error sending message:", zap.Error(err))
 		CloseUserConnection(userid)
 	}
 	AllConns.Mu.Unlock()
 	if f := SetUserKeyAndExpiry(fmt.Sprintf("userVm:%s", userid.Hex()), 300); !f {
-		fmt.Println("Error setting user key and expiry")
+		Logger.Error("Error setting user key and expiry")
 	}
 }
 
 func SetUserKeyAndExpiry(userid string, dur int) bool {
 	if err := SetRedisKeyVal(userid, VmId); err != nil {
-		fmt.Println("Error setting key value:", err)
+		Logger.Error("Error setting key value:", zap.Error(err))
 		return false
 	}
 	if err := SetKeyExpiry(userid, dur); err != nil {
-		fmt.Println("Error setting key expiry:", err)
+		Logger.Error("Error setting key expiry:", zap.Error(err))
 		return false
 	}
 	return true
@@ -424,17 +426,17 @@ func StoreOfflineMessages(msg models.Message, to primitive.ObjectID) {
 		jsonmsg, _ := json.Marshal(msg)
 		var m map[string]interface{}
 		if err := json.Unmarshal(jsonmsg, &m); err != nil {
-			fmt.Println("Error unmarshalling message:", err)
+			Logger.Error("Error unmarshalling message:")
 			return
 		}
 		m["toUser"] = to
 		if f := MongoAddOncDoc("offline", m); !f {
-			fmt.Println("error storing offline messages")
+			Logger.Error("Error storing offline messages:")
 		}
 		return
 	}
 	if f := MongoAddOncDoc("offline", msg); !f {
-		fmt.Println("error storing offline messages")
+		Logger.Error("Error storing offline messages:")
 	}
 }
 
@@ -449,7 +451,7 @@ func CheckUserOnline(userid primitive.ObjectID) bool {
 func GetOfflineMessages(userid primitive.ObjectID) {
 	messages, err := MongoGetManyDoc("offline", bson.M{"$or": []bson.M{{"to": userid}, {"toUser": userid}}})
 	if !err {
-		fmt.Println("error getting offline messages")
+		Logger.Error("Error getting offline messages:")
 		return
 	}
 	ids := []primitive.ObjectID{}
@@ -457,7 +459,7 @@ func GetOfflineMessages(userid primitive.ObjectID) {
 		bydata, _ := bson.Marshal(message)
 		var msg models.Message
 		if err := bson.Unmarshal(bydata, &msg); err != nil {
-			fmt.Println("Error unmarshalling message:", err)
+			Logger.Error("Error unmarshalling message:", zap.Error(err))
 			continue
 		}
 		go SendMessagestoUser(msg, userid)
@@ -465,6 +467,6 @@ func GetOfflineMessages(userid primitive.ObjectID) {
 	}
 
 	if f := MongoDeleteManyDoc("offline", bson.M{"_id": bson.M{"$in": ids}}); !f {
-		fmt.Println("error deleting offline messages")
+		Logger.Error("Error deleting offline messages:")
 	}
 }
