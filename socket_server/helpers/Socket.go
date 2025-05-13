@@ -326,8 +326,7 @@ func SendMessageToOtherVm(message models.Message, vmid string) bool {
 		return false
 	}
 
-	m, _ := json.Marshal(jsonmsg)
-	if err := WriteStream(string(m), "chatzz:"+vmid); err != nil {
+	if err := WriteStream(string(jsonmsg), "chatzz:"+vmid); err != nil {
 		return false
 	}
 	// KafkaProducer.Produce(&kafka.Message{
