@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -42,8 +43,9 @@ func RegisterVmid() {
 		Conn: make(map[primitive.ObjectID]*models.UserConnection),
 	}
 	// create a new vm id
-	vm := uuid.New().String()
-	VmId = strings.Split(vm, "-")[0]
+	VmId = os.Getenv("VM_ID")
+	// vm := uuid.New().String()
+	// VmId = strings.Split(vm, "-")[0]
 	InsertRedisSet("VMsRunning", VmId)
 }
 
@@ -319,10 +321,15 @@ func SendMessageToOtherVm(message models.Message, vmid string) bool {
 			return
 		}
 	}()
-	// jsonmsg, err := json.Marshal(message)
-	// if err != nil {
-	// 	return false
-	// }
+	jsonmsg, err := json.Marshal(message)
+	if err != nil {
+		return false
+	}
+
+	m, _ := json.Marshal(jsonmsg)
+	if err := WriteStream(string(m), "chatzz:"+vmid); err != nil {
+		return false
+	}
 	// KafkaProducer.Produce(&kafka.Message{
 	// 	TopicPartition: kafka.TopicPartition{Topic: &vmid, Partition: kafka.PartitionAny},
 	// 	Key:            []byte(message.To.Hex()),

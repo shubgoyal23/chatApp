@@ -224,3 +224,18 @@ func DelRedisKey(key string) error {
 	}
 	return nil
 }
+
+func RedisKeyExists(key string) bool {
+	rc := RedigoConn.Get()
+	defer rc.Close()
+	if _, er := rc.Do("PING"); er != nil {
+		// LogError("SetRedisKeyVal", "Redis not connected", er)
+		return false
+	}
+	_, err := rc.Do("EXISTS", key)
+	if err != nil {
+		// LogError("SetRedisKeyVal", fmt.Sprintf("cannot set in redis key: %s with value: %s", key, val), err)
+		return false
+	}
+	return true
+}
