@@ -232,10 +232,10 @@ func RedisKeyExists(key string) bool {
 		// LogError("SetRedisKeyVal", "Redis not connected", er)
 		return false
 	}
-	_, err := rc.Do("EXISTS", key)
+	f, err := redis.Bool(rc.Do("EXISTS", key))
 	if err != nil {
 		// LogError("SetRedisKeyVal", fmt.Sprintf("cannot set in redis key: %s with value: %s", key, val), err)
 		return false
 	}
-	return true
+	return f
 }
