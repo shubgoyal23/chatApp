@@ -42,6 +42,21 @@ func RegisterVmid(vmid string) {
 	VmId = vmid
 	InsertRedisSet("VMsRunning", VmId)
 	Logger.Info("VM ID registered", zap.String("vmid", VmId))
+
+	// load all groups and insert in redis
+	groups, ok := MongoGetManyDoc("groups", bson.M{})
+	if !ok {
+		Logger.Error("Error loading groups")
+	}
+	for _, group := range groups {
+		id := group["_id"].(primitive.ObjectID)
+		group["_id"] = id.Hex()
+		var members []string
+		for _, member := range group["members"].(primitive.A) {
+			members = append(members, member.(primitive.ObjectID).Hex())
+		}
+		InsertRedisSet(fmt.Sprintf("group:%s", id.Hex()), members...)
+	}
 }
 
 // this function loops and checks for lost connections and old connections

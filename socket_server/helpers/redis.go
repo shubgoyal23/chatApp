@@ -67,14 +67,15 @@ func GetRedisListRPOP(key string, n int) ([][]byte, error) {
 }
 
 // insert data in redis set
-func InsertRedisSet(key string, val string) (bool, error) {
+func InsertRedisSet(key string, val ...string) (bool, error) {
 	rc := RedigoConn.Get()
 	defer rc.Close()
 	if _, er := rc.Do("PING"); er != nil {
 		// LogError("InsertRedisSet", "Redis not connected", er)
 		return false, er
 	}
-	_, err := rc.Do("SADD", key, val)
+	ar := redis.Args{}.Add(key).AddFlat(val)
+	_, err := rc.Do("SADD", ar...)
 	if err != nil {
 		// LogError("InsertRedisSet", fmt.Sprintf("cannot insert in redis set key: %s with value: %s", key, val), err)
 		return false, err
