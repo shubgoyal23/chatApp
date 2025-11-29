@@ -7,13 +7,23 @@ import (
 	"go.uber.org/zap"
 )
 
-func DoEveryDay() {
-	go func() {
+func InitScheduler() {
+	defer func() {
 		if r := recover(); r != nil {
 			Logger.Error("Panic occurred:", zap.Error(fmt.Errorf("%v", r)))
 		}
 	}()
-	for range time.Tick(time.Hour * 24) {
-		Logger.Info("Running DoEveryDay")
+
+	threeMinTicker := time.NewTicker(3 * time.Minute)
+	dayTicker := time.NewTicker(24 * time.Hour)
+	defer threeMinTicker.Stop()
+	defer dayTicker.Stop()
+	for {
+		select {
+		case <-threeMinTicker.C:
+			RemoveLostConnections()
+		case <-dayTicker.C:
+			Logger.Info("Running Scheduler", zap.String("vmid", VmId), zap.Int("active connections", len(AllConns.Conn)))
+		}
 	}
 }

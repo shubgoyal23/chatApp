@@ -47,6 +47,7 @@ func RegisterVmid() {
 	// vm := uuid.New().String()
 	// VmId = strings.Split(vm, "-")[0]
 	InsertRedisSet("VMsRunning", VmId)
+	Logger.Info("VM ID registered", zap.String("vmid", VmId))
 }
 
 // this function loops and checks for lost connections and old connections
@@ -56,22 +57,20 @@ func RemoveLostConnections() {
 			Logger.Error("Panic occurred:", zap.Error(fmt.Errorf("%v", f)))
 		}
 	}()
-	for range time.Tick(time.Minute * 1) {
-		AllConns.Mu.Lock()
-		allcon := AllConns
-		AllConns.Mu.Unlock()
-		for k, v := range allcon.Conn {
-			if v.WS == nil {
-				CloseUserConnection(k)
-				continue
-			} else if (time.Now().Unix() - v.Epoch) > 180 {
-				CloseUserConnection(k)
-				continue
-			}
-			if err := v.WS.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
-				CloseUserConnection(k)
-				continue
-			}
+	AllConns.Mu.Lock()
+	allcon := AllConns
+	AllConns.Mu.Unlock()
+	for k, v := range allcon.Conn {
+		if v.WS == nil {
+			CloseUserConnection(k)
+			continue
+		} else if (time.Now().Unix() - v.Epoch) > 180 {
+			CloseUserConnection(k)
+			continue
+		}
+		if err := v.WS.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
+			CloseUserConnection(k)
+			continue
 		}
 	}
 }

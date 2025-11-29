@@ -41,13 +41,13 @@ func newRedisCore(writer zapcore.WriteSyncer) zapcore.Core {
 	return zapcore.NewCore(jsonEncoder, writer, zapcore.InfoLevel)
 }
 
-func InitLogger() (*zap.Logger, error) {
+func InitLogger(key string) (*zap.Logger, error) {
 	if RedigoConn == nil {
 		return nil, errors.New("RedigoConn is nil")
 	}
 	writer := &RedisWriter{
 		pool: RedigoConn,
-		key:  "applog",
+		key:  key,
 	}
 	core := newRedisCore(zapcore.AddSync(writer))
 	logger := zap.New(core, zap.AddCaller())
