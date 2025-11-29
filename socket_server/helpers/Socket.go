@@ -122,7 +122,7 @@ func SocketConnectionHandler(c *gin.Context) {
 		return
 	}
 
-	if f := SetUserKeyAndExpiry(fmt.Sprintf("userVm:%s", userInfo.ID), 300); !f {
+	if f := SetUserKeyAndExpiry(userInfo.ID, 300); !f {
 		c.JSON(500, gin.H{
 			"error": "Internal server error",
 		})
