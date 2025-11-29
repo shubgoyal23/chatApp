@@ -20,9 +20,9 @@ func DeriveKeyFromMD5(key string) []byte {
 func EncryptKeyAES(plainText []byte, user models.User, useKey bool) (string, error) {
 	var key []byte
 	if useKey {
-		key = DeriveKeyFromMD5(fmt.Sprintf("%s%s%s%s", user.ID.Hex(), user.Email, user.UserName, user.KEY))
+		key = DeriveKeyFromMD5(fmt.Sprintf("%s%s%s%s", user.ID, user.Email, user.UserName, user.KEY))
 	} else {
-		key = DeriveKeyFromMD5(fmt.Sprintf("%s%s%s", user.ID.Hex(), user.Email, user.UserName))
+		key = DeriveKeyFromMD5(fmt.Sprintf("%s%s%s", user.ID, user.Email, user.UserName))
 	}
 	block, err := aes.NewCipher(key)
 	if err != nil {
@@ -46,9 +46,9 @@ func EncryptKeyAES(plainText []byte, user models.User, useKey bool) (string, err
 func DecryptKeyAES(cipherTextHex []byte, user models.User, useKey bool) ([]byte, error) {
 	var key []byte
 	if useKey {
-		key = DeriveKeyFromMD5(fmt.Sprintf("%s%s%s%s", user.ID.Hex(), user.Email, user.UserName, user.KEY))
+		key = DeriveKeyFromMD5(fmt.Sprintf("%s%s%s%s", user.ID, user.Email, user.UserName, user.KEY))
 	} else {
-		key = DeriveKeyFromMD5(fmt.Sprintf("%s%s%s", user.ID.Hex(), user.Email, user.UserName))
+		key = DeriveKeyFromMD5(fmt.Sprintf("%s%s%s", user.ID, user.Email, user.UserName))
 	}
 	cipherText, err := base64.StdEncoding.DecodeString(string(cipherTextHex))
 	if err != nil {

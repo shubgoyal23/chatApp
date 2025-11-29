@@ -23,7 +23,12 @@ func InitScheduler() {
 		case <-threeMinTicker.C:
 			RemoveLostConnections()
 		case <-dayTicker.C:
-			Logger.Info("Running Scheduler", zap.String("vmid", VmId), zap.Int("active connections", len(AllConns.Conn)))
+			c := 0
+			AllConns.Range(func(key, value interface{}) bool {
+				c++
+				return true
+			})
+			Logger.Info("Running Scheduler", zap.String("vmid", VmId), zap.Int("active connections", c))
 		}
 	}
 }

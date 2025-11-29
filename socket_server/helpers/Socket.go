@@ -34,14 +34,11 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-var AllConns *models.WSConn
+var AllConns sync.Map
 var VmId string
 
 func RegisterVmid() {
-	AllConns = &models.WSConn{
-		Mu:   &sync.RWMutex{},
-		Conn: make(map[primitive.ObjectID]*models.UserConnection),
-	}
+	AllConns = sync.Map{}
 	// create a new vm id
 	VmId = os.Getenv("VM_ID")
 	// vm := uuid.New().String()
@@ -57,22 +54,20 @@ func RemoveLostConnections() {
 			Logger.Error("Panic occurred:", zap.Error(fmt.Errorf("%v", f)))
 		}
 	}()
-	AllConns.Mu.Lock()
-	allcon := AllConns
-	AllConns.Mu.Unlock()
-	for k, v := range allcon.Conn {
-		if v.WS == nil {
-			CloseUserConnection(k)
-			continue
-		} else if (time.Now().Unix() - v.Epoch) > 180 {
-			CloseUserConnection(k)
-			continue
+	AllConns.Range(func(key, value interface{}) bool {
+		if value.(*models.Conn).WS == nil {
+			CloseUserConnection(key.(string))
+			return true
+		} else if (time.Now().Unix() - value.(*models.Conn).Epoch) > 180 {
+			CloseUserConnection(key.(string))
+			return true
 		}
-		if err := v.WS.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
-			CloseUserConnection(k)
-			continue
+		if err := value.(*models.Conn).WS.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
+			CloseUserConnection(key.(string))
+			return true
 		}
-	}
+		return true
+	})
 }
 
 func UserAuthMiddlewareWS(c *gin.Context) {
@@ -93,7 +88,7 @@ func UserAuthMiddlewareWS(c *gin.Context) {
 		c.AbortWithStatusJSON(401, gin.H{"error": "Unauthorized"})
 		return
 	}
-	key, f := GetRedisKeyVal(fmt.Sprintf("usersk:%s", userd.ID.Hex()))
+	key, f := GetRedisKeyVal(fmt.Sprintf("usersk:%s", userd.ID))
 	if f != nil || key == "" {
 		c.AbortWithStatusJSON(401, gin.H{"error": "Unauthorized"})
 		return
@@ -128,27 +123,25 @@ func SocketConnectionHandler(c *gin.Context) {
 		return
 	}
 
-	if f := SetUserKeyAndExpiry(fmt.Sprintf("userVm:%s", userInfo.ID.Hex()), 300); !f {
+	if f := SetUserKeyAndExpiry(fmt.Sprintf("userVm:%s", userInfo.ID), 300); !f {
 		c.JSON(500, gin.H{
 			"error": "Internal server error",
 		})
 		return
 	}
 	userInfo.Epoch = time.Now().Unix()
-	AllConns.Mu.Lock()
-	connExist, ok := AllConns.Conn[userInfo.ID]
-	if ok {
-		connExist.WS.Close()
+
+	if _, ok := AllConns.Load(userInfo.ID); ok {
+		CloseUserConnection(userInfo.ID)
 	}
-	AllConns.Conn[userInfo.ID] = &models.UserConnection{WS: conn, UserInfo: userInfo, Epoch: time.Now().Unix()}
-	AllConns.Mu.Unlock()
+	AllConns.Store(userInfo.ID, &models.Conn{WS: conn, UserInfo: userInfo, Epoch: time.Now().Unix()})
 
 	// handle the WebSocket connection for particlular user
 	go UserSocketHandler(userInfo.ID)
 	go GetOfflineMessages(userInfo.ID)
 }
 
-func UserSocketHandler(userid primitive.ObjectID) {
+func UserSocketHandler(userid string) {
 	defer func() {
 		if f := recover(); f != nil {
 			Logger.Error("Panic occurred:", zap.Error(fmt.Errorf("%v", f)))
@@ -158,9 +151,11 @@ func UserSocketHandler(userid primitive.ObjectID) {
 		CloseUserConnection(userid)
 	}()
 
-	AllConns.Mu.RLock()
-	userconn := AllConns.Conn[userid]
-	AllConns.Mu.RUnlock()
+	conn, ok := AllConns.Load(userid)
+	if !ok {
+		return
+	}
+	userconn := conn.(*models.Conn)
 
 	// handle the WebSocket connection
 	for {
@@ -185,7 +180,7 @@ func UserSocketHandler(userid primitive.ObjectID) {
 		if msg.Media == "" && msg.Message == "" {
 			continue // empty message
 		}
-		if msg.To == primitive.NilObjectID || msg.From != userid {
+		if msg.To == "" || msg.From != userid {
 			continue // invalid message
 		}
 		switch msg.Type {
@@ -225,7 +220,7 @@ func UserSocketHandler(userid primitive.ObjectID) {
 	}
 }
 
-func SendMessagestoSelf(msg models.Message, userconn *models.UserConnection) {
+func SendMessagestoSelf(msg models.Message, userconn *models.Conn) {
 	mse, _ := json.Marshal(msg)
 	ms, _ := EncryptKeyAES(mse, userconn.UserInfo, true)
 	if err := userconn.WS.WriteMessage(websocket.TextMessage, []byte(ms)); err != nil {
@@ -233,7 +228,7 @@ func SendMessagestoSelf(msg models.Message, userconn *models.UserConnection) {
 	}
 }
 
-func SendMessagestoUser(message models.Message, to primitive.ObjectID) (f bool) {
+func SendMessagestoUser(message models.Message, to string) (f bool) {
 	f = true
 	defer func() {
 		if f := recover(); f != nil {
@@ -243,26 +238,24 @@ func SendMessagestoUser(message models.Message, to primitive.ObjectID) (f bool) 
 	}()
 
 	// check if user is on same vm
-	AllConns.Mu.RLock()
-	sendUser, ok := AllConns.Conn[to]
-	AllConns.Mu.RUnlock()
+	user, ok := AllConns.Load(to)
 
 	var userOffline bool = false
 
 	// if user is on same vm and online
 	if ok {
+		sendUser := user.(*models.Conn)
 		msg, _ := json.Marshal(message)
 		m, _ := EncryptKeyAES(msg, sendUser.UserInfo, true)
 		if err := sendUser.WS.WriteMessage(websocket.TextMessage, []byte(m)); err != nil {
 			Logger.Error("Error sending message:", zap.Error(err))
 			CloseUserConnection(to)
-		} else {
-			return
 		}
+		return
 	}
 
 	// if user is on other vm
-	vm, err := GetRedisKeyVal(fmt.Sprintf("userVm:%s", to.Hex()))
+	vm, err := GetRedisKeyVal(fmt.Sprintf("userVm:%s", to))
 	if err != nil {
 		userOffline = true
 	} else {
@@ -285,13 +278,12 @@ func SendMessagestoGroup(message models.Message) {
 		}
 	}()
 	to := message.To
-	members, err := GetAllRedisSetMemeber(fmt.Sprintf("group:%s", to.Hex()))
+	members, err := GetAllRedisSetMemeber(fmt.Sprintf("group:%s", to))
 	if err != nil {
 		return
 	}
 	for _, userid := range members {
-		ui, _ := primitive.ObjectIDFromHex(userid)
-		go SendMessagestoUser(message, ui)
+		go SendMessagestoUser(message, userid)
 	}
 }
 
@@ -339,39 +331,42 @@ func SendMessageToOtherVm(message models.Message, vmid string) bool {
 	return true
 }
 
-func CloseUserConnection(userid primitive.ObjectID) {
+func CloseUserConnection(userid string) {
 	defer func() {
 		if f := recover(); f != nil {
 			Logger.Error("Panic occurred in closeUserConnection:", zap.Error(fmt.Errorf("%v", f)))
 			return
 		}
 	}()
-	AllConns.Mu.Lock()
-	userconn := AllConns.Conn[userid]
-	delete(AllConns.Conn, userid)
-	AllConns.Mu.Unlock()
+	conn, ok := AllConns.Load(userid)
+	if !ok {
+		return
+	}
+	userconn := conn.(*models.Conn)
 	if userconn.WS != nil {
 		if err := userconn.WS.Close(); err != nil {
 			Logger.Error("Error closing connection:", zap.Error(err))
 		}
 	}
-	if err := DelRedisKey(fmt.Sprintf("userVm:%s", userid.Hex())); err != nil {
+	if err := DelRedisKey(fmt.Sprintf("userVm:%s", userid)); err != nil {
 		Logger.Error("Error deleting key:", zap.Error(err))
 	}
 }
 
-func HandelPingMessage(userid primitive.ObjectID) {
-	AllConns.Mu.Lock()
-	user := AllConns.Conn[userid]
-	user.Epoch = time.Now().Unix()
+func HandelPingMessage(userid string) {
+	conn, ok := AllConns.Load(userid)
+	if !ok {
+		return
+	}
+	userconn := conn.(*models.Conn)
+	userconn.Epoch = time.Now().Unix()
 	msg, _ := json.Marshal(models.Message{Type: models.Pong, From: userid})
-	m, _ := EncryptKeyAES(msg, user.UserInfo, true)
-	if err := user.WS.WriteMessage(websocket.TextMessage, []byte(m)); err != nil {
+	m, _ := EncryptKeyAES(msg, userconn.UserInfo, true)
+	if err := userconn.WS.WriteMessage(websocket.TextMessage, []byte(m)); err != nil {
 		Logger.Error("Error sending message:", zap.Error(err))
 		CloseUserConnection(userid)
 	}
-	AllConns.Mu.Unlock()
-	if f := SetUserKeyAndExpiry(fmt.Sprintf("userVm:%s", userid.Hex()), 300); !f {
+	if f := SetUserKeyAndExpiry(userid, 300); !f {
 		Logger.Error("Error setting user key and expiry")
 	}
 }
@@ -426,35 +421,31 @@ func HandleWebrtcOffer(offer models.Message) {
 // 	}
 // }
 
-func StoreOfflineMessages(msg models.Message, to primitive.ObjectID) {
-	if msg.Type == models.Grp {
-		jsonmsg, _ := json.Marshal(msg)
-		var m map[string]interface{}
-		if err := json.Unmarshal(jsonmsg, &m); err != nil {
-			Logger.Error("Error unmarshalling message:")
-			return
-		}
-		m["toUser"] = to
-		if f := MongoAddOncDoc("offline", m); !f {
-			Logger.Error("Error storing offline messages:")
-		}
+func StoreOfflineMessages(msg models.Message, to string) {
+	jsonmsg, _ := json.Marshal(msg)
+	var m map[string]interface{}
+	if err := json.Unmarshal(jsonmsg, &m); err != nil {
+		Logger.Error("Error unmarshalling message:")
 		return
 	}
-	if f := MongoAddOncDoc("offline", msg); !f {
+	m["to"], _ = primitive.ObjectIDFromHex(to)
+	m["from"], _ = primitive.ObjectIDFromHex(msg.From)
+	if f := MongoAddOncDoc("offline", m); !f {
 		Logger.Error("Error storing offline messages:")
 	}
 }
 
-func CheckUserOnline(userid primitive.ObjectID) bool {
-	vm, err := GetRedisKeyVal(fmt.Sprintf("userVm:%s", userid.Hex()))
+func CheckUserOnline(userid string) bool {
+	vm, err := GetRedisKeyVal(fmt.Sprintf("userVm:%s", userid))
 	if err != nil || vm == "" {
 		return false
 	}
 	return true
 }
 
-func GetOfflineMessages(userid primitive.ObjectID) {
-	messages, err := MongoGetManyDoc("offline", bson.M{"$or": []bson.M{{"to": userid}, {"toUser": userid}}})
+func GetOfflineMessages(userid string) {
+	useridObj, _ := primitive.ObjectIDFromHex(userid)
+	messages, err := MongoGetManyDoc("offline", bson.M{"$or": []bson.M{{"to": useridObj}, {"toUser": useridObj}}})
 	if !err {
 		Logger.Error("Error getting offline messages:")
 		return

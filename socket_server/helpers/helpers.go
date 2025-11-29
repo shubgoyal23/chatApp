@@ -1,20 +1,20 @@
 package helpers
 
 import (
+	"chatapp/models"
 	"fmt"
 )
 
 func CleaupOnShutDown() {
 	Logger.Info("cleaning up on shutdown")
-	AllConns.Mu.RLock()
-	for _, v := range AllConns.Conn {
-		if v.WS != nil {
-			v.WS.Close()
+	AllConns.Range(func(key, value interface{}) bool {
+		if value.(*models.Conn).WS != nil {
+			value.(*models.Conn).WS.Close()
 		}
-		DelRedisKey(fmt.Sprintf("userVm:%s", v.UserInfo.ID.Hex()))
-	}
+		DelRedisKey(fmt.Sprintf("userVm:%s", value.(*models.Conn).UserInfo.ID))
+		return true
+	})
 	RemoveSetMember("VMsRunning", VmId)
-	AllConns.Mu.RUnlock()
 	// kafkaAdmin, err := kafka.NewAdminClient(configMap)
 	// if err != nil {
 	// 	fmt.Println("Error creating admin client:", err)
