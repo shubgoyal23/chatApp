@@ -14,8 +14,8 @@ func InitScheduler() {
 		}
 	}()
 
-	threeMinTicker := time.NewTicker(3 * time.Minute)
-	dayTicker := time.NewTicker(24 * time.Hour)
+	threeMinTicker := time.NewTicker(30 * time.Second)
+	dayTicker := time.NewTicker(1 * time.Hour)
 	defer threeMinTicker.Stop()
 	defer dayTicker.Stop()
 	for {
@@ -23,12 +23,8 @@ func InitScheduler() {
 		case <-threeMinTicker.C:
 			RemoveLostConnections()
 		case <-dayTicker.C:
-			c := 0
-			AllConns.Range(func(key, value interface{}) bool {
-				c++
-				return true
-			})
-			Logger.Info("Running Scheduler", zap.String("vmid", VmId), zap.Int("active connections", c))
+			Logger.Info("Running Scheduler", zap.String("vmid", VmId), zap.Int("max active connections", ActiveConns))
+			ActiveConns = 0
 		}
 	}
 }

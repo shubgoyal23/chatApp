@@ -32,7 +32,7 @@ func main() {
 		log.Fatalf("Error initializing logger: %v", err)
 	}
 	// ctx, cancel := context.WithCancel(context.Background())
-	helpers.RegisterVmid()
+	helpers.RegisterVmid(os.Getenv("VM_ID"))
 	helpers.LoadRsaKey()
 	// helpers.KafkaInit()
 	if err := helpers.InitStream(); err != nil {

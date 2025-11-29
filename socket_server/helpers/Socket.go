@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -36,13 +35,11 @@ var upgrader = websocket.Upgrader{
 
 var AllConns sync.Map
 var VmId string
+var ActiveConns int
 
-func RegisterVmid() {
+func RegisterVmid(vmid string) {
 	AllConns = sync.Map{}
-	// create a new vm id
-	VmId = os.Getenv("VM_ID")
-	// vm := uuid.New().String()
-	// VmId = strings.Split(vm, "-")[0]
+	VmId = vmid
 	InsertRedisSet("VMsRunning", VmId)
 	Logger.Info("VM ID registered", zap.String("vmid", VmId))
 }
@@ -54,20 +51,22 @@ func RemoveLostConnections() {
 			Logger.Error("Panic occurred:", zap.Error(fmt.Errorf("%v", f)))
 		}
 	}()
+	count := 0
 	AllConns.Range(func(key, value interface{}) bool {
-		if value.(*models.Conn).WS == nil {
-			CloseUserConnection(key.(string))
-			return true
-		} else if (time.Now().Unix() - value.(*models.Conn).Epoch) > 180 {
-			CloseUserConnection(key.(string))
-			return true
+		conn := value.(*models.Conn)
+		userId := key.(string)
+		if conn.WS == nil {
+			CloseUserConnection(userId)
+		} else if (time.Now().Unix() - conn.Epoch) > 90 {
+			CloseUserConnection(userId)
 		}
-		if err := value.(*models.Conn).WS.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
-			CloseUserConnection(key.(string))
-			return true
+		if err := conn.WS.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
+			CloseUserConnection(userId)
 		}
+		count++
 		return true
 	})
+	ActiveConns = max(ActiveConns, count)
 }
 
 func UserAuthMiddlewareWS(c *gin.Context) {
@@ -351,6 +350,7 @@ func CloseUserConnection(userid string) {
 	if err := DelRedisKey(fmt.Sprintf("userVm:%s", userid)); err != nil {
 		Logger.Error("Error deleting key:", zap.Error(err))
 	}
+	AllConns.Delete(userid)
 }
 
 func HandelPingMessage(userid string) {
@@ -372,11 +372,11 @@ func HandelPingMessage(userid string) {
 }
 
 func SetUserKeyAndExpiry(userid string, dur int) bool {
-	if err := SetRedisKeyVal(userid, VmId); err != nil {
+	if err := SetRedisKeyVal(fmt.Sprintf("userVm:%s", userid), VmId); err != nil {
 		Logger.Error("Error setting key value:", zap.Error(err))
 		return false
 	}
-	if err := SetKeyExpiry(userid, dur); err != nil {
+	if err := SetKeyExpiry(fmt.Sprintf("userVm:%s", userid), dur); err != nil {
 		Logger.Error("Error setting key expiry:", zap.Error(err))
 		return false
 	}
