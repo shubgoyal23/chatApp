@@ -15,7 +15,7 @@ func InitScheduler() {
 	}()
 
 	threeMinTicker := time.NewTicker(30 * time.Second)
-	dayTicker := time.NewTicker(1 * time.Hour)
+	dayTicker := time.NewTicker(24 * time.Hour)
 	defer threeMinTicker.Stop()
 	defer dayTicker.Stop()
 	for {
