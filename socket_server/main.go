@@ -4,6 +4,8 @@ import (
 	"chatapp/helpers"
 	"chatapp/router"
 	"log"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"syscall"
@@ -15,7 +17,12 @@ func main() {
 	// Create a channel to listen for OS signals
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
-
+	go func() {
+		log.Println("pprof listening on :6060")
+		if err := http.ListenAndServe("localhost:6060", nil); err != nil {
+			log.Println("pprof server error:", err)
+		}
+	}()
 	// Load environment variables
 	godotenv.Load()
 	// if err != nil {
