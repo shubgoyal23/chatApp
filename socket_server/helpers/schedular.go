@@ -21,7 +21,7 @@ func InitScheduler() {
 	for {
 		select {
 		case <-threeMinTicker.C:
-			RemoveLostConnections()
+			go RemoveLostConnections()
 		case <-dayTicker.C:
 			Logger.Info("Running Scheduler", zap.String("vmid", VmId), zap.Int("max active connections", ActiveConns))
 			ActiveConns = 0

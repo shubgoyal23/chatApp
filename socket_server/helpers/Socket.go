@@ -36,12 +36,17 @@ var upgrader = websocket.Upgrader{
 var AllConns sync.Map
 var VmId string
 var ActiveConns int
+var savemsgs chan models.Message
 
 func RegisterVmid(vmid string) {
 	AllConns = sync.Map{}
 	VmId = vmid
 	InsertRedisSet("VMsRunning", VmId)
 	Logger.Info("VM ID registered", zap.String("vmid", VmId))
+
+	// save messages to db
+	savemsgs = make(chan models.Message)
+	go SavemessageToDBWorker("messages")
 
 	// load all groups and insert in redis
 	groups, ok := MongoGetManyDoc("groups", bson.M{})
@@ -67,15 +72,13 @@ func RemoveLostConnections() {
 		}
 	}()
 	count := 0
+	t := time.Now().Unix()
 	AllConns.Range(func(key, value interface{}) bool {
 		conn := value.(*models.Conn)
 		userId := key.(string)
 		if conn.WS == nil {
 			CloseUserConnection(userId)
-		} else if (time.Now().Unix() - conn.Epoch) > 90 {
-			CloseUserConnection(userId)
-		}
-		if err := conn.WS.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
+		} else if (t - conn.Epoch) > 90 {
 			CloseUserConnection(userId)
 		}
 		count++
@@ -148,6 +151,7 @@ func SocketConnectionHandler(c *gin.Context) {
 	if _, ok := AllConns.Load(userInfo.ID); ok {
 		CloseUserConnection(userInfo.ID)
 	}
+	conn.SetReadDeadline(time.Now().Add(90 * time.Second))
 	AllConns.Store(userInfo.ID, &models.Conn{WS: conn, UserInfo: userInfo, Epoch: time.Now().Unix()})
 
 	// handle the WebSocket connection for particlular user
@@ -203,10 +207,10 @@ func UserSocketHandler(userid string) {
 		case models.P2p:
 			go SendMessagestoUser(msg, msg.To)
 			go SendMessagestoSelf(msg, userconn)
-			go SavemessageToDB(msg, "messages")
+			savemsgs <- msg
 		case models.Grp:
 			go SendMessagestoGroup(msg)
-			go SavemessageToDB(msg, "messages")
+			savemsgs <- msg
 		case models.Chat:
 		case models.UserOnline:
 			go func() {
@@ -302,19 +306,21 @@ func SendMessagestoGroup(message models.Message) {
 }
 
 // save message to db
-func SavemessageToDB(msg models.Message, collection string) {
+func SavemessageToDBWorker(collection string) {
 	defer func() {
 		if f := recover(); f != nil {
 			Logger.Error("Panic occurred in savemessageToDB:", zap.Error(fmt.Errorf("%v", f)))
 			return
 		}
 	}()
-	data, err := bson.Marshal(msg)
-	if err != nil {
-		Logger.Error("Error marshalling data:", zap.Error(err))
-	}
-	if f := MongoAddOncDoc(collection, data); !f {
-		Logger.Error("Error putting data to mongodb:", zap.Error(err))
+	for msg := range savemsgs {
+		data, err := bson.Marshal(msg)
+		if err != nil {
+			Logger.Error("Error marshalling data:", zap.Error(err))
+		}
+		if f := MongoAddOncDoc(collection, data); !f {
+			Logger.Error("Error putting data to mongodb:", zap.Error(err))
+		}
 	}
 }
 
@@ -403,7 +409,6 @@ func HandleWebrtcOffer(offer models.Message) {
 		if f := SendMessagestoUser(offer, offer.To); !f {
 			offer.Message = "offline"
 			SendMessagestoUser(offer, offer.From)
-			return
 		}
 		return
 	}
