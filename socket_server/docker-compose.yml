@@ -1,0 +1,10 @@
+services:
+  chat-socket:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    restart: always
