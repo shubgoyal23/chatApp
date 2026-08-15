@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
@@ -48,7 +48,7 @@ func UserAuthMiddlewareCookie(c *gin.Context) {
 	secretKey := []byte(os.Getenv("ACCESS_TOKEN_SECRET"))
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		// Validate the algorithm
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+		if token.Method != jwt.SigningMethodHS256 {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		return secretKey, nil
