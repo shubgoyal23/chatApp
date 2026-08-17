@@ -16,6 +16,6 @@ services:
     build: ./socket_server
     restart: unless-stopped
     ports:
-      - "3032:8000"
+      - "3032:3000"
     env_file:
       - ./socket_server/.env
