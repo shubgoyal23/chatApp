@@ -15,9 +15,11 @@ func InitRediGo(r string, pwd string) error {
 				//log to local as could not connect to Redis
 				return nil, err
 			}
-			if _, err := conn.Do("AUTH", pwd); err != nil {
-				conn.Close()
-				return nil, err
+			if pwd != "" {
+				if _, err := conn.Do("AUTH", pwd); err != nil {
+					conn.Close()
+					return nil, err
+				}
 			}
 			return conn, nil
 		},

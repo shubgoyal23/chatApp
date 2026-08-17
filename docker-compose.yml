@@ -1,0 +1,21 @@
+services:
+  backend:
+    build: ./api_server
+    restart: unless-stopped
+    ports:
+      - "3030:3000"
+    env_file:
+      - ./api_server/.env
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    ports:
+      - "3031:5173"
+  websocket:
+    build: ./socket_server
+    restart: unless-stopped
+    ports:
+      - "3032:8000"
+    env_file:
+      - ./socket_server/.env
