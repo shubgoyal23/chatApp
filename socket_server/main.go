@@ -34,7 +34,7 @@ func main() {
 	if mongo := helpers.MongoInit(os.Getenv("MONGODB_URI"), os.Getenv("MONGO_DB")); !mongo {
 		log.Fatalf("Error initializing mongo")
 	}
-	logger, err := helpers.InitLogger("chatapplog")
+	logger, err := helpers.InitLogger("logs:chatzz:socket_server")
 	if err != nil {
 		log.Fatalf("Error initializing logger: %v", err)
 	}

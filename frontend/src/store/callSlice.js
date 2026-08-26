@@ -9,10 +9,11 @@ const callSlice = createSlice({
    reducers: {
       StartCall(state, action) {
          state.isInCall = true;
+         state.Data = action.payload || null;
       },
-      EndCall(state, action) {
+      EndCall(state) {
          state.isInCall = false;
-         state.callType = {};
+         state.Data = null;
       },
       SetCallSettings(state, action) {
          state.isInCall = true;

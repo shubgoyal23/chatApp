@@ -11,7 +11,7 @@ func CleaupOnShutDown() {
 		if value.(*models.Conn).WS != nil {
 			value.(*models.Conn).WS.Close()
 		}
-		DelRedisKey(fmt.Sprintf("userVm:%s", value.(*models.Conn).UserInfo.ID))
+		DelRedisKey(fmt.Sprintf("userVm:%s", value.(*models.Conn).UserInfo.ID.Hex()))
 		return true
 	})
 	RemoveSetMember("VMsRunning", VmId)

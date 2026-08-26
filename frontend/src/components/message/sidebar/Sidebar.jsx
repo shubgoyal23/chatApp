@@ -107,13 +107,14 @@ function Sidebar({ sidNav, setSideNav }) {
    return (
       <div
          className={`${
-            sidNav ? "left-0" : "-left-[1020px]"
-         } lg:left-0 absolute h-svh lg:relative w-screen transition-all ease-in duration-300 z-10 bg-white lg:w-100 border-r-2 border-gray-300 flex flex-col`}
+            sidNav ? "left-0" : "-left-full"
+         } lg:left-0 absolute h-svh lg:relative w-screen transition-all ease-out duration-300 z-10 bg-white lg:w-100 border-r border-gray-200 flex flex-col`}
       >
-         <div className="relative w-full px-4 py-2 flex justify-between bg-gray-100">
-            <div className="flex items-center gap-4">
+         {/* Header */}
+         <div className="relative w-full px-4 py-3 flex justify-between items-center bg-white border-b border-gray-100">
+            <div className="flex items-center gap-3">
                <div
-                  className="size-10 cursor-pointer"
+                  className="size-10 cursor-pointer group"
                   onClick={() => {
                      setEdit((prev) => !prev);
                   }}
@@ -123,11 +124,11 @@ function Sidebar({ sidNav, setSideNav }) {
                         user?.avatar || avatar_public_ids[0]
                      }`}
                      alt="avatar"
-                     className="size-10 object-cover object-top	rounded-full"
+                     className="size-10 object-cover object-top rounded-full ring-2 ring-indigo-100 group-hover:ring-indigo-300 transition-all duration-200"
                   />
                </div>
                <h1
-                  className="text-xl font-sans capitalize"
+                  className="text-base font-semibold capitalize cursor-pointer text-gray-800 hover:text-indigo-600 transition-colors duration-200"
                   onClick={() => {
                      setEdit((prev) => !prev);
                   }}
@@ -137,52 +138,58 @@ function Sidebar({ sidNav, setSideNav }) {
                <Edituser edit={edit} setEdit={setEdit} />
             </div>
 
-            <div className="relative hidden lg:flex justify-center cursor-pointer items-center text-xl">
+            <div className="relative hidden lg:flex justify-center cursor-pointer items-center">
                <Options />
             </div>
 
             <button
-               className=" lg:hidden"
+               className="lg:hidden w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors duration-200"
                onClick={() => setSideNav((prev) => !prev)}
             >
-               <span className="material-symbols-outlined">
+               <span className="material-symbols-outlined text-gray-600">
                   {sidNav ? "close" : "menu"}
                </span>
             </button>
          </div>
-         <div className="relative w-full h-14 px-4 py-2 border-gray-200 border-b-2 shadow-xs">
+
+         {/* Search */}
+         <div className="relative w-full px-3 py-2 border-b border-gray-100">
             <form
-               className="h-10 w-full flex justify-center items-center px-4 rounded-lg bg-gray-100"
+               className="h-10 w-full flex justify-center items-center px-3 rounded-xl bg-gray-100/80 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-100 focus-within:border-indigo-200 border border-transparent transition-all duration-200"
                onSubmit={(e) => e.preventDefault()}
             >
-               <button className="flex justify-center items-center">
-                  <span className="material-symbols-outlined">
+               <button className="flex justify-center items-center text-gray-400">
+                  <span className="material-symbols-outlined text-xl">
                      {search ? "arrow_left_alt" : "search"}
                   </span>
                </button>
                <input
                   type="text"
-                  placeholder="Search"
-                  className="outline-hidden bg-transparent pl-4 w-[90%]"
+                  placeholder="Search or start new chat"
+                  className="outline-hidden bg-transparent pl-3 w-full text-sm text-gray-700 placeholder:text-gray-400"
                   value={search}
                   onChange={(e) => {
                      setSearch(e.target.value);
                   }}
                />
-               <button
-                  type="button"
-                  className="flex justify-center items-center"
-                  onClick={() => {
-                     setSearch("");
-                  }}
-               >
-                  <span className="material-symbols-outlined">
-                     {search ? "close" : ""}
-                  </span>
-               </button>
+               {search && (
+                  <button
+                     type="button"
+                     className="flex justify-center items-center text-gray-400 hover:text-gray-600 transition-colors"
+                     onClick={() => {
+                        setSearch("");
+                     }}
+                  >
+                     <span className="material-symbols-outlined text-xl">
+                        close
+                     </span>
+                  </button>
+               )}
             </form>
          </div>
-         <div className="w-full flex-auto border-gray-200 border-b-2 overflow-y-scroll scroll-smooth pt-2">
+
+         {/* User list */}
+         <div className="w-full flex-auto overflow-y-scroll scroll-smooth">
             {findlist.map((item) => (
                <UserLabel key={item._id} data={item} setSideNav={setSideNav} />
             ))}

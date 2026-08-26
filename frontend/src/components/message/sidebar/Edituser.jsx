@@ -76,22 +76,22 @@ function Edituser({ edit, setEdit }) {
       <div
          className={`${
             edit ? "block" : "hidden"
-         } absolute top-0 z-20 left-0 w-full border-2 border-gray-100 h-svh bg-lime-100 rounded-lg shadow-lg p-3 overflow-y-scroll`}
+         } absolute top-0 z-20 left-0 w-full h-svh bg-white rounded-lg shadow-xl p-4 overflow-y-scroll`}
       >
          <div
-            className="absolute top-2 right-2 cursor-pointer"
+            className="absolute top-3 right-3 cursor-pointer w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors duration-200"
             onClick={() => {
                setEdit(false);
             }}
          >
-            <span className="material-symbols-outlined">close</span>
+            <span className="material-symbols-outlined text-gray-500">close</span>
          </div>
 
          <div
-            className="size-28 relative mt-10 m-auto cursor-pointer "
+            className="size-28 relative mt-10 m-auto cursor-pointer"
             onClick={() => setavatar((prev) => !prev)}
          >
-            <div className="rounded-full size-28 overflow-hidden border-2 border-lime-500">
+            <div className="rounded-full size-28 overflow-hidden ring-4 ring-indigo-100">
                <img
                   src={`${Cloudinay_URL}/${
                      user?.avatar || avatar_public_ids[0]
@@ -100,12 +100,12 @@ function Edituser({ edit, setEdit }) {
                   className="size-28 object-cover object-top rounded-full"
                />
             </div>
-            <div className="absolute bottom-1 right-1 text-white bg-lime-600 p-1 rounded-full size-8 cursor-pointer">
-               <span className="material-symbols-outlined">photo_camera</span>
+            <div className="absolute bottom-1 right-1 text-white bg-indigo-500 p-1.5 rounded-full size-8 cursor-pointer flex items-center justify-center shadow-md">
+               <span className="material-symbols-outlined text-lg">photo_camera</span>
             </div>
          </div>
 
-         <div className="relative mt-16">
+         <div className="relative mt-12">
             <div>
                <UpdateDetails
                   name={user?.fullname}
@@ -125,11 +125,11 @@ function Edituser({ edit, setEdit }) {
                   label={"Email"}
                   setUserDetails={setUserDetails}
                />
-               <div className="flex justify-center items-center font-bold">
+               <div className="flex justify-center items-center mt-4">
                   {userDetails.edit ? (
                      <button
                         onClick={detailsUpdateSendOTPHandler}
-                        className="px-2 py-1 border border-gray-500 rounded-lg"
+                        className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm"
                      >
                         Send OTP to Save Details
                      </button>
@@ -151,9 +151,9 @@ function Edituser({ edit, setEdit }) {
             </div>
          </div>
 
-         <div className="absolute bottom-4 left-1/2 -translate-x-[50%] text-center m-auto w-36">
+         <div className="absolute bottom-6 left-1/2 -translate-x-[50%] text-center">
             <button
-               className="text-center m-auto w-36 border-2 border-gray-400 border-dashed  text-black rounded-md h-8 font-bold hover:bg-white hover:border-red-600 hover:text-red-600"
+               className="px-6 py-2 border-2 border-red-200 text-red-500 rounded-lg text-sm font-semibold hover:bg-red-50 hover:border-red-400 transition-all duration-200"
                onClick={logoutHandler}
             >
                Logout

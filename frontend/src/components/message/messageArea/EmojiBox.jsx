@@ -35,8 +35,8 @@ function EmojiBox({ onchange }) {
                onChange={(e) => setSearch(e.target.value)}
             />
          </div>
-         {emojiList.map((item) => (
-            <div key={item.title} className="col-span-9">
+         {emojiList.map((item, idx) => (
+            <div key={item.title + idx} className="col-span-9">
                <h2 className="text-xs text-start col-span-9 pl-2.5 pt-2 pb-1">
                   {item.title}
                </h2>

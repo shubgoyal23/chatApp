@@ -10,54 +10,53 @@ function IndividualMsg({ data, msglist }) {
    const [reply, setReply] = useState({});
    const date = convertTime(data.epoch);
 
-   if (data.type === "datechange") {
-      return (
-         <div className="w-full flex items-center py-2 z-10 justify-center">
-            <span className=" text-gray-500 text-sm bg-gray-200 rounded-lg px-2 py-[2px] shadow-md shadow-gray-400">
-               {data?.date}
-            </span>
-         </div>
-      );
-   }
-
    useEffect(() => {
       if (data.from === user._id) {
          SetYou(true);
       }
-      if (data.replyTo != "") {
-         let ms = msglist?.find((m) => m.id === data.replyTo);
+      if (data.replyTo && data.replyTo != "") {
+         let ms = msglist?.find((m) => m._id === data.replyTo);
          if (ms) {
             setReply(ms);
          }
       }
    }, [data]);
 
+   if (data.type === "datechange") {
+      return (
+         <div className="w-full flex items-center py-3 z-10 justify-center">
+            <span className="text-gray-500 text-xs font-medium bg-white rounded-full px-3 py-1 shadow-sm border border-gray-100">
+               {data?.date}
+            </span>
+         </div>
+      );
+   }
+
    return (
       <div
-         className={`w-full flex items-center p-2 lg:px-10 z-10 ${
+         className={`w-full flex items-end px-3 lg:px-10 py-[3px] z-10 animate-messageAppear ${
             you ? "justify-end" : "justify-start"
          }`}
       >
          <div
-            className={`relative flex flex-col max-w-[80%] min-w-28 w-content pl-2 pt-2 pb-1 pr-2 rounded-lg shadow-lg shadow-gray-400 ${
-               you ? " bg-lime-400" : "bg-amber-200 "
+            className={`relative flex flex-col max-w-[75%] min-w-[7rem] pl-3 pt-2 pb-1.5 pr-3 rounded-2xl group ${
+               you
+                  ? "bg-indigo-500 text-white rounded-br-sm"
+                  : "bg-white text-gray-800 rounded-bl-sm shadow-sm border border-gray-100"
             }`}
          >
-            <span className="absolute right-0 top-1 cursor-pointer opacity-0 hover:opacity-100 group w-6 h-6 z-10">
-               <span className="material-symbols-outlined">
+            <span className="absolute right-1 top-1 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity duration-200 w-6 h-6 z-10">
+               <span
+                  className={`material-symbols-outlined text-lg ${you ? "text-indigo-200" : "text-gray-400"}`}
+               >
                   keyboard_arrow_down
                </span>
                <Action data={data} className="hidden group-hover:block" />
             </span>
-            <span
-               className={`border-4 absolute top-3 rotate-45 z-0 shadow-sm ${
-                  you
-                     ? "left-full -translate-x-1 border-lime-400"
-                     : "-left-1 border-amber-200"
-               }`}
-            ></span>
             {data?.type === "group" ? (
-               <span className="text-[10px] text-gray-600 w-full text-start bottom-0 right-0">
+               <span
+                  className={`text-[10px] w-full text-start font-semibold ${you ? "text-indigo-200" : "text-indigo-400"}`}
+               >
                   {!you
                      ? connections[data?.from]?.fullname
                         ? connections[data?.from]?.fullname
@@ -68,12 +67,35 @@ function IndividualMsg({ data, msglist }) {
                <span></span>
             )}
             {reply?.message && (
-               <div className={`w-full min-h-14 mb-2 text-sm backdrop-blur-md rounded-md flex items-center px-2 ${you ? "bg-lime-600/60" : "bg-amber-400/60"}`}>
-                  {reply?.message}
+               <div
+                  className={`w-full min-h-10 mb-1.5 rounded-lg px-2.5 py-2 ${
+                     you
+                        ? "bg-indigo-400/40 border-l-2 border-white/50"
+                        : "bg-gray-100 border-l-2 border-indigo-400"
+                  }`}
+               >
+                  <span
+                     className={`block text-[10px] font-semibold mb-0.5 ${
+                        you ? "text-white/70" : "text-indigo-500"
+                     }`}
+                  >
+                     Reply
+                  </span>
+                  <span
+                     className={`block text-sm leading-snug line-clamp-2 ${
+                        you ? "text-white/90" : "text-gray-700"
+                     }`}
+                  >
+                     {reply?.message}
+                  </span>
                </div>
             )}
-            <h2 className="pr-3 text-[14px] pb-2 break-words break-all">{data?.message}</h2>
-            <span className="text-[10px] w-full text-end bottom-0 right-0 -mt-2">
+            <p className="pr-10 text-[14px] leading-relaxed pb-1 break-words whitespace-pre-wrap">
+               {data?.message}
+            </p>
+            <span
+               className={`text-[10px] w-full text-end -mt-1 ${you ? "text-indigo-200" : "text-gray-400"}`}
+            >
                {date}
             </span>
          </div>

@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 )
 
@@ -88,7 +89,12 @@ func GetSecretKeyforUser(c *gin.Context) {
 	jwtInfo := jwtToken.(jwt.MapClaims)
 	userInfo := user.(models.User)
 
-	if jwtInfo["_id"] != userInfo.ID {
+	id, err := primitive.ObjectIDFromHex(jwtInfo["_id"].(string))
+	if err != nil {
+		Logger.Error("Invaild user id", zap.String("userId, ", jwtInfo["_id"].(string)))
+	}
+
+	if id != userInfo.ID {
 		c.JSON(401, gin.H{
 			"error": "Unauthorized",
 		})
@@ -96,14 +102,14 @@ func GetSecretKeyforUser(c *gin.Context) {
 	}
 
 	sk := uuid.New().String()
-	if f := SetRedisKeyVal(fmt.Sprintf("usersk:%s", userInfo.ID), sk); f != nil {
+	if f := SetRedisKeyVal(fmt.Sprintf("usersk:%s", userInfo.ID.Hex()), sk); f != nil {
 		Logger.Error("Error setting key:", zap.Error(f))
 		c.JSON(500, gin.H{
 			"error": "Internal server error",
 		})
 		return
 	}
-	if f := SetKeyExpiry(fmt.Sprintf("usersk:%s", userInfo.ID), 86400); f != nil {
+	if f := SetKeyExpiry(fmt.Sprintf("usersk:%s", userInfo.ID.Hex()), 86400); f != nil {
 		Logger.Error("Error setting key expiry:", zap.Error(f))
 		c.JSON(500, gin.H{
 			"error": "Internal server error",
