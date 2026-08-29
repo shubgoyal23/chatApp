@@ -4,6 +4,7 @@ import (
 	"chatapp/models"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/gomodule/redigo/redis"
 	"go.uber.org/zap"
@@ -54,32 +55,50 @@ func CreateConsumer(id string) error {
 	if _, er := rc.Do("XGROUP", "CREATECONSUMER", StreamName, GrpName, ConsumerName); er != nil {
 		return er
 	}
-	go ReadStream(id)
+	// Wrap ReadStream in a restart loop so it auto-recovers from panics/exits
+	go func() {
+		for {
+			func() {
+				defer func() {
+					if f := recover(); f != nil {
+						Logger.Error("ReadStream panic, restarting:", zap.Error(fmt.Errorf("%v", f)))
+					}
+				}()
+				ReadStream(id)
+			}()
+			Logger.Error("ReadStream exited, restarting in 2s", zap.String("consumer", id))
+			time.Sleep(2 * time.Second)
+		}
+	}()
 	return nil
 }
 
 func ReadStream(id string) {
-	defer func() {
-		if f := recover(); f != nil {
-			Logger.Error("Panic occurred:", zap.Error(fmt.Errorf("%v", f)))
-		}
-	}()
 	StreamName := "chatzz:" + VmId
 	GrpName := fmt.Sprintf("group:%s", VmId)
 	ConsumerName := fmt.Sprintf("consumer:%s", id)
-	rc := RedigoConn.Get()
-	defer rc.Close()
-	if _, er := rc.Do("PING"); er != nil {
-		return
-	}
+
+	consecutiveErrors := 0
+
 	for {
-		if rc == nil {
-			rc = RedigoConn.Get()
-		}
+		// Get a fresh connection each iteration — never hold a dead conn in a tight loop
+		rc := RedigoConn.Get()
 		data, er := redis.Values(rc.Do("XREADGROUP", "GROUP", GrpName, ConsumerName, "BLOCK", "30000", "STREAMS", StreamName, ">"))
+		rc.Close()
+
 		if er != nil {
+			consecutiveErrors++
+			// Backoff: sleep longer as errors persist, capped at 5 seconds
+			backoff := time.Duration(consecutiveErrors) * time.Second
+			if backoff > 5*time.Second {
+				backoff = 5 * time.Second
+			}
+			Logger.Error("ReadStream error, backing off", zap.Error(er), zap.Duration("backoff", backoff))
+			time.Sleep(backoff)
 			continue
 		}
+		consecutiveErrors = 0
+
 		if len(data) == 0 || data == nil {
 			continue
 		}

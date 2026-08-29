@@ -140,44 +140,78 @@ func SocketConnectionHandler(c *gin.Context) {
 	}
 
 	if f := SetUserKeyAndExpiry(userInfo.ID.Hex(), 300); !f {
-		c.JSON(500, gin.H{
-			"error": "Internal server error",
-		})
+		conn.Close()
 		return
 	}
 	userInfo.Epoch = time.Now().Unix()
 
-	if _, ok := AllConns.Load(userInfo.ID); ok {
-		CloseUserConnection(userInfo.ID)
+	// Signal old handler goroutine to stop before replacing the connection.
+	// This prevents the old goroutine's defer from closing the NEW connection.
+	if old, ok := AllConns.Load(userInfo.ID); ok {
+		oldConn := old.(*models.Conn)
+		// Signal the old handler to exit
+		select {
+		case <-oldConn.Done:
+			// already closed
+		default:
+			close(oldConn.Done)
+		}
+		// Close the old WebSocket
+		if oldConn.WS != nil {
+			oldConn.WS.Close()
+		}
+		AllConns.Delete(userInfo.ID)
+		if err := DelRedisKey(fmt.Sprintf("userVm:%s", userInfo.ID)); err != nil {
+			Logger.Error("Error deleting key:", zap.Error(err))
+		}
 	}
-	conn.SetReadDeadline(time.Now().Add(90 * time.Second))
-	AllConns.Store(userInfo.ID, &models.Conn{WS: conn, UserInfo: userInfo, Epoch: time.Now().Unix()})
+
+	conn.SetReadDeadline(time.Now().Add(120 * time.Second))
+	newConn := &models.Conn{
+		WS:       conn,
+		UserInfo: userInfo,
+		Epoch:    time.Now().Unix(),
+		Done:     make(chan struct{}),
+	}
+	AllConns.Store(userInfo.ID, newConn)
 
 	// handle the WebSocket connection for particlular user
-	go UserSocketHandler(userInfo.ID)
+	go UserSocketHandler(userInfo.ID, newConn)
 	go GetOfflineMessages(userInfo.ID)
 }
 
-func UserSocketHandler(userid primitive.ObjectID) {
+func UserSocketHandler(userid primitive.ObjectID, userconn *models.Conn) {
+	// Track whether this goroutine was superseded by a new connection.
+	// If so, we must NOT call CloseUserConnection (it would kill the new conn).
+	superseded := false
 	defer func() {
 		if f := recover(); f != nil {
 			Logger.Error("Panic occurred:", zap.Error(fmt.Errorf("%v", f)))
-			CloseUserConnection(userid)
-			return
 		}
-		CloseUserConnection(userid)
+		if !superseded {
+			CloseUserConnection(userid)
+		}
 	}()
-
-	conn, ok := AllConns.Load(userid)
-	if !ok {
-		return
-	}
-	userconn := conn.(*models.Conn)
 
 	// handle the WebSocket connection
 	for {
+		// Check if this goroutine has been superseded by a reconnect
+		select {
+		case <-userconn.Done:
+			superseded = true
+			return
+		default:
+		}
+
 		_, message, err := userconn.WS.ReadMessage()
 		if err != nil {
+			// Check if we were superseded while blocked in ReadMessage
+			select {
+			case <-userconn.Done:
+				superseded = true
+				return
+			default:
+			}
 			Logger.Error("Error reading message:", zap.Error(err))
 			break
 		}
@@ -201,7 +235,7 @@ func UserSocketHandler(userid primitive.ObjectID) {
 		}
 		switch msg.Type {
 		case models.Ping:
-			go HandelPingMessage(userid)
+			go HandelPingMessage(userid, userconn)
 		case models.P2p:
 			go SendMessagestoUser(msg, msg.To)
 			go SendMessagestoSelf(msg, userconn)
@@ -236,10 +270,21 @@ func UserSocketHandler(userid primitive.ObjectID) {
 	}
 }
 
+// safeWriteMessage acquires the conn's mutex before writing to the WebSocket.
+// gorilla/websocket panics on concurrent writes; this prevents that.
+func safeWriteMessage(userconn *models.Conn, msgType int, data []byte) error {
+	userconn.Mu.Lock()
+	defer userconn.Mu.Unlock()
+	if userconn.WS == nil {
+		return fmt.Errorf("websocket connection is nil")
+	}
+	return userconn.WS.WriteMessage(msgType, data)
+}
+
 func SendMessagestoSelf(msg models.Message, userconn *models.Conn) {
 	mse, _ := json.Marshal(msg)
 	ms, _ := EncryptKeyAES(mse, userconn.UserInfo, true)
-	if err := userconn.WS.WriteMessage(websocket.TextMessage, []byte(ms)); err != nil {
+	if err := safeWriteMessage(userconn, websocket.TextMessage, []byte(ms)); err != nil {
 		Logger.Error("Error sending message:", zap.Error(err))
 	}
 }
@@ -263,7 +308,7 @@ func SendMessagestoUser(message models.Message, to primitive.ObjectID) (f bool) 
 		sendUser := user.(*models.Conn)
 		msg, _ := json.Marshal(message)
 		m, _ := EncryptKeyAES(msg, sendUser.UserInfo, true)
-		if err := sendUser.WS.WriteMessage(websocket.TextMessage, []byte(m)); err != nil {
+		if err := safeWriteMessage(sendUser, websocket.TextMessage, []byte(m)); err != nil {
 			Logger.Error("Error sending message:", zap.Error(err))
 			CloseUserConnection(to)
 		}
@@ -376,16 +421,13 @@ func CloseUserConnection(userid primitive.ObjectID) {
 	AllConns.Delete(userid)
 }
 
-func HandelPingMessage(userid primitive.ObjectID) {
-	conn, ok := AllConns.Load(userid)
-	if !ok {
-		return
-	}
-	userconn := conn.(*models.Conn)
+func HandelPingMessage(userid primitive.ObjectID, userconn *models.Conn) {
 	userconn.Epoch = time.Now().Unix()
+	// Extend the read deadline so the connection stays alive as long as pings arrive
+	userconn.WS.SetReadDeadline(time.Now().Add(120 * time.Second))
 	msg, _ := json.Marshal(models.Message{Type: models.Pong, From: userid})
 	m, _ := EncryptKeyAES(msg, userconn.UserInfo, true)
-	if err := userconn.WS.WriteMessage(websocket.TextMessage, []byte(m)); err != nil {
+	if err := safeWriteMessage(userconn, websocket.TextMessage, []byte(m)); err != nil {
 		Logger.Error("Error sending message:", zap.Error(err))
 		CloseUserConnection(userid)
 	}

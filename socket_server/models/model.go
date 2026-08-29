@@ -17,10 +17,11 @@ type User struct {
 }
 
 type Conn struct {
-	*sync.RWMutex
+	Mu       sync.Mutex
 	WS       *websocket.Conn
 	UserInfo User
 	Epoch    int64
+	Done     chan struct{}
 }
 
 type Message struct {

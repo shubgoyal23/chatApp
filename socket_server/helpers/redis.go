@@ -1,6 +1,8 @@
 package helpers
 
 import (
+	"time"
+
 	"github.com/gomodule/redigo/redis"
 )
 
@@ -9,6 +11,9 @@ var RedigoConn *redis.Pool
 // init redis
 func InitRediGo(r string, pwd string) error {
 	pool := &redis.Pool{
+		MaxIdle:     10,
+		MaxActive:   50,
+		IdleTimeout: 240 * time.Second,
 		Dial: func() (redis.Conn, error) {
 			conn, err := redis.Dial("tcp", r)
 			if err != nil {
@@ -23,14 +28,24 @@ func InitRediGo(r string, pwd string) error {
 			}
 			return conn, nil
 		},
+		TestOnBorrow: func(c redis.Conn, t time.Time) error {
+			if time.Since(t) < time.Minute {
+				return nil
+			}
+			_, err := c.Do("PING")
+			return err
+		},
 	}
-	if pool.Get().Err() != nil {
+	// Test the connection once, and close it properly
+	testConn := pool.Get()
+	if err := testConn.Err(); err != nil {
+		testConn.Close()
 		RedigoConn = nil
-		return pool.Get().Err()
-	} else {
-		RedigoConn = pool
-		return nil
+		return err
 	}
+	testConn.Close()
+	RedigoConn = pool
+	return nil
 }
 
 // insert data in redis list
