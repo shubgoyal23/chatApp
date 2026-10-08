@@ -13,7 +13,7 @@ services:
     networks: [nginx_network]
     restart: unless-stopped
 
-  websocket:
+  chat-websocket:
     container_name: chat-websocket
     build: ./socket_server
     restart: unless-stopped
