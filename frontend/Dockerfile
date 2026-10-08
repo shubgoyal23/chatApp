@@ -7,14 +7,14 @@ RUN npm ci
 
 COPY . .
 
-# Vite bakes these into the bundle at build time; they come from docker-compose build args
-# and take precedence over frontend/.env
-ARG VITE_API_URL
-ARG VITE_WS_URL
-ARG VITE_GIN_URL
-ENV VITE_API_URL=$VITE_API_URL \
-    VITE_WS_URL=$VITE_WS_URL \
-    VITE_GIN_URL=$VITE_GIN_URL
+# # Vite bakes these into the bundle at build time; they come from docker-compose build args
+# # and take precedence over frontend/.env
+# ARG VITE_API_URL
+# ARG VITE_WS_URL
+# ARG VITE_GIN_URL
+# ENV VITE_API_URL=$VITE_API_URL \
+#     VITE_WS_URL=$VITE_WS_URL \
+#     VITE_GIN_URL=$VITE_GIN_URL
 
 RUN npm run build
 
