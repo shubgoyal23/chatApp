@@ -47,7 +47,7 @@ func InitLogger(key string) (*zap.Logger, error) {
 	}
 	writer := &RedisWriter{
 		pool: RedigoConn,
-		key:  key,
+		key:  RedisKey(key),
 	}
 	core := newRedisCore(zapcore.AddSync(writer))
 	logger := zap.New(core, zap.AddCaller())

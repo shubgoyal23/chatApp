@@ -28,7 +28,7 @@ func main() {
 	// if err != nil {
 	// 	log.Fatalf("Error loading .env file")
 	// }
-	if cRedis := helpers.InitRediGo(os.Getenv("REDIS_HOST"), os.Getenv("REDIS_PWD")); cRedis != nil {
+	if cRedis := helpers.InitRediGo(os.Getenv("REDIS_HOST"), os.Getenv("REDIS_USERNAME"), os.Getenv("REDIS_PASSWORD"), os.Getenv("REDIS_PREFIX")); cRedis != nil {
 		log.Fatalf("Error initializing redis")
 	}
 	if mongo := helpers.MongoInit(os.Getenv("MONGODB_URI"), os.Getenv("MONGO_DB")); !mongo {

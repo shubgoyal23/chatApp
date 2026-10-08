@@ -1,21 +1,31 @@
 services:
-  backend:
+  chat-backend:
+    container_name: chat-backend
     build: ./api_server
     restart: unless-stopped
-    ports:
-      - "3030:3000"
+    networks: [email_network, nginx_network, db_network]
     env_file:
       - ./api_server/.env
 
-  frontend:
+  chat-frontend:
+    container_name: chat-frontend
     build: ./frontend
+    networks: [nginx_network]
     restart: unless-stopped
-    ports:
-      - "3031:5173"
+
   websocket:
+    container_name: chat-websocket
     build: ./socket_server
     restart: unless-stopped
-    ports:
-      - "3032:3000"
+    networks: [nginx_network, db_network]
     env_file:
       - ./socket_server/.env
+
+
+networks:
+  nginx_network:
+    external: true
+  email_network:
+    external: true
+  db_network:
+    external: true

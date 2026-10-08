@@ -6,7 +6,7 @@ import {
    deleteCloudinaryImage,
    uploadOnCloudinary,
 } from "../utils/cloudinary.js";
-import { transporter } from "../utils/transporter.js";
+import { sendEmail } from "../utils/sendEmail.js";
 import forgotPasswordEmailTemplate from "../utils/EmailTemplate/forgotPassword.js";
 import VerificationEmailTemplate from "../utils/EmailTemplate/verifyAccount.js";
 import { Verify } from "../models/verification.model.js";
@@ -99,8 +99,9 @@ const registerUser = asyncHandler(async (req, res) => {
       { new: true, upsert: true }
    );
 
-   const sendEmail = await transporter.sendMail({
-      from: '"Chatzz" <chatzz@shubhamgoyal.dev>',
+   await sendEmail({
+      priority: "transactional",
+      from: process.env.EMAIL_FROM,
       to: user.email,
       subject: "Verify Your Email",
       html: VerificationEmailTemplate({
@@ -361,8 +362,9 @@ const editUserDetailsSendOtp = asyncHandler(async (req, res) => {
       { new: true, upsert: true }
    );
 
-   const sendEmail = await transporter.sendMail({
-      from: '"Chatzz" <chatzz@shubhamgoyal.dev>',
+   await sendEmail({
+      priority: "transactional",
+      from: process.env.EMAIL_FROM,
       to: req.user?.email,
       subject: "Update User Details",
       html: VerificationEmailTemplate({
@@ -405,8 +407,9 @@ const forgotPassword = asyncHandler(async (req, res) => {
       otp,
    });
 
-   await transporter.sendMail({
-      from: '"Chatzz" <chatzz@shubhamgoyal.dev>',
+   await sendEmail({
+      priority: "transactional",
+      from: process.env.EMAIL_FROM,
       to: user.email,
       subject: "Password Recovery Mail",
       html: forgotPasswordEmailTemplate({

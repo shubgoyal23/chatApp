@@ -3,7 +3,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from "../models/user.model.js";
 import { Group } from "../models/group.model.js";
-import { Redisclient } from "../db/Redis.js";
+import { Redisclient, redisKey } from "../db/Redis.js";
 
 const CreateGroup = asyncHandler(async (req, res) => {
    const { groupname, groupUniqueName, description, members } = req.body;
@@ -47,10 +47,10 @@ const CreateGroup = asyncHandler(async (req, res) => {
    }
 
    members.push(user._id.toString());
-   let val = await Redisclient.SADD(`group:${grp._id}`, members);
+   let val = await Redisclient.SADD(redisKey(`group:${grp._id}`), members);
    if (val !== members.length) {
       await Group.findByIdAndDelete(grp._id);
-      Redisclient.DEL(`group:${grp._id}`);
+      Redisclient.DEL(redisKey(`group:${grp._id}`));
       throw new ApiError(400, `Failed to create group, Try again later`);
    }
 
@@ -78,7 +78,7 @@ const DeleteGroup = asyncHandler(async (req, res) => {
       throw new ApiError(400, "You can't delete this group");
    }
 
-   await Redisclient.remove(`group:${grp._id.toHexString()}`);
+   await Redisclient.DEL(redisKey(`group:${grp._id.toHexString()}`));
    await grp.remove();
 
    return res
@@ -119,7 +119,7 @@ const AddMembers = asyncHandler(async (req, res) => {
 
    grp.members = [...grp.members, ...members];
    await grp.save();
-   let val = await Redisclient.SADD(`group:${grp._id}`, members);
+   let val = await Redisclient.SADD(redisKey(`group:${grp._id}`), members);
    if (val !== members.length) {
       throw new ApiError(400, `Failed to add members, Try again later`);
    }
@@ -161,7 +161,7 @@ const RemoveMembers = asyncHandler(async (req, res) => {
 
    grp.members.filter((member) => !members.includes(member));
    await grp.save();
-   let val = await Redisclient.SREM(`group:${grp._id}`, members);
+   let val = await Redisclient.SREM(redisKey(`group:${grp._id}`), members);
    if (val !== members.length) {
       throw new ApiError(400, `Failed to remove members, Try again later`);
    }

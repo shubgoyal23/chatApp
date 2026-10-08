@@ -26,7 +26,7 @@ func InitStream() error {
 	}
 
 	if !RedisKeyExists(StreamName) {
-		if _, er := rc.Do("XGROUP", "CREATE", StreamName, GrpName, "$", "MKSTREAM"); er != nil {
+		if _, er := rc.Do("XGROUP", "CREATE", RedisKey(StreamName), GrpName, "$", "MKSTREAM"); er != nil {
 			return er
 		}
 	}
@@ -52,7 +52,7 @@ func CreateConsumer(id string) error {
 	if _, er := rc.Do("PING"); er != nil {
 		return er
 	}
-	if _, er := rc.Do("XGROUP", "CREATECONSUMER", StreamName, GrpName, ConsumerName); er != nil {
+	if _, er := rc.Do("XGROUP", "CREATECONSUMER", RedisKey(StreamName), GrpName, ConsumerName); er != nil {
 		return er
 	}
 	// Wrap ReadStream in a restart loop so it auto-recovers from panics/exits
@@ -83,7 +83,7 @@ func ReadStream(id string) {
 	for {
 		// Get a fresh connection each iteration — never hold a dead conn in a tight loop
 		rc := RedigoConn.Get()
-		data, er := redis.Values(rc.Do("XREADGROUP", "GROUP", GrpName, ConsumerName, "BLOCK", "30000", "STREAMS", StreamName, ">"))
+		data, er := redis.Values(rc.Do("XREADGROUP", "GROUP", GrpName, ConsumerName, "BLOCK", "30000", "STREAMS", RedisKey(StreamName), ">"))
 		rc.Close()
 
 		if er != nil {
@@ -120,7 +120,7 @@ func WriteStream(msg string, streamName string) error {
 	if _, err := rc.Do("PING"); err != nil {
 		return err
 	}
-	_, err := rc.Do("XADD", streamName, "*", "msg", msg)
+	_, err := rc.Do("XADD", RedisKey(streamName), "*", "msg", msg)
 	if err != nil {
 		Logger.Error("WriteStream", zap.Error(err))
 		return err
@@ -176,7 +176,7 @@ func HandleStreamData(data []interface{}) error {
 	StreamName := "chatzz:" + VmId
 	GrpName := fmt.Sprintf("group:%s", VmId)
 	defer rc.Close()
-	args := redis.Args{}.Add(StreamName, GrpName).AddFlat(ids)
+	args := redis.Args{}.Add(RedisKey(StreamName), GrpName).AddFlat(ids)
 	if _, er := rc.Do("XACK", args...); er != nil {
 		Logger.Error("Error acking message:", zap.Error(er))
 		return er

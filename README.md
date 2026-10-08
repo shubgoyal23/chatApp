@@ -125,7 +125,7 @@ chatApp/
 | jsonwebtoken | 9.0.2 | JWT auth |
 | bcryptjs | 3.0.2 | Password hashing |
 | Cloudinary | 2.6.1 | Media uploads |
-| nodemailer | 7.0.3 | Email (OTP, notifications) |
+| Email Worker API (HTTP) | — | Email (OTP, notifications) via `fetch`, no SMTP |
 | multer | 1.4.5-lts.2 | File upload handling |
 
 ### Socket Server
@@ -195,8 +195,10 @@ chatApp/
 PORT=8000
 MONGODB_URI=mongodb+srv://...
 MONGO_DB=chatzz
-REDIS_HOST=redis://...
-REDIS_PWD=your_redis_password
+REDIS_HOST=localhost:6379
+REDIS_USERNAME=
+REDIS_PASSWORD=your_redis_password
+REDIS_PREFIX=chatapp:
 ACCESS_TOKEN_SECRET=your_jwt_secret
 ACCESS_TOKEN_EXPIRY=1d
 REFRESH_TOKEN_SECRET=your_refresh_secret
@@ -215,8 +217,10 @@ PORT_GIN=3000
 GIN_MODE=debug
 MONGODB_URI=mongodb+srv://...
 MONGO_DB=chatzz
-REDIS_HOST=redis://...
-REDIS_PWD=your_redis_password
+REDIS_HOST=localhost:6379
+REDIS_USERNAME=
+REDIS_PASSWORD=your_redis_password
+REDIS_PREFIX=chatapp:
 ACCESS_TOKEN_SECRET=your_jwt_secret
 ACCESS_TOKEN_EXPIRY=1d
 REFRESH_TOKEN_SECRET=your_refresh_secret
