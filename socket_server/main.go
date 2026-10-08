@@ -40,7 +40,9 @@ func main() {
 	}
 	// ctx, cancel := context.WithCancel(context.Background())
 	helpers.RegisterVmid(os.Getenv("VM_ID"))
-	helpers.LoadRsaKey()
+	if err := helpers.LoadRsaKey(); err != nil {
+		log.Fatalf("Error loading rsa key: %v", err)
+	}
 	// helpers.KafkaInit()
 	if err := helpers.InitStream(); err != nil {
 		log.Fatalf("Error initializing stream: %v", err)

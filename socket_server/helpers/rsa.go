@@ -7,34 +7,32 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
+	"errors"
 )
 
 var PrivateKey *rsa.PrivateKey
 var PublicKey string
 
-func LoadRsaKey() {
-	pk, err := GetRedisKeyVal("PrivateKey")
-	if err != nil {
-		privateKey, publicKey := GenerateRsaKey()
-		PrivateKey = privateKey
-		PublicKey = EncodeRsaPublicKeyPEM(publicKey)
-
-		SetRedisKeyVal("PrivateKey", EncodeRsaPrivateKeyPEM(privateKey))
-		SetRedisKeyVal("PublicKey", EncodeRsaPublicKeyPEM(publicKey))
+// LoadRsaKey loads the key pair from Redis, or generates and stores a new one
+// when it is missing or unreadable. The public key is always derived from the
+// private key so the pair can never get out of sync.
+func LoadRsaKey() error {
+	if pk, err := GetRedisKeyVal("PrivateKey"); err == nil {
+		if privateKey := DecodeRsaPrivateKeyPEM(pk); privateKey != nil {
+			PrivateKey = privateKey
+			PublicKey = EncodeRsaPublicKeyPEM(&privateKey.PublicKey)
+			return nil
+		}
 	}
 
-	PrivateKey = DecodeRsaPrivateKeyPEM(pk)
+	privateKey, publicKey := GenerateRsaKey()
+	PrivateKey = privateKey
+	PublicKey = EncodeRsaPublicKeyPEM(publicKey)
 
-	puk, err := GetRedisKeyVal("PublicKey")
-	if err != nil {
-		privateKey, publicKey := GenerateRsaKey()
-		PrivateKey = privateKey
-		PublicKey = EncodeRsaPublicKeyPEM(publicKey)
-
-		SetRedisKeyVal("PrivateKey", EncodeRsaPrivateKeyPEM(privateKey))
-		SetRedisKeyVal("PublicKey", EncodeRsaPublicKeyPEM(publicKey))
+	if err := SetRedisKeyVal("PrivateKey", EncodeRsaPrivateKeyPEM(privateKey)); err != nil {
+		return err
 	}
-	PublicKey = puk
+	return SetRedisKeyVal("PublicKey", PublicKey)
 }
 
 func GenerateRsaKey() (*rsa.PrivateKey, *rsa.PublicKey) {
@@ -107,6 +105,9 @@ func DecodeRsaPublicKeyPEM(key string) *rsa.PublicKey {
 
 // decrypt data with private key
 func DecryptRsaDatabyPrivateKey(encryptedData string) (string, error) {
+	if PrivateKey == nil {
+		return "", errors.New("rsa private key not loaded")
+	}
 	// Decode the base64 ciphertext
 	ciphertext, err := base64.StdEncoding.DecodeString(encryptedData)
 	if err != nil {
