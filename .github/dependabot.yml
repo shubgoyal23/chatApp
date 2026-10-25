@@ -1,0 +1,11 @@
+version: 2
+updates:
+  # Bumps the pinned action versions in .github/workflows.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns:
+          - "*"

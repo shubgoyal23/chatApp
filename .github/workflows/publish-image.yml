@@ -1,0 +1,161 @@
+name: Build and Publish Docker Images
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+# One publish at a time; a newer push to main supersedes an in-flight build.
+concurrency:
+  group: publish-image
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    name: Build and Publish (${{ matrix.image }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # One image per service in docker-compose.yml (chat-* there, chatzz-* here).
+          - image: chatzz-backend
+            context: ./api_server
+            file: ./api_server/Dockerfile
+            check: "{{json .Config.Cmd}}"
+            expect: '["node","src/index.js"]'
+          - image: chatzz-frontend
+            context: ./frontend
+            file: ./frontend/Dockerfile
+            # Baked into the bundle by Vite; set under Settings > Secrets and variables > Actions > Variables.
+            build-args: |
+              VITE_API_URL=${{ vars.VITE_API_URL }}
+              VITE_WS_URL=${{ vars.VITE_WS_URL }}
+              VITE_GIN_URL=${{ vars.VITE_GIN_URL }}
+            check: "{{json .Config.Cmd}}"
+            expect: '["serve","-s","dist","-l","5173"]'
+          - image: chatzz-websocket
+            context: ./socket_server
+            file: ./socket_server/Dockerfile
+            check: "{{json .Config.Cmd}}"
+            expect: '["./worker"]'
+
+    steps:
+      # Actions are pinned to release versions; Dependabot (.github/dependabot.yml) keeps them current.
+      - name: Check out repository
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      # Without these the frontend still builds, but with empty API and socket URLs.
+      - name: Check frontend build variables are set
+        if: matrix.image == 'chatzz-frontend'
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_WS_URL: ${{ vars.VITE_WS_URL }}
+          VITE_GIN_URL: ${{ vars.VITE_GIN_URL }}
+        run: |
+          missing=""
+          for v in VITE_API_URL VITE_WS_URL VITE_GIN_URL; do
+            [ -n "${!v}" ] || missing="$missing $v"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository variables:$missing"
+            exit 1
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4.4.1
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish image
+        uses: docker/build-push-action@v7.4.0
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          build-args: ${{ matrix.build-args }}
+          platforms: linux/arm64
+          push: true
+          # Only the sha tag here; `production` moves once the image is verified below.
+          tags: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:sha-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          # Scoped per image so the three builds don't evict each other's cache.
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
+      # Guards against publishing the wrong Dockerfile under this name
+      # (e.g. the frontend as chatzz-backend).
+      - name: Verify image runs the expected program
+        env:
+          IMAGE: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:sha-${{ github.sha }}
+          CHECK: ${{ matrix.check }}
+          EXPECT: ${{ matrix.expect }}
+        run: |
+          docker pull --quiet --platform linux/arm64 "$IMAGE"
+          got=$(docker image inspect --format "$CHECK" "$IMAGE")
+          if [ "$got" != "$EXPECT" ]; then
+            echo "::error::$IMAGE has $got, expected $EXPECT"
+            exit 1
+          fi
+          echo "$IMAGE: $got"
+
+      # `production` is what the server pulls; the sha tag is kept for rollbacks.
+      - name: Tag image as production
+        env:
+          IMAGE: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
+        run: docker buildx imagetools create --tag "$IMAGE:production" "$IMAGE:sha-${{ github.sha }}"
+
+  deploy:
+    name: Deploy (${{ matrix.project }})
+    # Starts only after every image in the matrix has been tagged `production`.
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Each image is its own project on the VPS (/srv/apps/<project>).
+        project: [chatzz-backend, chatzz-frontend, chatzz-websocket]
+
+    steps:
+      # Tells the VPS to pull the new `production` image. The body is signed
+      # with DEPLOY_WEBHOOK_SECRET (repository secret) so the hook can verify it.
+      - name: Notify VPS to deploy
+        env:
+          DEPLOY_WEBHOOK_SECRET: ${{ secrets.DEPLOY_WEBHOOK_SECRET }}
+          DEPLOY_PROJECT: ${{ matrix.project }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          timestamp="$(date +%s)"
+          # Includes the project so each of the three deliveries has a distinct id.
+          delivery="${GITHUB_REPOSITORY//\//-}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${DEPLOY_PROJECT}"
+          body="$(printf '{"project":"%s"}' "$DEPLOY_PROJECT")"
+          signature="$(
+            printf '%s.%s' "$timestamp" "$body" |
+              openssl dgst -sha256 -hmac "$DEPLOY_WEBHOOK_SECRET" |
+              awk '{print $NF}'
+          )"
+          curl --fail-with-body --silent --show-error \
+            --connect-timeout 5 --max-time 15 \
+            -X POST 'https://deploy.230004.xyz/internal/deploy-hook' \
+            -H 'Content-Type: application/json' \
+            -H "X-Deploy-Timestamp: $timestamp" \
+            -H "X-Deploy-Delivery: $delivery" \
+            -H "X-Deploy-Signature: sha256=$signature" \
+            --data-binary "$body"

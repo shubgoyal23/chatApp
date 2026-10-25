@@ -7,16 +7,17 @@ RUN npm ci
 
 COPY . .
 
-# # Vite bakes these into the bundle at build time; they come from docker-compose build args
-# # and take precedence over frontend/.env
-# ARG VITE_API_URL
-# ARG VITE_WS_URL
-# ARG VITE_GIN_URL
-# ENV VITE_API_URL=$VITE_API_URL \
-#     VITE_WS_URL=$VITE_WS_URL \
-#     VITE_GIN_URL=$VITE_GIN_URL
-
-RUN npm run build
+# Vite bakes these into the bundle at build time. CI passes them as build args
+# from the repository's Actions variables; a local build without them falls back
+# to frontend/.env. Empty args are unset first: Vite lets any defined variable,
+# even an empty one, override .env.
+ARG VITE_API_URL
+ARG VITE_WS_URL
+ARG VITE_GIN_URL
+RUN for v in VITE_API_URL VITE_WS_URL VITE_GIN_URL; do \
+      eval "[ -n \"\${$v:-}\" ]" || unset "$v"; \
+    done \
+    && npm run build
 
 
 FROM node:24-alpine
