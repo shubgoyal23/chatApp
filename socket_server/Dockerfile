@@ -27,5 +27,9 @@ USER appuser
 
 EXPOSE 3000
 
+# Shell form so $PORT_GIN is read from the container environment; wget is busybox.
+HEALTHCHECK --start-period=30s --start-interval=2s --interval=30s --timeout=5s --retries=3 \
+  CMD wget -q -O /dev/null "http://127.0.0.1:$PORT_GIN/ping" || exit 1
+
 CMD ["./worker"]
 
