@@ -1,12 +1,15 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { sendMessage } from "../../lib/socket";
+import { playSound } from "../../lib/sounds";
 import { clearReplyto } from "../../store/chatSlice";
 import Icon from "../ui/Icon";
 import IconButton from "../ui/IconButton";
 import EmojiPicker from "./EmojiPicker";
 
 const MAX_LENGTH = 4000;
+// phones and tablets: an on-screen keyboard appears whenever the input is focused
+const isTouch = () => window.matchMedia("(hover: none)").matches;
 const TYPING_EVERY = 2500;
 
 function Composer({ chatId, contact, onPending }) {
@@ -40,7 +43,7 @@ function Composer({ chatId, contact, onPending }) {
    }, [text, chatId]);
 
    useEffect(() => {
-      if (replyTo) input.current?.focus();
+      if (replyTo && !isTouch()) input.current?.focus();
    }, [replyTo]);
 
    // grow the textarea with its content, up to a limit
@@ -80,6 +83,7 @@ function Composer({ chatId, contact, onPending }) {
       };
       onPending({ ...msg, epoch: Math.floor(Date.now() / 1000) });
       sendMessage(msg);
+      playSound("sent");
       setText("");
       lastTyping.current = 0;
       dispatch(clearReplyto());
@@ -111,14 +115,18 @@ function Composer({ chatId, contact, onPending }) {
                      icon={emojiOpen ? "close" : "mood"}
                      label="Emoji"
                      active={emojiOpen}
-                     onClick={() => setEmojiOpen((v) => !v)}
+                     onClick={() => {
+                        // close the keyboard so the panel has room on phones
+                        if (!emojiOpen && isTouch()) input.current?.blur();
+                        setEmojiOpen((v) => !v);
+                     }}
                   />
                   {emojiOpen && (
                      <div className="absolute bottom-12 left-0 z-20">
                         <EmojiPicker
                            onPick={(e) => {
                               setText((t) => (t + e).slice(0, MAX_LENGTH));
-                              input.current?.focus();
+                              if (!isTouch()) input.current?.focus();
                            }}
                         />
                      </div>
@@ -126,7 +134,8 @@ function Composer({ chatId, contact, onPending }) {
                </div>
                <textarea
                   ref={input}
-                  autoFocus
+                  autoFocus={!isTouch()}
+                  onFocus={() => isTouch() && setEmojiOpen(false)}
                   rows={1}
                   value={text}
                   maxLength={MAX_LENGTH}

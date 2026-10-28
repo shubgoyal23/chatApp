@@ -105,9 +105,6 @@ function Login({ onForgot, onNeedVerification, testAccounts }) {
                      </button>
                   ))}
                </div>
-               <p className="mt-2 text-xs text-subtle">
-                  Password: <code className="font-mono text-muted">{testAccounts.password}</code>
-               </p>
             </div>
          )}
       </form>

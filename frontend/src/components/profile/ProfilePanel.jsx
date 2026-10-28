@@ -203,7 +203,10 @@ function SecureChange({ field, onClose }) {
             </form>
          ) : (
             <div className="space-y-5">
-               <p className="text-sm text-muted text-center">Enter the 6-digit code sent to {user.email}</p>
+               <p className="text-sm text-muted text-center">
+                  Enter the 6-digit code sent to
+                  <span className="block font-semibold text-fg break-all">{user.email}</span>
+               </p>
                <OtpInput
                   value={otp}
                   error={error}

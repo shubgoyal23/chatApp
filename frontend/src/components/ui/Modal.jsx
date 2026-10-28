@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import IconButton from "./IconButton";
 
 function Modal({ open, onClose, title, children, width = "max-w-md" }) {
@@ -10,7 +11,9 @@ function Modal({ open, onClose, title, children, width = "max-w-md" }) {
    }, [open, onClose]);
 
    if (!open) return null;
-   return (
+   // portalled to <body>: a transformed ancestor (e.g. the sliding profile
+   // panel) would otherwise confine this "fixed" overlay to its own box
+   return createPortal(
       <div
          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 backdrop-blur-sm animate-fade-in"
          onMouseDown={(e) => e.target === e.currentTarget && onClose?.()}
@@ -27,7 +30,8 @@ function Modal({ open, onClose, title, children, width = "max-w-md" }) {
             </div>
             <div className="px-6 pb-6 overflow-y-auto">{children}</div>
          </div>
-      </div>
+      </div>,
+      document.body
    );
 }
 

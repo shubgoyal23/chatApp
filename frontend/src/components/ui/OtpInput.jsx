@@ -17,7 +17,7 @@ function OtpInput({ value, onChange, length = 6, disabled, error }) {
    };
 
    return (
-      <div className="flex justify-center gap-2 sm:gap-3">
+      <div className="grid grid-cols-6 gap-2 sm:gap-3 w-full max-w-[22rem] mx-auto">
          {digits.map((d, i) => (
             <input
                key={i}
@@ -45,7 +45,7 @@ function OtpInput({ value, onChange, length = 6, disabled, error }) {
                   if (e.key === "ArrowRight" && i < length - 1) refs.current[i + 1]?.focus();
                }}
                onFocus={(e) => e.target.select()}
-               className={`size-12 sm:size-14 text-center text-xl font-bold rounded-2xl bg-surface-2 border-2 outline-none transition-all text-fg focus:bg-surface focus:ring-4 ${
+               className={`w-full min-w-0 aspect-square max-h-14 text-center text-lg sm:text-xl font-bold rounded-xl sm:rounded-2xl bg-surface-2 border-2 outline-none transition-all text-fg focus:bg-surface focus:ring-4 ${
                   error
                      ? "border-rose-400 focus:ring-rose-500/10"
                      : "border-transparent focus:border-indigo-400 focus:ring-indigo-500/10"

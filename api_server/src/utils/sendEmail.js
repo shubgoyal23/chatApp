@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { isUndeliverableEmail } from "./emailPolicy.js";
 
 const MAX_ATTEMPTS = 3;
 const MAX_WAIT_SECONDS = 5;
@@ -6,6 +7,11 @@ const MAX_WAIT_SECONDS = 5;
 // Sends an email through the Email Worker HTTP API (see email.md).
 // The same job_id is reused on every retry so the email is never queued twice.
 export async function sendEmail(email, jobId = randomUUID()) {
+   // last line of defence: never send to example.com and other reserved domains
+   if (isUndeliverableEmail(email?.to)) {
+      console.warn(`email to ${email?.to} skipped: reserved test domain`);
+      return null;
+   }
    const { EMAIL_WORKER_URL, EMAIL_WORKER_KEY } = process.env;
    if (!EMAIL_WORKER_URL || !EMAIL_WORKER_KEY) {
       throw new Error("EMAIL_WORKER_URL and EMAIL_WORKER_KEY must be set");
