@@ -3,7 +3,7 @@ const SOURCES = {
    sent: "/sounds/message-sent.mp3",
    received: "/sounds/message-received.mp3",
 };
-const VOLUME = 0.6;
+const VOLUME = 0.3;
 // a burst of messages (e.g. delivered after reconnecting) plays one sound
 const MIN_GAP = 700;
 
