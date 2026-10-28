@@ -28,7 +28,7 @@ function Avatar({ user, size = "md", online = false, className = "" }) {
    const showImage = user?.avatar && broken !== user.avatar;
 
    return (
-      <div className={`relative shrink-0 ${SIZES[size]} ${className}`}>
+      <div className={`relative shrink-0 rounded-full ${SIZES[size]} ${className}`}>
          {showImage ? (
             <img
                src={`${Cloudinay_URL}/${user.avatar}`}

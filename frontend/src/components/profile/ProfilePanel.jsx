@@ -56,7 +56,7 @@ function ProfilePanel({ open, onClose, onLogout }) {
             <div className="relative flex flex-col items-center pt-8 pb-6 px-6">
                <div className="absolute inset-x-0 top-0 h-24 brand-gradient opacity-15" />
                <button onClick={() => setAvatarOpen(true)} className="relative group rounded-full" aria-label="Change photo">
-                  <Avatar user={user} size="2xl" className="ring-4 ring-surface" />
+                  <Avatar user={user} size="2xl" />
                   <span className="absolute inset-0 rounded-full bg-black/45 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                      <Icon name="photo_camera" />
                      <span className="text-xs font-semibold mt-1">Change</span>
