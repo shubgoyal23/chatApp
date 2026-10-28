@@ -215,6 +215,26 @@ func SetRedisKeyVal(key string, val string) error {
 	}
 	return nil
 }
+
+// SetRedisKeyValExpiry sets a key and its TTL in one atomic command.
+func SetRedisKeyValExpiry(key string, val string, dur int) error {
+	rc := RedigoConn.Get()
+	defer rc.Close()
+	_, err := rc.Do("SET", RedisKey(key), val, "EX", dur)
+	return err
+}
+
+// delIfEqualsScript deletes a key only while it still holds the expected value,
+// so one instance never removes a mapping another instance has since written.
+var delIfEqualsScript = redis.NewScript(1, `if redis.call("GET", KEYS[1]) == ARGV[1] then return redis.call("DEL", KEYS[1]) end return 0`)
+
+func DelRedisKeyIfEquals(key string, val string) error {
+	rc := RedigoConn.Get()
+	defer rc.Close()
+	_, err := delIfEqualsScript.Do(rc, RedisKey(key), val)
+	return err
+}
+
 func SetKeyExpiry(key string, dur int) error {
 	rc := RedigoConn.Get()
 	defer rc.Close()

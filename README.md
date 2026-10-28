@@ -8,13 +8,15 @@ Live: [chat.stockimagesearch.online](https://chat.stockimagesearch.online/)
 
 ## Features
 
-- **Real-time messaging** — WebSocket-based one-to-one and group chat
-- **End-to-end encryption** — RSA + AES-GCM encrypted messages
-- **Video calling** — WebRTC peer-to-peer video calls with call signaling
-- **Group management** — Create groups, manage members and admins
-- **Media attachments** — Image/file uploads via Cloudinary
-- **Authentication** — JWT (access + refresh tokens), OTP-based password reset
-- **Scalable architecture** — Multiple socket server instances with Redis Streams message queue
+- **Real-time messaging** — WebSocket-based one-to-one and group chat, typing indicators, online presence, replies, unread counts
+- **Encrypted transport** — RSA handshake + per-session AES-GCM encryption of every socket frame
+- **Voice & video calling** — WebRTC peer-to-peer calls with ringing, accept/decline, busy/offline handling, mute and camera toggles
+- **Group management** — Create groups, add/remove members, promote admins, rename, leave or delete
+- **Profile photos** — Pick a built-in avatar or upload a photo (Cloudinary)
+- **Authentication** — JWT access + refresh tokens in http-only cookies, email verification, OTP-based password reset
+- **Resilient connections** — Automatic reconnect with backoff, offline message queue, dead-connection detection, "open in another window" takeover
+- **Modern UI** — Responsive (mobile → desktop), light/dark/system themes, accessible controls
+- **Scalable architecture** — Multiple socket server instances with Redis Streams message routing
 
 ---
 
@@ -46,7 +48,7 @@ The application is split into three services:
 
 | Service | Stack | Role |
 |---|---|---|
-| **Frontend** | React 19, Vite, Redux Toolkit, Ant Design, Tailwind CSS | SPA — connects to API Server (REST) and Socket Server (WebSocket) directly |
+| **Frontend** | React 19, Vite, Redux Toolkit, Tailwind CSS 4 | SPA — connects to API Server (REST) and Socket Server (WebSocket) directly |
 | **API Server** | Node.js, Express 5, MongoDB, Redis | Auth, user profiles, group management, message history |
 | **Socket Server** | Go 1.23, Gin, gorilla/websocket | WebSocket hub for real-time messaging and video call signaling |
 
@@ -111,10 +113,8 @@ chatApp/
 | React | 19.1.0 | UI framework |
 | Vite | 6.3.5 | Build tool |
 | Redux Toolkit | 2.8.1 | State management |
-| Ant Design | 5.25.1 | UI component library |
-| Tailwind CSS | 4.1.6 | Utility-first styling |
-| React Hook Form | 7.56.3 | Form handling |
-| crypto-js / node-forge | 4.2.0 / 1.3.1 | Client-side encryption |
+| Tailwind CSS | 4 | Utility-first styling, light/dark themes |
+| Web Crypto API + crypto-js (MD5 key derivation) | — | Client-side encryption |
 
 ### API Server
 | Package | Version | Purpose |
@@ -145,18 +145,21 @@ chatApp/
 ### Users — `/api/v1/users`
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| POST | `/register` | — | Register new user |
+| POST | `/register` | — | Register new user (sends a verification code) |
+| POST | `/verify-email` | — | Confirm the verification code and log in |
+| POST | `/resend-verification` | — | Send a new verification code |
 | POST | `/login` | — | Login |
+| POST | `/refresh-token` | Refresh cookie | Rotate the access/refresh tokens |
 | POST | `/forgot-password` | — | Initiate password reset |
-| POST | `/check-otp` | — | Verify OTP |
-| POST | `/reset-password` | — | Reset password with OTP |
-| GET | `/logout` | ✓ | Logout |
+| POST | `/check-otp` | — | Check a password-reset code |
+| POST | `/reset-password` | — | Reset password with OTP (revokes existing sessions) |
+| POST | `/logout` | ✓ | Logout |
 | GET | `/info` | ✓ | Get user info |
 | GET | `/user` | ✓ | Get current user profile |
-| POST | `/user-edit` | ✓ | Update profile |
-| POST | `/user-edit-otp` | ✓ | Send OTP for profile change |
+| POST | `/user-edit` | ✓ | Update profile (username/email changes need an OTP) |
+| POST | `/user-edit-otp` | ✓ | Send OTP for username/email change |
 | POST | `/list` | ✓ | Search users |
-| POST | `/avatar` | ✓ | Set avatar URL |
+| POST | `/avatar` | ✓ | Pick a built-in avatar |
 | POST | `/avatar-upload` | ✓ | Upload avatar to Cloudinary |
 
 ### Messages — `/api/v1/message`
@@ -169,7 +172,8 @@ chatApp/
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
 | POST | `/new` | ✓ | Create group |
-| POST | `/delete` | ✓ | Delete group |
+| POST | `/delete` | ✓ | Delete group (creator only) |
+| POST | `/leave` | ✓ | Leave group |
 | POST | `/add/member` | ✓ | Add member |
 | POST | `/add/admin` | ✓ | Add admin |
 | POST | `/remove/member` | ✓ | Remove member |
@@ -191,6 +195,7 @@ chatApp/
 ## Environment Variables
 
 ### API Server
+See `api_server/.env.example` for the full list.
 ```env
 PORT=8000
 MONGODB_URI=mongodb+srv://...
@@ -204,6 +209,12 @@ ACCESS_TOKEN_EXPIRY=1d
 REFRESH_TOKEN_SECRET=your_refresh_secret
 REFRESH_TOKEN_EXPIRY=10d
 CORS_ORIGIN=http://localhost:5173
+COOKIE_DOMAIN=                  # parent domain shared by all services in production
+COOKIE_SAMESITE=none
+COOKIE_SECURE=true              # false only for plain-http local development
+TRUST_PROXY=1                   # reverse proxies in front of the API (0 if exposed directly)
+EMAIL_WORKER_URL=http://email-worker:3000
+EMAIL_WORKER_KEY=ew_xxxxxxxx
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
@@ -231,9 +242,13 @@ VM_ID=vm1
 
 ### Frontend
 ```env
-VITE_API_URL=http://localhost:8000
+VITE_API_URL=http://localhost:8000/api/v1
 VITE_WS_URL=http://localhost:3000
 VITE_GIN_URL=http://localhost:3000
+# optional TURN server, needed for calls across strict NATs
+VITE_TURN_URL=turn:turn.example.com:3478
+VITE_TURN_USERNAME=
+VITE_TURN_CREDENTIAL=
 ```
 
 ---
@@ -307,12 +322,17 @@ The socket server Docker image uses a multi-stage build (Go binary compiled in `
 
 ## Security
 
-- **JWT auth** — Access tokens (short-lived) + refresh tokens (long-lived), stored in HTTP-only cookies
-- **RSA encryption** — Used during initial handshake to transmit session keys
-- **AES-GCM** — All messages encrypted on the client before transmission
+- **JWT auth** — Access + rotating refresh tokens in HTTP-only cookies; password resets revoke existing sessions
+- **Socket authentication** — The WebSocket handshake must present the session key issued by `/user/key` (which requires a valid JWT), so a token cannot be forged with the public RSA key
+- **RSA + AES-GCM** — RSA-OAEP protects the handshake; every socket frame is AES-GCM encrypted with a per-session key
 - **Password hashing** — bcryptjs
-- **OTP verification** — Email-based OTP for registration and password reset
-- **CORS** — Strict origin allowlist
+- **One-time codes** — Cryptographically random, stored hashed, expire after 15 minutes, max 5 attempts, single use
+- **Email verification** — Accounts must verify their email before they can sign in
+- **Abuse protection** — Rate limiting on auth/OTP/email endpoints, request-size limits, MongoDB-operator injection guard, input type validation
+- **Authorization** — Group history, details and admin actions are restricted to members/admins; group messages are only accepted from members
+- **Uploads** — Image-only allowlist, 5 MB limit, server-generated file names
+- **No account enumeration** — Login, password reset and resend endpoints answer the same way whether or not an account exists
+- **Headers** — Helmet security headers; CORS strict origin allowlist
 
 ---
 

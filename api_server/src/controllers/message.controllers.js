@@ -3,6 +3,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { Message } from "../models/message.model.js";
 import { Group } from "../models/group.model.js";
+import { objectId } from "../utils/validate.js";
 
 // const newMessage = asyncHandler(async (req, res) => {
 //    const { to, message } = req.body;
@@ -28,27 +29,36 @@ import { Group } from "../models/group.model.js";
 // });
 
 const allMessage = asyncHandler(async (req, res) => {
-   const { to, page = 1, limit = 20 } = req.body;
+   const { page = 1, limit = 30 } = req.body ?? {};
    const user = req.user;
+   const to = objectId(req.body?.to, "chat id");
 
-   if (!to) {
-      throw new ApiError(400, "To id is required");
-   }
-
-   const pageNumber = Math.max(1, Number(page));
-   const pageLimit = Math.min(100, Math.max(1, Number(limit)));
-
+   const pageNumber = Math.max(1, Math.floor(Number(page)) || 1);
+   const pageLimit = Math.min(100, Math.max(1, Math.floor(Number(limit)) || 30));
    const skip = (pageNumber - 1) * pageLimit;
 
-   const listMessage = await Message.find({
-      $or: [
-         { from: user._id, to: to },
-         { from: to, to: user._id },
-      ],
-   })
+   // a group's history is every message addressed to it, visible to members only
+   const group = await Group.findById(to).select("members");
+   let filter;
+   if (group) {
+      if (!group.members.some((m) => m.equals(user._id))) {
+         throw new ApiError(403, "You are not a member of this group");
+      }
+      filter = { to };
+   } else {
+      filter = {
+         $or: [
+            { from: user._id, to },
+            { from: to, to: user._id },
+         ],
+      };
+   }
+
+   const listMessage = await Message.find(filter)
       .sort({ epoch: -1, _id: -1 })
       .skip(skip)
-      .limit(pageLimit);
+      .limit(pageLimit)
+      .lean();
 
    // Pagination is newest -> oldest,
    // but frontend wants oldest -> newest.
@@ -170,9 +180,26 @@ const userContacts = asyncHandler(async (req, res) => {
 
    const groups = await Group.find({
       members: user._id,
-   });
+   }).lean();
+
+   // attach each group's latest message so the client can sort and preview it
+   const latest = groups.length
+      ? await Message.aggregate([
+           { $match: { to: { $in: groups.map((g) => g._id) } } },
+           { $sort: { epoch: -1, _id: -1 } },
+           { $group: { _id: "$to", lastMessage: { $first: "$$ROOT" } } },
+        ])
+      : [];
+   const latestById = new Map(latest.map((l) => [l._id.toString(), l.lastMessage]));
+   for (const g of groups) {
+      const m = latestById.get(g._id.toString());
+      g.lastMessage = m
+         ? { ...m, id: m._id }
+         : { message: "", epoch: Math.floor(new Date(g.createdAt).getTime() / 1000) };
+   }
 
    listMessage.push(...groups);
+   listMessage.sort((a, b) => (b.lastMessage?.epoch ?? 0) - (a.lastMessage?.epoch ?? 0));
 
    return res
       .status(200)

@@ -2,6 +2,7 @@ package models
 
 import (
 	"sync"
+	"sync/atomic"
 
 	"github.com/gorilla/websocket"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -16,16 +17,32 @@ type User struct {
 	Epoch    int64              `json:"epoch"`
 }
 
+// Session is what the socket server stores in Redis when it hands out a
+// session key, so the websocket handshake can verify the caller holds it.
+type Session struct {
+	Key      string `json:"key"`
+	Email    string `json:"email"`
+	UserName string `json:"username"`
+}
+
 type Conn struct {
 	Mu       sync.Mutex
 	WS       *websocket.Conn
 	UserInfo User
-	Epoch    int64
+	// Epoch is the unix time of the last ping; read by the scheduler while the
+	// reader goroutine updates it, so it must be accessed atomically.
+	Epoch    atomic.Int64
 	Done     chan struct{}
+	doneOnce sync.Once
+}
+
+// Stop signals the connection's reader goroutine that it has been superseded.
+func (c *Conn) Stop() {
+	c.doneOnce.Do(func() { close(c.Done) })
 }
 
 type Message struct {
-	// ID      string             `json:"message_id" bson:"message_id"`
+	ID      primitive.ObjectID  `json:"_id" bson:"_id,omitempty"`
 	From    primitive.ObjectID  `json:"from" binding:"required" bson:"from"`
 	To      primitive.ObjectID  `json:"to" binding:"required" bson:"to"`
 	Message string              `json:"message" bson:"message"`
@@ -44,12 +61,20 @@ const (
 	Chat       MsgType = "chat"
 	Ping       MsgType = "ping"
 	Pong       MsgType = "pong"
+	Typing     MsgType = "typing"
 	Call       MsgType = "call"
 	Offer      MsgType = "offer"
 	Answer     MsgType = "answer"
 	Ice        MsgType = "candidate"
 	CallEnd    MsgType = "callend"
 )
+
+// Persistent reports whether a message of this type is a chat message that
+// must be saved and queued for offline users. Signalling messages (calls,
+// typing, presence) are only useful while both sides are online.
+func (t MsgType) Persistent() bool {
+	return t == P2p || t == Grp
+}
 
 // call - offer - for incomming call
 // call - busy - if call is busy

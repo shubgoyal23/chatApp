@@ -13,6 +13,7 @@ import (
 func StartRouter() {
 	gin.SetMode(os.Getenv("GIN_MODE"))
 	router := gin.New()
+	router.Use(gin.Recovery())
 	helpers.Origins = strings.Split(os.Getenv("CORS_ORIGIN"), ",")
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     helpers.Origins,

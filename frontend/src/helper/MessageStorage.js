@@ -1,71 +1,46 @@
-import conf from "../constance/conf";
-import { decryptDataAESLocal, encryptDataAESLocal } from "./AEShelper";
+import {
+   decryptDataAESLocal,
+   encryptDataAESLocal,
+   hasLocalKey,
+} from "./AEShelper";
 
-export const SetMessageToLS = async (message, self) => {
-   let jdata = JSON.stringify(message);
-   const d = await encryptDataAESLocal(jdata);
-   let key = self ? message.to : message.from;
-   if (!self && message.type === "group") {
-      key = message.to;
-      let list = localStorage.getItem(key)
-         ? JSON.parse(localStorage.getItem(key))
-         : [];
-      list.push(d);
-      while (list.length > 50) {
-         list.shift();
-      }
-      localStorage.setItem(key, JSON.stringify(list));
-      return;
+// A small encrypted per-conversation cache so chats open instantly; the
+// server stays the source of truth.
+const PREFIX = "chat:";
+const LIMIT = 60;
+
+export const readCache = async (chatId) => {
+   if (!hasLocalKey()) return [];
+   try {
+      const raw = localStorage.getItem(PREFIX + chatId);
+      if (!raw) return [];
+      return JSON.parse(await decryptDataAESLocal(raw));
+   } catch {
+      // unreadable (e.g. the key changed after a profile edit): drop it
+      localStorage.removeItem(PREFIX + chatId);
+      return [];
    }
-   let list = localStorage.getItem(key)
-      ? JSON.parse(localStorage.getItem(key))
-      : [];
-   list.push(d);
-   while (list.length > 50) {
-      list.shift();
-   }
-   localStorage.setItem(key, JSON.stringify(list));
 };
 
-export const GetMessageFromLS = async (key) => {
-   let list = localStorage.getItem(key)
-      ? await JSON.parse(localStorage.getItem(key))
-      : [];
-
-   let messageslist = [];
-   if (list.length <= 0) {
-      await fetch(`${conf.API_URL}/message/all`, {
-         method: "POST",
-         credentials: "include",
-         headers: {
-            "Content-Type": "application/json",
-         },
-         body: JSON.stringify({ to: key }),
-      })
-         .then((res) => res.json())
-         .then((data) => {
-            messageslist.push(...data.data);
-            SetMessageToLSBulk(data.data, key);
-         })
-         .catch((error) => {
-            console.log(error);
-         });
-   } else {
-      for (let k of list) {
-         let d = await decryptDataAESLocal(k);
-         let jd = await JSON.parse(d);
-         messageslist.push(jd);
-      }
+export const writeCache = async (chatId, messages) => {
+   if (!hasLocalKey()) return;
+   try {
+      const slim = messages.filter((m) => m._id && !m.pending).slice(-LIMIT);
+      localStorage.setItem(
+         PREFIX + chatId,
+         await encryptDataAESLocal(JSON.stringify(slim))
+      );
+   } catch {
+      // storage full or unavailable: the cache is optional
    }
-   return messageslist;
 };
 
-export const SetMessageToLSBulk = async (messages, key) => {
-   let list = [];
-   for (let message of messages) {
-      let jdata = JSON.stringify(message);
-      const d = await encryptDataAESLocal(jdata);
-      list.push(d);
+export const clearCache = () => {
+   try {
+      Object.keys(localStorage)
+         .filter((k) => k.startsWith(PREFIX) || /^[0-9a-f]{24}$/.test(k))
+         .forEach((k) => localStorage.removeItem(k));
+   } catch {
+      // ignore
    }
-   localStorage.setItem(key, JSON.stringify(list));
 };

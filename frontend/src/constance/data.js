@@ -17,4 +17,5 @@ export const avatar_public_ids = [
 ];
 
 export const Cloudinay_URL =
+   import.meta.env.VITE_CLOUDINARY_URL ||
    "https://res.cloudinary.com/dkznkabup/image/upload/f_auto,q_auto/v1";

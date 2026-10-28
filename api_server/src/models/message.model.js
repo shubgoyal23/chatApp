@@ -32,4 +32,7 @@ const messageSchema = new mongoose.Schema({
    // },
 });
 
+messageSchema.index({ from: 1, to: 1, epoch: -1 });
+messageSchema.index({ to: 1, epoch: -1 });
+
 export const Message = mongoose.model("Message", messageSchema);

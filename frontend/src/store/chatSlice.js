@@ -1,89 +1,108 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { SetMessageToLS } from "../helper/MessageStorage";
 
+/**
+ * contacts: conversations (users and groups) keyed by id, each with lastMessage
+ * users:    directory of known people, used for group sender names
+ * incoming: messages received for a chat, waiting for its window to take them
+ */
 const chatSlice = createSlice({
    name: "chat",
    initialState: {
-      chattingwith: {},
+      activeId: null,
+      contacts: {},
+      users: {},
+      unread: {},
+      incoming: {},
+      presence: {},
+      typing: {},
       replyto: null,
-      connections: {},
-      messagesQue: {},
+      contactsLoaded: false,
    },
    reducers: {
-      setChat(state, action) {
-         state.chattingwith = action.payload;
+      setContacts(state, action) {
+         for (const c of action.payload) {
+            state.contacts[c._id] = { ...state.contacts[c._id], ...c };
+            if (c.accountType !== "group") state.users[c._id] = c;
+         }
+         state.contactsLoaded = true;
+      },
+      upsertContact(state, action) {
+         const c = action.payload;
+         state.contacts[c._id] = { ...state.contacts[c._id], ...c };
+         if (c.accountType !== "group") state.users[c._id] = c;
+      },
+      removeContact(state, action) {
+         delete state.contacts[action.payload];
+         if (state.activeId === action.payload) state.activeId = null;
+      },
+      knowUsers(state, action) {
+         for (const u of action.payload) {
+            if (u?._id) state.users[u._id] = { ...state.users[u._id], ...u };
+         }
+      },
+      openChat(state, action) {
+         state.activeId = action.payload;
          state.replyto = null;
+         if (action.payload) delete state.unread[action.payload];
+      },
+      receiveMessage(state, action) {
+         const { msg, chatId, self } = action.payload;
+         (state.incoming[chatId] ??= []).push(msg);
+         const contact = state.contacts[chatId];
+         if (contact) {
+            contact.lastMessage = msg;
+         }
+         if (!self && state.activeId !== chatId) {
+            state.unread[chatId] = (state.unread[chatId] ?? 0) + 1;
+         }
+         if (state.typing[chatId]?.userId === msg.from) {
+            delete state.typing[chatId];
+         }
+      },
+      takeIncoming(state, action) {
+         delete state.incoming[action.payload];
+      },
+      markRead(state, action) {
+         delete state.unread[action.payload];
+      },
+      setPresence(state, action) {
+         state.presence[action.payload.id] = action.payload.status;
+      },
+      setTyping(state, action) {
+         const { chatId, userId, at } = action.payload;
+         state.typing[chatId] = { userId, at };
+      },
+      clearTyping(state, action) {
+         delete state.typing[action.payload];
       },
       setReplyto(state, action) {
          state.replyto = action.payload;
       },
-      clearReplyto(state, action) {
+      clearReplyto(state) {
          state.replyto = null;
       },
-      setConnections(state, action) {
-         action.payload.map((user) => {
-            state.connections[user._id] = user;
-         });
-      },
-      addConnection(state, action) {
-         state.connections[action.payload._id] = action.payload;
-      },
-      messageHandler(state, action) {
-         if (action.payload.self) {
-            if (!state.messagesQue[action.payload.data.to]) {
-               state.messagesQue[action.payload.data.to] = [
-                  action.payload.data,
-               ];
-            } else {
-               state.messagesQue[action.payload.data.to]?.push(
-                  action.payload.data
-               );
-            }
-            SetMessageToLS(action.payload.data, true);
-         } else {
-            if (action.payload.data.type === "group") {
-               if (!state.messagesQue[action.payload.data.to]) {
-                  state.messagesQue[action.payload.data.to] = [
-                     action.payload.data,
-                  ];
-               } else {
-                  state.messagesQue[action.payload.data.to]?.push(
-                     action.payload.data
-                  );
-               }
-            } else {
-               if (!state.messagesQue[action.payload.data.from]) {
-                  state.messagesQue[action.payload.data.from] = [
-                     action.payload.data,
-                  ];
-               } else {
-                  state.messagesQue[action.payload.data.from]?.push(
-                     action.payload.data
-                  );
-               }
-            }
-            SetMessageToLS(action.payload.data, false);
-         }
-      },
-      EmptyMessages(state, action) {
-         if (state.messagesQue[action.payload]) {
-            state.messagesQue[action.payload] = [];
-         }
-      },
-      SetUserOnlineStatus(state, action) {
-         state.chattingwith.status = action.payload;
+      resetChat() {
+         return chatSlice.getInitialState();
       },
    },
 });
 
 export const {
-   setChat,
-   setConnections,
-   messageHandler,
-   addConnection,
-   EmptyMessages,
+   setContacts,
+   upsertContact,
+   removeContact,
+   knowUsers,
+   openChat,
+   receiveMessage,
+   takeIncoming,
+   markRead,
+   setPresence,
+   setTyping,
+   clearTyping,
    setReplyto,
    clearReplyto,
-   SetUserOnlineStatus,
+   resetChat,
 } = chatSlice.actions;
 export default chatSlice.reducer;
+
+export const isGroup = (c) => c?.accountType === "group";

@@ -89,12 +89,9 @@ func GetSecretKeyforUser(c *gin.Context) {
 	jwtInfo := jwtToken.(jwt.MapClaims)
 	userInfo := user.(models.User)
 
-	id, err := primitive.ObjectIDFromHex(jwtInfo["_id"].(string))
-	if err != nil {
-		Logger.Error("Invaild user id", zap.String("userId, ", jwtInfo["_id"].(string)))
-	}
-
-	if id != userInfo.ID {
+	jwtID, _ := jwtInfo["_id"].(string)
+	id, err := primitive.ObjectIDFromHex(jwtID)
+	if err != nil || id != userInfo.ID {
 		c.JSON(401, gin.H{
 			"error": "Unauthorized",
 		})
@@ -102,15 +99,9 @@ func GetSecretKeyforUser(c *gin.Context) {
 	}
 
 	sk := uuid.New().String()
-	if f := SetRedisKeyVal(fmt.Sprintf("usersk:%s", userInfo.ID.Hex()), sk); f != nil {
+	session, _ := json.Marshal(models.Session{Key: sk, Email: userInfo.Email, UserName: userInfo.UserName})
+	if f := SetRedisKeyValExpiry(fmt.Sprintf("usersk:%s", userInfo.ID.Hex()), string(session), 86400); f != nil {
 		Logger.Error("Error setting key:", zap.Error(f))
-		c.JSON(500, gin.H{
-			"error": "Internal server error",
-		})
-		return
-	}
-	if f := SetKeyExpiry(fmt.Sprintf("usersk:%s", userInfo.ID.Hex()), 86400); f != nil {
-		Logger.Error("Error setting key expiry:", zap.Error(f))
 		c.JSON(500, gin.H{
 			"error": "Internal server error",
 		})
