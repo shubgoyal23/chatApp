@@ -6,7 +6,6 @@ import Login from "./Login";
 import Register from "./Register";
 import VerifyEmail from "./VerifyEmail";
 import ForgotPassword from "./ForgotPassword";
-import TestUsers from "./TestUsers";
 
 const FEATURES = [
    { icon: "bolt", title: "Real-time", text: "Messages arrive instantly, even across devices." },
@@ -16,22 +15,21 @@ const FEATURES = [
 ];
 
 function AuthPage() {
-   // login | register | test | verify | forgot
+   // login | register | verify | forgot
    const [view, setView] = useState("login");
    const [pending, setPending] = useState(null);
-   // the tab only appears when the server has test users enabled
-   const [testUsers, setTestUsers] = useState([]);
+   // { users, password } when the server has test users enabled
+   const [testAccounts, setTestAccounts] = useState(null);
 
    useEffect(() => {
       api("/users/test-users", { auth: false })
-         .then((list) => setTestUsers(list ?? []))
-         .catch(() => setTestUsers([]));
+         .then((data) => setTestAccounts(data?.users?.length ? data : null))
+         .catch(() => setTestAccounts(null));
    }, []);
 
    const tabs = [
       ["login", "Sign in"],
       ["register", "Create account"],
-      ...(testUsers.length ? [["test", "Test users"]] : []),
    ];
 
    const needVerification = (account) => {
@@ -114,10 +112,13 @@ function AuthPage() {
                )}
 
                {view === "login" && (
-                  <Login onForgot={() => setView("forgot")} onNeedVerification={needVerification} />
+                  <Login
+                     onForgot={() => setView("forgot")}
+                     onNeedVerification={needVerification}
+                     testAccounts={testAccounts}
+                  />
                )}
                {view === "register" && <Register onRegistered={needVerification} />}
-               {view === "test" && <TestUsers users={testUsers} />}
                {view === "verify" && <VerifyEmail account={pending} onBack={() => setView("login")} />}
                {view === "forgot" && <ForgotPassword onDone={() => setView("login")} />}
             </div>

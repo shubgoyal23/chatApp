@@ -1,12 +1,11 @@
-import crypto from "node:crypto";
 import { User } from "../models/user.model.js";
 import { Group } from "../models/group.model.js";
 import { Message } from "../models/message.model.js";
 import { Redisclient, redisKey } from "../db/Redis.js";
 
-// Shared demo accounts, available when TEST_USERS_ENABLED=true. They sign in
-// through /users/test-login without a password, so they must never hold
-// anything private and are protected from profile/password changes.
+// Ready-made accounts for trying the app, created when TEST_USERS_ENABLED=true.
+// They are ordinary accounts that sign in with TEST_USERS_PASSWORD; the login
+// page lists them so people can fill in the form with one click.
 export const TEST_USERS = [
    { username: "alice.test", fullname: "Alice (Test)", avatar: "chat/qhqxqat0tvalbk0q0qt6", about: "Test account — say hi!" },
    { username: "bob.test", fullname: "Bob (Test)", avatar: "chat/zw21cp75dkgwteyyd9h6", about: "Test account — try a video call." },
@@ -17,40 +16,48 @@ const GROUP_USERNAME = "test.lounge";
 
 export const testUsersEnabled = () => process.env.TEST_USERS_ENABLED === "true";
 
-// unguessable, valid per the password policy; nobody needs to know it
-const randomPassword = () => `Tt1!${crypto.randomBytes(24).toString("hex")}`;
+// Shared password shown on the login page; must satisfy the password policy.
+export const testUsersPassword = () => process.env.TEST_USERS_PASSWORD || "Test@1234";
 
-/** Creates the test accounts, a shared group and a few starter messages. Idempotent. */
+/** Creates any missing test accounts, a shared group and a few starter messages. */
 export async function seedTestUsers() {
    const users = [];
+   let created = 0;
    for (const t of TEST_USERS) {
-      let user = await User.findOne({ username: t.username });
+      // matched by email, which stays put even if the username is edited
+      const email = `${t.username.replace(".", "-")}@example.com`;
+      let user = await User.findOne({ email });
       if (user && !user.isTestUser) {
-         console.warn(`test users: "${t.username}" belongs to a real account, skipping`);
+         console.warn(`test users: ${email} belongs to a real account, skipping`);
          continue;
       }
       if (!user) {
+         if (await User.exists({ username: t.username })) {
+            console.warn(`test users: username "${t.username}" is taken, skipping`);
+            continue;
+         }
          user = await User.create({
             ...t,
-            email: `${t.username.replace(".", "-")}@example.com`,
-            password: randomPassword(),
+            email,
+            password: testUsersPassword(),
             verified: true,
             isTestUser: true,
             accountType: "user",
          });
-      } else {
-         // undo any drift so every visitor gets the same demo
-         Object.assign(user, t, { verified: true });
-         await user.save({ validateBeforeSave: false });
+         created++;
       }
       users.push(user);
    }
-   if (users.length < 2) return;
-   const ids = users.map((u) => u._id);
+   if (users.length) {
+      console.log(`test users ready: ${users.map((u) => u.username).join(", ")}`);
+   }
+   // starter group and messages only on first creation, so later edits stick
+   if (!created || users.length < 2) return;
 
-   let group = await Group.findOne({ username: GROUP_USERNAME });
-   if (!group) {
-      group = await Group.create({
+   const ids = users.map((u) => u._id);
+   const group =
+      (await Group.findOne({ username: GROUP_USERNAME })) ??
+      (await Group.create({
          fullname: "Test Lounge",
          username: GROUP_USERNAME,
          about: "A shared group for the test accounts.",
@@ -58,14 +65,7 @@ export async function seedTestUsers() {
          admins: [ids[0]],
          createdBy: ids[0],
          accountType: "group",
-      });
-   } else {
-      const missing = ids.filter((id) => !group.members.some((m) => m.equals(id)));
-      if (missing.length) {
-         group.members.push(...missing);
-         await group.save();
-      }
-   }
+      }));
    await Redisclient.sAdd(redisKey(`group:${group._id}`), group.members.map(String));
 
    if (!(await Message.exists({ to: group._id }))) {
@@ -78,5 +78,4 @@ export async function seedTestUsers() {
          ...(c ? [{ from: c._id, to: group._id, type: "group", message: "Glad to be here!", epoch: now - 30 }] : []),
       ]);
    }
-   console.log(`test users ready: ${users.map((u) => u.username).join(", ")}`);
 }

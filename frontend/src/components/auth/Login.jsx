@@ -4,8 +4,9 @@ import { login } from "../../store/loginSlice";
 import { api } from "../../lib/api";
 import Input from "../ui/Input";
 import Button from "../ui/Button";
+import Avatar from "../ui/Avatar";
 
-function Login({ onForgot, onNeedVerification }) {
+function Login({ onForgot, onNeedVerification, testAccounts }) {
    const dispatch = useDispatch();
    const [form, setForm] = useState({ identifier: "", password: "" });
    const [error, setError] = useState("");
@@ -79,6 +80,36 @@ function Login({ onForgot, onNeedVerification }) {
          <Button type="submit" loading={loading} className="w-full h-12 text-[15px]">
             Sign in
          </Button>
+
+         {testAccounts && (
+            <div className="pt-2">
+               <p className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-subtle">Test accounts</p>
+               <div className="flex flex-wrap gap-2">
+                  {testAccounts.users.map((u) => (
+                     <button
+                        key={u._id}
+                        type="button"
+                        onClick={() => {
+                           setError("");
+                           setForm({ identifier: u.username, password: testAccounts.password });
+                        }}
+                        title={`Fill in ${u.username}`}
+                        className={`inline-flex items-center gap-2 pl-1 pr-3 py-1 rounded-full border text-sm font-medium transition-colors ${
+                           form.identifier === u.username
+                              ? "border-indigo-400 bg-indigo-500/10 text-indigo-600 dark:text-indigo-300"
+                              : "border-line bg-surface text-fg hover:border-indigo-300"
+                        }`}
+                     >
+                        <Avatar user={u} size="xs" />
+                        {u.username}
+                     </button>
+                  ))}
+               </div>
+               <p className="mt-2 text-xs text-subtle">
+                  Password: <code className="font-mono text-muted">{testAccounts.password}</code>
+               </p>
+            </div>
+         )}
       </form>
    );
 }

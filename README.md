@@ -213,7 +213,8 @@ COOKIE_DOMAIN=                  # parent domain shared by all services in produc
 COOKIE_SAMESITE=none
 COOKIE_SECURE=true              # false only for plain-http local development
 TRUST_PROXY=1                   # reverse proxies in front of the API (0 if exposed directly)
-TEST_USERS_ENABLED=false        # true = seed alice.test / bob.test / carol.test + "Test users" login tab
+TEST_USERS_ENABLED=false        # true = create alice.test / bob.test / carol.test and show them on the login page
+TEST_USERS_PASSWORD=Test@1234
 EMAIL_WORKER_URL=http://email-worker:3000
 EMAIL_WORKER_KEY=ew_xxxxxxxx
 CLOUDINARY_CLOUD_NAME=your_cloud_name
@@ -297,13 +298,15 @@ Frontend will be available at `http://localhost:5173`.
 
 ### Test users
 
-Set `TEST_USERS_ENABLED=true` on the API server to get three shared demo
-accounts — `alice.test`, `bob.test` and `carol.test` — plus a "Test Lounge"
-group and a few starter messages. They are created (or reset) at startup and
-appear in a **Test users** tab on the login page, where one click signs you in.
-Open a second browser or private window as another test user to try chat and
-calls. Anyone can use these accounts, so their profiles and passwords can't be
-changed; leave the flag off in production unless you want a public demo.
+Set `TEST_USERS_ENABLED=true` on the API server and restart it. On startup it
+creates three normal, verified accounts — `alice.test`, `bob.test` and
+`carol.test` — that sign in with `TEST_USERS_PASSWORD` (default `Test@1234`).
+The first time, it also adds a "Test Lounge" group and a few starter messages.
+Existing accounts are never reset, so edits made to them stick.
+
+While the flag is on, the login page shows the accounts as badges with the
+password; clicking a badge fills in the sign-in form. Turning the flag off
+hides the badges; the accounts themselves stay.
 
 ---
 
