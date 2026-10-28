@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { sendMessage } from "../../lib/socket";
+import { playSound } from "../../lib/sounds";
 import { clearReplyto } from "../../store/chatSlice";
 import Icon from "../ui/Icon";
 import IconButton from "../ui/IconButton";
@@ -82,6 +83,7 @@ function Composer({ chatId, contact, onPending }) {
       };
       onPending({ ...msg, epoch: Math.floor(Date.now() / 1000) });
       sendMessage(msg);
+      playSound("sent");
       setText("");
       lastTyping.current = 0;
       dispatch(clearReplyto());

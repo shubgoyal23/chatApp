@@ -7,6 +7,7 @@ import { createTokenProvider } from "../../lib/session";
 import { reconnectNow, setMessageHandler, startSocket, stopSocket } from "../../lib/socket";
 import { handleCallSignal, hangUp } from "../../lib/call";
 import { toast } from "../../lib/toast";
+import { playSound } from "../../lib/sounds";
 import { logout } from "../../store/loginSlice";
 import {
    clearTyping,
@@ -71,6 +72,8 @@ function ChatApp() {
                const self = data.from === me;
                const chatId = data.type === "group" || self ? data.to : data.from;
                dispatch(receiveMessage({ msg: data, chatId, self }));
+               // our own messages echo back from the server; only others' make a sound
+               if (!self) playSound("received");
                ensureContact(chatId);
                return;
             }
