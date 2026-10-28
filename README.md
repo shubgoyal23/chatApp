@@ -213,6 +213,7 @@ COOKIE_DOMAIN=                  # parent domain shared by all services in produc
 COOKIE_SAMESITE=none
 COOKIE_SECURE=true              # false only for plain-http local development
 TRUST_PROXY=1                   # reverse proxies in front of the API (0 if exposed directly)
+TEST_USERS_ENABLED=false        # true = seed alice.test / bob.test / carol.test + "Test users" login tab
 EMAIL_WORKER_URL=http://email-worker:3000
 EMAIL_WORKER_KEY=ew_xxxxxxxx
 CLOUDINARY_CLOUD_NAME=your_cloud_name
@@ -293,6 +294,16 @@ npm run dev
 ```
 
 Frontend will be available at `http://localhost:5173`.
+
+### Test users
+
+Set `TEST_USERS_ENABLED=true` on the API server to get three shared demo
+accounts — `alice.test`, `bob.test` and `carol.test` — plus a "Test Lounge"
+group and a few starter messages. They are created (or reset) at startup and
+appear in a **Test users** tab on the login page, where one click signs you in.
+Open a second browser or private window as another test user to try chat and
+calls. Anyone can use these accounts, so their profiles and passwords can't be
+changed; leave the flag off in production unless you want a public demo.
 
 ---
 

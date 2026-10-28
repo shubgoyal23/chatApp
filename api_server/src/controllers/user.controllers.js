@@ -14,6 +14,7 @@ import VerificationEmailTemplate from "../utils/EmailTemplate/verifyAccount.js";
 import { Verify } from "../models/verification.model.js";
 import { Group } from "../models/group.model.js";
 import jwt from "jsonwebtoken";
+import { TEST_USERS, testUsersEnabled } from "../utils/testUsers.js";
 import {
    escapeRegex,
    identifierQuery,
@@ -420,7 +421,7 @@ const editUserDetailsSendOtp = asyncHandler(async (req, res) => {
 
 const forgotPassword = asyncHandler(async (req, res) => {
    const user = await User.findOne(identifierQuery(req.body));
-   if (user) {
+   if (user && !user.isTestUser) {
       const otp = await issueOtp(user._id, "forgetPassword");
       await sendEmail({
          priority: "transactional",
@@ -472,6 +473,9 @@ const resetPassword = asyncHandler(async (req, res) => {
    if (!user) {
       throw new ApiError(400, "Invalid code");
    }
+   if (user.isTestUser) {
+      throw new ApiError(403, "Test accounts can't be changed");
+   }
    await verifyOTP(user._id, "forgetPassword", req.body?.otp);
 
    user.password = password;
@@ -486,6 +490,42 @@ const resetPassword = asyncHandler(async (req, res) => {
       .json(new ApiResponse(200, {}, "Password Reset successfully"));
 });
 
+// Lists the shared test accounts for the login page (404 when disabled).
+const listTestUsers = asyncHandler(async (req, res) => {
+   if (!testUsersEnabled()) {
+      throw new ApiError(404, "Not found");
+   }
+   const users = await User.find({
+      isTestUser: true,
+      username: { $in: TEST_USERS.map((t) => t.username) },
+   }).select("username fullname avatar about");
+   return res.status(200).json(new ApiResponse(200, users, "Test users"));
+});
+
+// One-click sign-in for a test account; never works for real accounts.
+const testLogin = asyncHandler(async (req, res) => {
+   if (!testUsersEnabled()) {
+      throw new ApiError(404, "Not found");
+   }
+   const username = str(req.body?.username, { max: 16 });
+   const user = await User.findOne({ username, isTestUser: true });
+   if (!user) {
+      throw new ApiError(404, "Test user not found");
+   }
+   await startSession(res, user);
+   return res
+      .status(200)
+      .json(new ApiResponse(200, { user: publicUser(user) }, "Signed in as test user"));
+});
+
+// Test accounts are shared by everyone, so nobody may change them.
+const blockTestUsers = (req, res, next) => {
+   if (req.user?.isTestUser) {
+      return next(new ApiError(403, "Test accounts can't be changed. Create your own account to edit a profile."));
+   }
+   next();
+};
+
 // removes multer's temp file whatever happened during the upload
 const cleanupUpload = (req, res, next) => {
    res.on("finish", () => {
@@ -496,6 +536,9 @@ const cleanupUpload = (req, res, next) => {
 };
 
 export {
+   listTestUsers,
+   testLogin,
+   blockTestUsers,
    registerUser,
    verifyEmail,
    resendVerification,

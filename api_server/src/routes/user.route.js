@@ -2,6 +2,9 @@ import { Router } from "express";
 import { rateLimit } from "express-rate-limit";
 
 import {
+   listTestUsers,
+   testLogin,
+   blockTestUsers,
    registerUser,
    verifyEmail,
    resendVerification,
@@ -42,6 +45,8 @@ const authLimiter = limiter(20);
 // these send emails, so keep them tight
 const emailLimiter = limiter(5);
 
+router.route("/test-users").get(limiter(60), listTestUsers);
+router.route("/test-login").post(authLimiter, testLogin);
 router.route("/register").post(emailLimiter, registerUser);
 router.route("/verify-email").post(authLimiter, verifyEmail);
 router.route("/resend-verification").post(emailLimiter, resendVerification);
@@ -59,14 +64,15 @@ router.route("/logout").get(verifyJWT, logoutUser);
 
 router.route("/info").get(verifyJWT, getUserInfo);
 router.route("/user").get(verifyJWT, currentUser);
-router.route("/user-edit").post(verifyJWT, authLimiter, editUserDetails);
-router.route("/user-edit-otp").post(verifyJWT, emailLimiter, editUserDetailsSendOtp);
+router.route("/user-edit").post(verifyJWT, blockTestUsers, authLimiter, editUserDetails);
+router.route("/user-edit-otp").post(verifyJWT, blockTestUsers, emailLimiter, editUserDetailsSendOtp);
 
 router.route("/list").post(verifyJWT, listUsers);
 
-router.route("/avatar").post(verifyJWT, changeAvatar);
+router.route("/avatar").post(verifyJWT, blockTestUsers, changeAvatar);
 router.route("/avatar-upload").post(
    verifyJWT,
+   blockTestUsers,
    limiter(10),
    cleanupUpload,
    upload.fields([
