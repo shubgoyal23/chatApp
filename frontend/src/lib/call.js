@@ -68,7 +68,10 @@ const getMedia = async (media) => {
    try {
       localStream = await navigator.mediaDevices.getUserMedia({
          audio: { echoCancellation: true, noiseSuppression: true },
-         video: media === "video" ? { width: { ideal: 1280 }, height: { ideal: 720 } } : false,
+         video:
+            media === "video"
+               ? { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30, max: 30 } }
+               : false,
       });
       emitStreams();
       return true;
@@ -85,7 +88,17 @@ const getMedia = async (media) => {
 const createPeer = () => {
    pc = new RTCPeerConnection({ iceServers: conf.ICE_SERVERS });
    remoteStream = new MediaStream();
-   localStream?.getTracks().forEach((track) => pc.addTrack(track, localStream));
+   localStream?.getTracks().forEach((track) => {
+      // prefer smooth motion over sharpness: a face on a call is "motion"
+      if (track.kind === "video" && "contentHint" in track) track.contentHint = "motion";
+      const sender = pc.addTrack(track, localStream);
+      if (track.kind === "video") {
+         // when bandwidth drops, lower resolution instead of frame rate
+         const params = sender.getParameters();
+         params.degradationPreference = "maintain-framerate";
+         sender.setParameters(params).catch(() => {});
+      }
+   });
 
    pc.onicecandidate = (e) => {
       if (e.candidate) signal("candidate", JSON.stringify(e.candidate));

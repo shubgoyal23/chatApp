@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { acceptCall, hangUp, onStreams, rejectCall, toggleTrack } from "../../lib/call";
 import Avatar from "../ui/Avatar";
+import { useBackHandler } from "../../lib/backStack";
 import Icon from "../ui/Icon";
 
 const STATUS_TEXT = {
@@ -9,6 +10,11 @@ const STATUS_TEXT = {
    incoming: "Incoming call",
    connecting: "Connecting…",
 };
+
+// Only this small component re-renders every second, not the video tree.
+function Elapsed({ startedAt }) {
+   return useElapsed(startedAt);
+}
 
 function useElapsed(startedAt) {
    const [now, setNow] = useState(() => Date.now());
@@ -59,27 +65,20 @@ function useWindowAspect() {
 
 // Full-screen remote video. When the caller's camera and this screen have
 // different orientations (a portrait phone on a landscape desktop), cropping
-// to fill would zoom in heavily, so show the whole frame over a blurred copy.
+// to fill would zoom in heavily, so show the whole frame instead. (A blurred
+// second copy behind it looked nice but decoding and blurring the video twice
+// made calls stutter.)
 function RemoteVideo({ stream }) {
    const [videoAspect, setVideoAspect] = useState(null);
    const screenAspect = useWindowAspect();
    const fit = videoAspect && videoAspect < 1 !== screenAspect < 1 ? "contain" : "cover";
 
    return (
-      <>
-         {fit === "contain" && (
-            <Video
-               stream={stream}
-               muted
-               className="absolute inset-0 size-full object-cover scale-110 blur-2xl opacity-60"
-            />
-         )}
-         <Video
-            stream={stream}
-            onAspect={setVideoAspect}
-            className={`absolute inset-0 size-full ${fit === "contain" ? "object-contain" : "object-cover"}`}
-         />
-      </>
+      <Video
+         stream={stream}
+         onAspect={setVideoAspect}
+         className={`absolute inset-0 size-full ${fit === "contain" ? "object-contain" : "object-cover"}`}
+      />
    );
 }
 
@@ -118,7 +117,7 @@ function Pip({ stream, cameraOff }) {
          }}
          onPointerUp={() => (drag.current = null)}
       >
-         <Video stream={stream} muted onAspect={setAspect} className={`size-full object-cover -scale-x-100 ${cameraOff ? "hidden" : ""}`} />
+         <Video stream={stream} muted onAspect={setAspect} className={`size-full object-cover ${cameraOff ? "hidden" : ""}`} />
          {cameraOff && (
             <div className="size-full flex items-center justify-center text-white/60">
                <Icon name="videocam_off" size={30} />
@@ -139,7 +138,7 @@ function ControlButton({ icon, label, onClick, active, danger, big }) {
                ? "bg-rose-500 hover:bg-rose-400 text-white shadow-lg shadow-rose-500/40"
                : active
                  ? "bg-white text-slate-900"
-                 : "bg-white/15 hover:bg-white/25 text-white backdrop-blur"
+                 : "bg-white/15 hover:bg-white/25 text-white"
          }`}
       >
          <Icon name={icon} fill size={big ? 30 : 26} />
@@ -149,6 +148,8 @@ function ControlButton({ icon, label, onClick, active, danger, big }) {
 
 function CallScreen() {
    const status = useSelector((s) => s.call.status);
+   // back must not drop you out of a call; hang up with the button instead
+   useBackHandler(status !== "idle", null, { sticky: true });
    // mounting per call resets mute/camera state between calls
    return status === "idle" ? null : <ActiveCall />;
 }
@@ -158,7 +159,6 @@ function ActiveCall() {
    const [streams, setStreams] = useState({ local: null, remote: null });
    const [muted, setMuted] = useState(false);
    const [cameraOff, setCameraOff] = useState(false);
-   const elapsed = useElapsed(status === "connected" ? startedAt : null);
 
    useEffect(() => onStreams(setStreams), []);
 
@@ -172,7 +172,7 @@ function ActiveCall() {
          {remoteHasVideo ? (
             <RemoteVideo stream={streams.remote} />
          ) : showLocalFull ? (
-            <Video stream={streams.local} muted className="absolute inset-0 size-full object-cover -scale-x-100 opacity-40 blur-sm" />
+            <Video stream={streams.local} muted className="absolute inset-0 size-full object-cover opacity-40" />
          ) : (
             <div className="absolute inset-0 brand-gradient opacity-30" />
          )}
@@ -199,7 +199,7 @@ function ActiveCall() {
                <p className="mt-2 text-white/75 font-medium flex items-center gap-1.5">
                   <Icon name={video ? "videocam" : "call"} size={18} />
                   {status === "connected"
-                     ? reason ?? elapsed
+                     ? reason ?? <Elapsed startedAt={startedAt} />
                      : status === "incoming"
                        ? `Incoming ${video ? "video" : "voice"} call`
                        : STATUS_TEXT[status]}
@@ -227,7 +227,7 @@ function ActiveCall() {
                   </div>
                </div>
             ) : (
-               <div className="flex items-center gap-4 px-5 py-4 rounded-full bg-black/30 backdrop-blur-xl ring-1 ring-white/10 mb-2">
+               <div className="flex items-center gap-4 px-5 py-4 rounded-full bg-black/55 ring-1 ring-white/10 mb-2">
                   <ControlButton
                      icon={muted ? "mic_off" : "mic"}
                      label={muted ? "Unmute" : "Mute"}

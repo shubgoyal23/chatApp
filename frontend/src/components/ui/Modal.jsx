@@ -1,8 +1,10 @@
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
+import { useBackHandler } from "../../lib/backStack";
 import IconButton from "./IconButton";
 
 function Modal({ open, onClose, title, children, width = "max-w-md" }) {
+   useBackHandler(open, onClose);
    useEffect(() => {
       if (!open) return;
       const onKey = (e) => e.key === "Escape" && onClose?.();

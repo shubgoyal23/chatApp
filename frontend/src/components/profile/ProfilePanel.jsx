@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { api } from "../../lib/api";
 import { toast } from "../../lib/toast";
 import { useTheme } from "../../lib/theme";
+import { useBackHandler } from "../../lib/backStack";
 import { updateUser } from "../../store/loginSlice";
 import Avatar from "../ui/Avatar";
 import Icon from "../ui/Icon";
@@ -27,6 +28,7 @@ function ProfilePanel({ open, onClose, onLogout }) {
    const [avatarOpen, setAvatarOpen] = useState(false);
    const [secure, setSecure] = useState(null); // "username" | "email"
    const [loggingOut, setLoggingOut] = useState(false);
+   useBackHandler(open, onClose);
 
    const save = async (field, value) => {
       try {
