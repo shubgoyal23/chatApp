@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../../lib/api";
+import { useBackHandler } from "../../lib/backStack";
 import Logo from "../ui/Logo";
 import Icon from "../ui/Icon";
 import Login from "./Login";
@@ -26,6 +27,8 @@ function AuthPage() {
          .then((data) => setTestAccounts(data?.users?.length ? data : null))
          .catch(() => setTestAccounts(null));
    }, []);
+
+   useBackHandler(view === "verify" || view === "forgot", () => setView("login"));
 
    const tabs = [
       ["login", "Sign in"],

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { acceptCall, hangUp, onStreams, rejectCall, toggleTrack } from "../../lib/call";
 import Avatar from "../ui/Avatar";
+import { useBackHandler } from "../../lib/backStack";
 import Icon from "../ui/Icon";
 
 const STATUS_TEXT = {
@@ -147,6 +148,8 @@ function ControlButton({ icon, label, onClick, active, danger, big }) {
 
 function CallScreen() {
    const status = useSelector((s) => s.call.status);
+   // back must not drop you out of a call; hang up with the button instead
+   useBackHandler(status !== "idle", null, { sticky: true });
    // mounting per call resets mute/camera state between calls
    return status === "idle" ? null : <ActiveCall />;
 }

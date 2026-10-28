@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { sendMessage } from "../../lib/socket";
 import { playSound } from "../../lib/sounds";
+import { useBackHandler } from "../../lib/backStack";
 import { clearReplyto } from "../../store/chatSlice";
 import Icon from "../ui/Icon";
 import IconButton from "../ui/IconButton";
@@ -31,6 +32,7 @@ function Composer({ chatId, contact, onPending }) {
    const lastTyping = useRef(0);
    const pickerRef = useRef(null);
    const type = contact?.accountType === "group" ? "group" : "user";
+   useBackHandler(emojiOpen, () => setEmojiOpen(false));
 
    // per-chat drafts survive switching conversations
    useEffect(() => {

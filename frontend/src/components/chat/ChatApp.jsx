@@ -8,6 +8,7 @@ import { reconnectNow, setMessageHandler, startSocket, stopSocket } from "../../
 import { handleCallSignal, hangUp } from "../../lib/call";
 import { toast } from "../../lib/toast";
 import { playSound } from "../../lib/sounds";
+import { useBackHandler } from "../../lib/backStack";
 import { logout } from "../../store/loginSlice";
 import {
    clearTyping,
@@ -17,6 +18,7 @@ import {
    setPresence,
    setTyping,
    upsertContact,
+   openChat,
 } from "../../store/chatSlice";
 import Sidebar from "./Sidebar";
 import ChatWindow from "./ChatWindow";
@@ -44,6 +46,10 @@ function ChatApp() {
    useEffect(() => {
       userRef.current = user;
    }, [user]);
+
+   // back button: info panel first, then the open chat
+   useBackHandler(Boolean(activeId), () => dispatch(openChat(null)));
+   useBackHandler(showInfo, () => setInfoFor(null));
 
    // Fetches details for a conversation we have not seen yet (e.g. a new
    // contact messaging us, or a group we were just added to).
