@@ -1,3 +1,5 @@
+import { escapeHtml } from "../escapeHtml.js";
+
 export default function VerificationEmailTemplate(user) {
    return `<!DOCTYPE html>
    <html>
@@ -77,16 +79,16 @@ export default function VerificationEmailTemplate(user) {
             >
             <div class="message">Verify Your Email</div>
             <div class="body">
-               <p>Dear ${user?.fullname},</p>
+               <p>Dear ${escapeHtml(user?.fullname)},</p>
                <p>
                   We received a request to create an account for Chatzz. To
                   complete your registration, please use the OTP below:
                </p>
                <p>Your OTP:</p>
-               <div class="otp">${user.otp}</div>
+               <div class="otp">${escapeHtml(user.otp)}</div>
                <p>
-                  Username: ${user?.username} <br />
-                  Email: ${user?.email}
+                  Username: ${escapeHtml(user?.username)} <br />
+                  Email: ${escapeHtml(user?.email)}
                </p>
                <p>
                   This OTP is valid for 30 minutes. If you did not request this

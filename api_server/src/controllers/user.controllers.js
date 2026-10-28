@@ -1,3 +1,5 @@
+import crypto from "node:crypto";
+import fs from "node:fs/promises";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
@@ -11,65 +13,154 @@ import forgotPasswordEmailTemplate from "../utils/EmailTemplate/forgotPassword.j
 import VerificationEmailTemplate from "../utils/EmailTemplate/verifyAccount.js";
 import { Verify } from "../models/verification.model.js";
 import { Group } from "../models/group.model.js";
+import jwt from "jsonwebtoken";
+import {
+   escapeRegex,
+   identifierQuery,
+   objectId,
+   str,
+} from "../utils/validate.js";
 
-const generateAccessAndRefereshTokens = async function (userid) {
-   try {
-      const user = await User.findById(userid);
-      const accessToken = user.generateAccessToken();
-      const refreshToken = user.generateRefreshToken();
+const PUBLIC_FIELDS = "username email fullname _id avatar about";
+const OTP_TTL_MS = 15 * 60 * 1000;
+const MAX_OTP_ATTEMPTS = 5;
+const DAY = 24 * 60 * 60 * 1000;
 
-      user.refreshToken = refreshToken;
-      await user.save({ validateBeforeSave: false });
+const cookieOptions = (maxAge) => ({
+   httpOnly: true,
+   secure: process.env.COOKIE_SECURE !== "false",
+   sameSite: process.env.COOKIE_SAMESITE || "none",
+   domain: process.env.COOKIE_DOMAIN || undefined,
+   path: "/",
+   maxAge,
+});
 
-      return { accessToken, refreshToken };
-   } catch (error) {
-      throw new ApiError(
-         500,
-         "Something went wrong while generating referesh and access token"
-      );
-   }
+const publicUser = (user) => ({
+   _id: user._id,
+   username: user.username,
+   email: user.email,
+   fullname: user.fullname,
+   avatar: user.avatar,
+   about: user.about,
+});
+
+// Issues a fresh access/refresh token pair and sets both as http-only cookies.
+const startSession = async (res, user) => {
+   const accessToken = user.generateAccessToken();
+   const refreshToken = user.generateRefreshToken();
+   user.refreshToken = refreshToken;
+   await user.save({ validateBeforeSave: false });
+
+   res.cookie("accessToken", accessToken, cookieOptions(7 * DAY));
+   res.cookie("refreshToken", refreshToken, cookieOptions(10 * DAY));
 };
 
-const registerUser = asyncHandler(async (req, res) => {
-   const { fullname, username, email, password } = req.body;
+const clearSession = (res) => {
+   const { maxAge, ...options } = cookieOptions(0);
+   res.clearCookie("accessToken", options);
+   res.clearCookie("refreshToken", options);
+};
 
-   if (
-      [fullname, email, username, password].some(
-         (field) => field?.trim() === undefined
-      )
-   ) {
-      throw new ApiError(400, "All fields are required");
+function generateOTP(length = 6) {
+   let otp = "";
+   for (let i = 0; i < length; i++) {
+      otp += crypto.randomInt(0, 10).toString();
    }
-   const existedUser = await User.find({
-      $or: [{ username }, { email }],
+   return otp;
+}
+
+const hashOtp = (otp) =>
+   crypto.createHash("sha256").update(String(otp)).digest("hex");
+
+// Stores a new OTP (replacing any previous one for the same purpose); only its
+// hash is kept so a database leak does not expose live codes.
+const issueOtp = async (userId, otpFor) => {
+   const otp = generateOTP();
+   await Verify.findOneAndUpdate(
+      { userId, otpFor },
+      {
+         otp: hashOtp(otp),
+         otpExpiry: new Date(Date.now() + OTP_TTL_MS),
+         attempts: 0,
+      },
+      { upsert: true }
+   );
+   return otp;
+};
+
+// Checks an OTP, counting failed attempts. With consume, a valid OTP is deleted.
+const verifyOTP = async (userId, otpFor, otp, { consume = true } = {}) => {
+   const code = str(otp, { max: 10 });
+   if (!/^\d{6}$/.test(code)) {
+      throw new ApiError(400, "Enter the 6-digit code");
+   }
+   const record = await Verify.findOne({ userId, otpFor });
+   if (!record || (record.otpExpiry && record.otpExpiry < new Date())) {
+      throw new ApiError(400, "Code expired or not requested. Request a new one.");
+   }
+   if (record.attempts >= MAX_OTP_ATTEMPTS) {
+      await Verify.deleteOne({ _id: record._id });
+      throw new ApiError(429, "Too many attempts. Request a new code.");
+   }
+   const expected = Buffer.from(record.otp ?? "");
+   const given = Buffer.from(hashOtp(code));
+   if (
+      expected.length !== given.length ||
+      !crypto.timingSafeEqual(expected, given)
+   ) {
+      await Verify.updateOne({ _id: record._id }, { $inc: { attempts: 1 } });
+      throw new ApiError(400, "Invalid code");
+   }
+   if (consume) {
+      await Verify.deleteOne({ _id: record._id });
+   }
+   return true;
+};
+
+const sendVerificationEmail = async (user, otp, subject = "Verify Your Email") =>
+   sendEmail({
+      priority: "transactional",
+      from: process.env.EMAIL_FROM,
+      to: user.email,
+      subject,
+      html: VerificationEmailTemplate({
+         fullname: user.fullname,
+         email: user.email,
+         username: user.username,
+         otp,
+      }),
    });
 
-   const checkEmail = existedUser?.filter((item) => item.email === email);
-   const checkusername = existedUser?.filter(
-      (item) => item.username === username
-   );
+const registerUser = asyncHandler(async (req, res) => {
+   const fullname = str(req.body?.fullname, { max: 50 });
+   const username = str(req.body?.username, { max: 16 });
+   const email = str(req.body?.email, { max: 100 }).toLowerCase();
+   const password = str(req.body?.password, { max: 128, trim: false });
 
-   if (checkEmail.length > 0) {
-      const checkVerication = checkEmail.some((item) => item.verified);
-      if (checkVerication) {
-         throw new ApiError(409, "User with email already exists");
-      } else {
-         await User.findByIdAndDelete(checkEmail[0]._id);
-      }
+   if (!fullname || !username || !email || !password) {
+      throw new ApiError(400, "All fields are required");
    }
-   if (checkusername.length > 0) {
-      const checkVerication = checkusername.some((item) => item.verified);
-      if (checkVerication) {
+
+   const existing = await User.find({ $or: [{ username }, { email }] });
+   for (const u of existing) {
+      if (u.verified) {
          throw new ApiError(
             409,
-            "UserName is already registered, try something else."
+            u.email === email
+               ? "An account with this email already exists"
+               : "Username is already taken, try another one"
          );
-      } else {
-         await User.findByIdAndDelete(checkusername[0]._id);
       }
+      if (u.email !== email) {
+         throw new ApiError(409, "Username is already taken, try another one");
+      }
+      // an unverified account never proved it owns this email; whoever
+      // verifies it now takes it over
+      await User.deleteOne({ _id: u._id });
+      await Verify.deleteMany({ userId: u._id });
    }
 
-   const userCreated = await User.create({
+   const user = await User.create({
       fullname,
       username,
       password,
@@ -77,399 +168,295 @@ const registerUser = asyncHandler(async (req, res) => {
       accountType: "user",
    });
 
-   const user = await User.findById(userCreated._id).select(
-      "_id email username fullname avatar"
-   );
-
-   if (!user) {
-      throw new ApiError(400, "failed to regiter user Try again later");
-   }
-   const otp = generateOTP(6, "0123456789");
-   const otpExpiry = new Date(Date.now() + 1800000);
-
-   const otpSave = await Verify.findOneAndUpdate(
-      {
-         userId: user._id,
-         otpFor: "registration",
-      },
-      {
-         otp,
-         otpExpiry,
-      },
-      { new: true, upsert: true }
-   );
-
-   await sendEmail({
-      priority: "transactional",
-      from: process.env.EMAIL_FROM,
-      to: user.email,
-      subject: "Verify Your Email",
-      html: VerificationEmailTemplate({
-         fullname: user.fullname,
-         email: user.email,
-         username: user.username,
-         otp: otp,
-      }),
-   });
+   const otp = await issueOtp(user._id, "registration");
+   await sendVerificationEmail(user, otp);
 
    return res
+      .status(201)
+      .json(
+         new ApiResponse(
+            201,
+            { username: user.username, email: user.email },
+            "Account created. Check your email for the verification code."
+         )
+      );
+});
+
+// Confirms the registration OTP, marks the account verified and logs it in.
+const verifyEmail = asyncHandler(async (req, res) => {
+   const user = await User.findOne(identifierQuery(req.body));
+   if (!user) {
+      throw new ApiError(400, "Invalid code");
+   }
+   if (!user.verified) {
+      await verifyOTP(user._id, "registration", req.body?.otp);
+      user.verified = true;
+   }
+   await startSession(res, user);
+   return res
       .status(200)
-      .json(new ApiResponse(201, user, "user Created Successfully"));
+      .json(new ApiResponse(200, { user: publicUser(user) }, "Email verified"));
+});
+
+const resendVerification = asyncHandler(async (req, res) => {
+   const user = await User.findOne(identifierQuery(req.body));
+   // same answer either way, so this cannot be used to probe for accounts
+   if (user && !user.verified) {
+      const otp = await issueOtp(user._id, "registration");
+      await sendVerificationEmail(user, otp);
+   }
+   return res
+      .status(200)
+      .json(new ApiResponse(200, {}, "If the account exists, a new code was sent"));
 });
 
 const loginUser = asyncHandler(async (req, res) => {
-   const { username, email, password } = req.body;
-
-   if (!(username || email)) {
-      throw new ApiError(400, "username or email required!");
+   const query = identifierQuery(req.body);
+   const password = str(req.body?.password, { max: 128, trim: false });
+   if (!password) {
+      throw new ApiError(400, "Password is required");
    }
 
-   const user = await User.findOne({
-      $or: [{ username }, { email }],
-   });
-
-   if (!user) {
-      throw new ApiError(404, "username or email not Registered!");
+   const user = await User.findOne(query);
+   // one message for both cases so attackers cannot enumerate accounts
+   if (!user || !(await user.isPasswordCorrect(password))) {
+      throw new ApiError(401, "Invalid username/email or password");
    }
 
-   const passCheck = await user.isPasswordCorrect(password);
-
-   if (!passCheck) {
-      throw new ApiError(401, "Invalid user credentials");
+   if (!user.verified) {
+      const otp = await issueOtp(user._id, "registration");
+      await sendVerificationEmail(user, otp);
+      throw new ApiError(
+         403,
+         "Please verify your email. We sent you a new code.",
+         [{ needsVerification: true, email: user.email, username: user.username }]
+      );
    }
 
-   const { accessToken, refreshToken } = await generateAccessAndRefereshTokens(
-      user._id
-   );
-
-   const loggedInUser = await User.findById(user._id).select(
-      "username email fullname _id avatar"
-   );
-
-   const options = {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none",
-      domain: process.env.COOKIE_DOMAIN,
-      path: "/",
-      expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-   };
+   await startSession(res, user);
 
    return res
       .status(200)
-      .cookie("accessToken", accessToken, options)
-      .cookie("refreshToken", refreshToken, options)
       .json(
          new ApiResponse(
             200,
-            {
-               user: loggedInUser,
-               accessToken,
-               refreshToken,
-            },
+            { user: publicUser(user) },
             "User logged In Successfully"
          )
       );
 });
 
+const refreshAccessToken = asyncHandler(async (req, res) => {
+   const token = req.cookies?.refreshToken;
+   if (!token) {
+      throw new ApiError(401, "Not authorised");
+   }
+   let decoded;
+   try {
+      decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET, {
+         algorithms: ["HS256"],
+      });
+   } catch {
+      clearSession(res);
+      throw new ApiError(401, "Session expired, please log in again");
+   }
+   const user = await User.findById(decoded?._id);
+   if (!user || !user.refreshToken || user.refreshToken !== token) {
+      clearSession(res);
+      throw new ApiError(401, "Session expired, please log in again");
+   }
+   await startSession(res, user);
+   return res
+      .status(200)
+      .json(new ApiResponse(200, { user: publicUser(user) }, "Session refreshed"));
+});
+
 const logoutUser = asyncHandler(async (req, res) => {
-   const user = await User.findByIdAndUpdate(
-      req.user._id,
-      {
-         $unset: { refreshToken: 1 },
-      },
-      { new: true }
-   );
-
-   const options = {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none",
-      domain: process.env.COOKIE_DOMAIN,
-      path: "/",
-      expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-   };
-
-   res.status(200)
-      .clearCookie("accessToken", options)
-      .clearCookie("refreshToken", options)
-      .json(new ApiResponse(200, {}, "User logged out Successfully"));
+   await User.findByIdAndUpdate(req.user._id, {
+      $unset: { refreshToken: 1 },
+   });
+   clearSession(res);
+   res.status(200).json(new ApiResponse(200, {}, "User logged out Successfully"));
 });
 
 const currentUser = asyncHandler(async (req, res) => {
-   let r = {
-      username: req.user.username,
-      email: req.user.email,
-      fullname: req.user.fullname,
-      _id: req.user._id,
-   };
    return res
       .status(200)
-      .json(new ApiResponse(200, r, "User fetched successfully"));
+      .json(new ApiResponse(200, publicUser(req.user), "User fetched successfully"));
 });
 
 const getUserInfo = asyncHandler(async (req, res) => {
-   let id = req.query.id;
-   let r = await User.findById(id).select("username fullname _id avatar");
-   if (!r) {
-      let g = await Group.findById(id);
-      if (!g) {
-         throw new ApiError(404, "User not found");
-      }
-      r = g;
+   const id = objectId(req.query.id);
+   const user = await User.findById(id).select("username fullname _id avatar about");
+   if (user) {
+      return res
+         .status(200)
+         .json(new ApiResponse(200, user, "User fetched successfully"));
+   }
+   // group details are only visible to members
+   const group = await Group.findOne({ _id: id, members: req.user._id }).populate(
+      "members",
+      "username fullname _id avatar"
+   );
+   if (!group) {
+      throw new ApiError(404, "User not found");
    }
    return res
       .status(200)
-      .json(new ApiResponse(200, r, "User fetched successfully"));
+      .json(new ApiResponse(200, group, "Group fetched successfully"));
 });
 
 const listUsers = asyncHandler(async (req, res) => {
-   const { fullname } = req.body;
-
-   if (!fullname) {
-      throw new ApiError(401, "Name is required");
+   const search = str(req.body?.fullname, { max: 50 });
+   if (!search) {
+      throw new ApiError(400, "Search text is required");
    }
+   const pattern = { $regex: escapeRegex(search), $options: "i" };
    const userslist = await User.find({
-      fullname: { $regex: fullname, $options: "i" },
+      _id: { $ne: req.user._id },
+      $or: [{ fullname: pattern }, { username: pattern }],
    })
-      .sort({ name: 1 })
-      .select("username fullname _id avatar");
+      .sort({ fullname: 1 })
+      .limit(25)
+      .select("username fullname _id avatar about");
 
    res.status(200).json(
       new ApiResponse(200, userslist, "user list found successfully")
    );
 });
 
+const isUploadedAvatar = (avatar) =>
+   typeof avatar === "string" && avatar.startsWith("chat-profile/");
+
 const uploadAvatar = asyncHandler(async (req, res) => {
-   let avatarLocalPath;
-   if (
-      req.files &&
-      Array.isArray(req.files.avatar) &&
-      req.files.avatar.length > 0
-   ) {
-      avatarLocalPath = req.files.avatar[0].path;
-   }
-
-   if (!avatarLocalPath) {
+   const localPath = req.files?.avatar?.[0]?.path;
+   if (!localPath) {
       throw new ApiError(400, "Avatar file is required");
    }
 
-   const avatar = await uploadOnCloudinary(avatarLocalPath);
-
+   const avatar = await uploadOnCloudinary(localPath);
    if (!avatar) {
-      throw new ApiError(400, "Avatar file is required");
+      throw new ApiError(502, "Avatar upload failed, try again");
    }
 
-   const avatarchange = await User.findByIdAndUpdate(req.user._id, {
-      avatar: avatar.public_id,
-   }).select("username email fullname _id avatar");
+   const previous = req.user.avatar;
+   const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { avatar: avatar.public_id },
+      { new: true }
+   ).select(PUBLIC_FIELDS);
 
-   if (!avatarchange) {
-      throw new ApiError(401, "Avatar change failed");
+   if (isUploadedAvatar(previous) && previous !== avatar.public_id) {
+      await deleteCloudinaryImage(previous);
    }
-   if (avatarchange.avatar.slice(0, 12) === "chat-profile") {
-      await deleteCloudinaryImage(avatarchange.avatar);
-   }
-   avatarchange.avatar = avatar.public_id;
    return res
       .status(200)
-      .json(new ApiResponse(200, avatarchange, "avatar change successfully"));
+      .json(new ApiResponse(200, user, "avatar change successfully"));
 });
 
 const changeAvatar = asyncHandler(async (req, res) => {
-   const { avatar } = req.body;
+   const avatar = str(req.body?.avatar, { max: 64 });
+   // only the built-in avatars may be picked; uploaded ones go through
+   // uploadAvatar, so nobody can point at (and later delete) another's photo
+   if (!/^chat\/[a-z0-9]{8,32}$/.test(avatar)) {
+      throw new ApiError(400, "Invalid avatar");
+   }
+   const previous = req.user.avatar;
+   const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { avatar },
+      { new: true }
+   ).select(PUBLIC_FIELDS);
 
-   if (!avatar) {
-      throw new ApiError(401, "Avatar is required");
+   if (isUploadedAvatar(previous)) {
+      await deleteCloudinaryImage(previous);
    }
-   const avatarchange = await User.findByIdAndUpdate(req.user._id, {
-      avatar,
-   }).select("username email fullname _id avatar");
-
-   if (!avatarchange) {
-      throw new ApiError(401, "Avatar change failed");
-   }
-   if (avatarchange.avatar?.slice(0, 12) === "chat-profile") {
-      await deleteCloudinaryImage(avatarchange.avatar);
-   }
-   avatarchange.avatar = avatar;
    return res
       .status(200)
-      .json(new ApiResponse(200, avatarchange, "avatar change successfully"));
+      .json(new ApiResponse(200, user, "avatar change successfully"));
 });
 
 const editUserDetails = asyncHandler(async (req, res) => {
-   let { username, fullname, email, otp, otpFor } = req.body;
-   const id = req.user._id;
+   const updates = {};
+   const fullname = str(req.body?.fullname, { max: 50 });
+   const about = req.body?.about !== undefined ? str(req.body.about, { max: 200 }) : undefined;
+   const username = str(req.body?.username, { max: 16 });
+   const email = str(req.body?.email, { max: 100 }).toLowerCase();
 
-   if (!username) {
-      username = req.user.username;
-   }
-   if (!fullname) {
-      fullname = req.user.fullname;
-   }
-   if (!email) {
-      email = req.user.email;
+   if (fullname && fullname !== req.user.fullname) updates.fullname = fullname;
+   if (about !== undefined && about !== (req.user.about ?? "")) updates.about = about;
+   if (username && username !== req.user.username) updates.username = username;
+   if (email && email !== req.user.email) updates.email = email;
+
+   if (Object.keys(updates).length === 0) {
+      return res
+         .status(200)
+         .json(new ApiResponse(200, publicUser(req.user), "Nothing to update"));
    }
 
-   const verify = await verifyOTP(id, otpFor, otp);
-
-   if (verify) {
-      await Verify.findByIdAndDelete(verify._id);
+   // changing how you log in requires the code sent to your current email
+   if (updates.username || updates.email) {
+      await verifyOTP(req.user._id, "updateDetails", req.body?.otp);
    }
 
    const updateuser = await User.findByIdAndUpdate(
-      id,
-      {
-         $set: {
-            username,
-            fullname,
-            email,
-         },
-      },
-      { new: true }
-   ).select("username email fullname _id avatar");
-
-   if (!updateuser) {
-      throw new ApiError(500, "user details update failed");
-   }
+      req.user._id,
+      { $set: updates },
+      { new: true, runValidators: true }
+   ).select(PUBLIC_FIELDS);
 
    return res
       .status(200)
       .json(
-         new ApiResponse(
-            200,
-            updateuser,
-            "Account details updated successfully"
-         )
+         new ApiResponse(200, updateuser, "Account details updated successfully")
       );
 });
 
 const editUserDetailsSendOtp = asyncHandler(async (req, res) => {
-   const id = req.user?._id;
-   const otp = generateOTP(6, "0123456789");
-   const otpExpiry = new Date(Date.now() + 1800000);
-
-   const otpSave = await Verify.findOneAndUpdate(
-      {
-         userId: id,
-         otpFor: "updateDetails",
-      },
-      {
-         otp,
-         otpExpiry,
-      },
-      { new: true, upsert: true }
-   );
-
-   await sendEmail({
-      priority: "transactional",
-      from: process.env.EMAIL_FROM,
-      to: req.user?.email,
-      subject: "Update User Details",
-      html: VerificationEmailTemplate({
-         fullname: req?.user?.fullname,
-         email: req?.user?.email,
-         username: req?.user?.username,
-         otp: otp,
-      }),
-   });
-
-   if (!otpSave) {
-      throw new ApiError(500, "Failed to generate OTP");
-   }
-
-   return res
-      .status(200)
-      .json(new ApiResponse(200, {}, "OTP Send successfully"));
+   const otp = await issueOtp(req.user._id, "updateDetails");
+   await sendVerificationEmail(req.user, otp, "Confirm your account changes");
+   return res.status(200).json(new ApiResponse(200, {}, "OTP sent successfully"));
 });
 
 const forgotPassword = asyncHandler(async (req, res) => {
-   const { username, email } = req.body;
-
-   if (!(username || email)) {
-      throw new ApiError(400, "username or email required!");
+   const user = await User.findOne(identifierQuery(req.body));
+   if (user) {
+      const otp = await issueOtp(user._id, "forgetPassword");
+      await sendEmail({
+         priority: "transactional",
+         from: process.env.EMAIL_FROM,
+         to: user.email,
+         subject: "Password Recovery Mail",
+         html: forgotPasswordEmailTemplate({
+            fullname: user.fullname,
+            email: user.email,
+            otp,
+         }),
+      });
    }
-
-   const user = await User.findOne({
-      $or: [{ username }, { email }],
-   });
-
-   if (!user) {
-      throw new ApiError(404, "username or email not Registered!");
-   }
-
-   const otp = generateOTP(6, "0123456789");
-
-   await Verify.create({
-      userId: user._id,
-      otpFor: "forgetPassword",
-      otp,
-   });
-
-   await sendEmail({
-      priority: "transactional",
-      from: process.env.EMAIL_FROM,
-      to: user.email,
-      subject: "Password Recovery Mail",
-      html: forgotPasswordEmailTemplate({
-         fullname: user.fullname,
-         email: user.email,
-         otp: otp,
-      }),
-   });
-
+   // same response whether or not the account exists
    return res
       .status(200)
       .json(
          new ApiResponse(
             200,
             {},
-            "Password Reset Email has been send to your registed Email"
+            "If the account exists, a reset code was sent to its email"
          )
       );
 });
 
-const verifyOTP = async (id, otpFor, otp) => {
-   try {
-      const DbOtp = await Verify.findOne({ userId: id, otpFor });
-
-      if (!DbOtp) {
-         throw new ApiError(404, "OTP not requested!");
-      }
-
-      if (DbOtp.otp != otp) {
-         throw new ApiError(403, "Invalid OTP");
-      }
-      return DbOtp._id;
-   } catch (error) {
-      console.log(error);
-      throw new ApiError(
-         error.statusCode || 500,
-         error.message || "something went wrong333"
-      );
-   }
-};
-
 const checkOtp = asyncHandler(async (req, res) => {
-   const { username, email, otp, otpFor } = req.body;
-
-   if (!(username || email)) {
-      throw new ApiError(400, "username or email required!");
+   const otpFor = str(req.body?.otpFor, { max: 20 });
+   if (otpFor !== "forgetPassword") {
+      throw new ApiError(400, "Invalid request");
    }
-
-   const user = await User.findOne({
-      $or: [{ username }, { email }],
-   });
-
+   const user = await User.findOne(identifierQuery(req.body));
    if (!user) {
-      throw new ApiError(404, "username or email not Registered!");
+      throw new ApiError(400, "Invalid code");
    }
-
-   const check = await verifyOTP(user._id, otpFor, otp);
-   if (!check) {
-      throw new ApiError(404, "Otp is not valid");
-   }
+   // only peeks: the code is consumed by resetPassword
+   await verifyOTP(user._id, otpFor, req.body?.otp, { consume: false });
 
    return res
       .status(200)
@@ -477,34 +464,21 @@ const checkOtp = asyncHandler(async (req, res) => {
 });
 
 const resetPassword = asyncHandler(async (req, res) => {
-   const { username, email, otp, password } = req.body;
-
-   if (!(username || email) && !otp && !password) {
-      throw new ApiError(400, "All fields are required!");
+   const password = str(req.body?.password, { max: 128, trim: false });
+   if (!password) {
+      throw new ApiError(400, "New password is required");
    }
-
-   const user = await User.findOne({
-      $or: [{ username }, { email }],
-   });
-
+   const user = await User.findOne(identifierQuery(req.body));
    if (!user) {
-      throw new ApiError(404, "username or email not Registered!");
+      throw new ApiError(400, "Invalid code");
    }
-
-   const otpcheck = await Verify.findOne({
-      userId: user._id,
-      otpFor: "forgetPassword",
-   });
-
-   if (!otpcheck) {
-      throw new ApiError(404, "OTP Not Requested");
-   }
-
-   if (otpcheck.otp != otp) {
-      throw new ApiError(403, "Invalid OTP");
-   }
+   await verifyOTP(user._id, "forgetPassword", req.body?.otp);
 
    user.password = password;
+   // a reset proves email ownership, and logs out every existing session
+   user.verified = true;
+   user.refreshToken = undefined;
+   user.tokensValidAfter = new Date();
    await user.save({ validateBeforeSave: true });
 
    return res
@@ -512,23 +486,27 @@ const resetPassword = asyncHandler(async (req, res) => {
       .json(new ApiResponse(200, {}, "Password Reset successfully"));
 });
 
-function generateOTP(length, digits) {
-   let OTP = "";
-   let len = digits.length;
-   for (let i = 0; i < length; i++) {
-      OTP += digits[Math.floor(Math.random() * len)];
-   }
-   return OTP;
-}
+// removes multer's temp file whatever happened during the upload
+const cleanupUpload = (req, res, next) => {
+   res.on("finish", () => {
+      const p = req.files?.avatar?.[0]?.path;
+      if (p) fs.unlink(p).catch(() => {});
+   });
+   next();
+};
 
 export {
    registerUser,
+   verifyEmail,
+   resendVerification,
    loginUser,
+   refreshAccessToken,
    logoutUser,
    currentUser,
    listUsers,
    changeAvatar,
    uploadAvatar,
+   cleanupUpload,
    editUserDetails,
    forgotPassword,
    checkOtp,

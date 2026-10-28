@@ -1,126 +1,81 @@
-import CryptoJS from "crypto-js";
-import base64 from "base64-js";
+import MD5 from "crypto-js/md5";
 
+// Session key shared with the socket server, and a separate key for the local
+// message cache. Both are AES-GCM keys derived the same way the server does.
 let rawKey;
 let rawKeyLocal;
 
-export const decryptDataAES = async (text, userdata) => {
-   try {
-      // Decode base64
-      const encryptedArray = base64.toByteArray(text);
-      // Extract IV and ciphertext
-      const iv = encryptedArray.slice(0, 12);
-      const ciphertext = encryptedArray.slice(12);
-
-      // Generate CryptoKey
-      if (userdata) {
-         await GetkeyAes(userdata);
-      }
-
-      // Decrypt
-      const plaintextBuffer = await crypto.subtle.decrypt(
-         { name: "AES-GCM", iv },
-         rawKey,
-         ciphertext
-      );
-
-      // Decode plaintext
-      const plaintext = new TextDecoder().decode(plaintextBuffer);
-      return plaintext;
-   } catch (error) {
-      console.error("Decryption failed:", error);
-      throw error;
+const toBase64 = (bytes) => {
+   let s = "";
+   for (let i = 0; i < bytes.length; i += 0x8000) {
+      s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
    }
+   return btoa(s);
 };
 
-export const encryptDataAES = async (plaintext, userdata) => {
-   // Generate CryptoKey
-   if (userdata) {
-      await GetkeyAes(userdata);
-   }
+const fromBase64 = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
 
-   const iv = crypto.getRandomValues(new Uint8Array(12));
-   const ciphertextBuffer = await crypto.subtle.encrypt(
-      { name: "AES-GCM", iv },
-      rawKey,
-      new TextEncoder().encode(plaintext)
-   );
-   const encryptedArray = new Uint8Array([
-      ...iv,
-      ...new Uint8Array(ciphertextBuffer),
+const deriveKey = async (material) => {
+   const hex = MD5(material).toString();
+   const bytes = new Uint8Array(hex.match(/.{2}/g).map((b) => parseInt(b, 16)));
+   return crypto.subtle.importKey("raw", bytes, { name: "AES-GCM" }, false, [
+      "encrypt",
+      "decrypt",
    ]);
-   return base64.fromByteArray(encryptedArray);
 };
 
 export const GetkeyAes = async (userdata, local) => {
-   let key;
+   const base = `${userdata._id}${userdata.email}${userdata.username}`;
    if (local) {
-      key = `${userdata._id}${userdata.email}${userdata.username}`;
+      rawKeyLocal = await deriveKey(base);
    } else {
-      key = `${userdata._id}${userdata.email}${userdata.username}${userdata.key}`;
-   }
-   const keyHash = CryptoJS.MD5(key).toString();
-   const k = new Uint8Array(
-      keyHash.match(/.{2}/g).map((byte) => parseInt(byte, 16))
-   );
-   const cryptoKey = await crypto.subtle.importKey(
-      "raw",
-      k,
-      { name: "AES-GCM" },
-      false,
-      ["encrypt", "decrypt"]
-   );
-   if (local) {
-      rawKeyLocal = cryptoKey
-   } else {
-      rawKey = cryptoKey;
+      rawKey = await deriveKey(`${base}${userdata.key}`);
    }
 };
 
-export const decryptDataAESLocal = async (text, userdata) => {
-   try {
-      // Decode base64
-      const encryptedArray = base64.toByteArray(text);
-      // Extract IV and ciphertext
-      const iv = encryptedArray.slice(0, 12);
-      const ciphertext = encryptedArray.slice(12);
-
-      // Generate CryptoKey
-      if (userdata) {
-         await GetkeyAes(userdata, true);
-      }
-
-      // Decrypt
-      const plaintextBuffer = await crypto.subtle.decrypt(
+const encrypt = async (key, plaintext) => {
+   const iv = crypto.getRandomValues(new Uint8Array(12));
+   const ct = new Uint8Array(
+      await crypto.subtle.encrypt(
          { name: "AES-GCM", iv },
-         rawKeyLocal,
-         ciphertext
-      );
+         key,
+         new TextEncoder().encode(plaintext)
+      )
+   );
+   const out = new Uint8Array(iv.length + ct.length);
+   out.set(iv);
+   out.set(ct, iv.length);
+   return toBase64(out);
+};
 
-      // Decode plaintext
-      const plaintext = new TextDecoder().decode(plaintextBuffer);
-      return plaintext;
-   } catch (error) {
-      console.error("Decryption failed:", error);
-      throw error;
-   }
+const decrypt = async (key, text) => {
+   const data = fromBase64(text);
+   const pt = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: data.slice(0, 12) },
+      key,
+      data.slice(12)
+   );
+   return new TextDecoder().decode(pt);
+};
+
+export const encryptDataAES = async (plaintext, userdata) => {
+   if (userdata) await GetkeyAes(userdata);
+   return encrypt(rawKey, plaintext);
+};
+
+export const decryptDataAES = async (text, userdata) => {
+   if (userdata) await GetkeyAes(userdata);
+   return decrypt(rawKey, text);
 };
 
 export const encryptDataAESLocal = async (plaintext, userdata) => {
-   // Generate CryptoKey
-   if (userdata) {
-      await GetkeyAes(userdata, true);
-   }
-
-   const iv = crypto.getRandomValues(new Uint8Array(12));
-   const ciphertextBuffer = await crypto.subtle.encrypt(
-      { name: "AES-GCM", iv },
-      rawKeyLocal,
-      new TextEncoder().encode(plaintext)
-   );
-   const encryptedArray = new Uint8Array([
-      ...iv,
-      ...new Uint8Array(ciphertextBuffer),
-   ]);
-   return base64.fromByteArray(encryptedArray);
+   if (userdata) await GetkeyAes(userdata, true);
+   return encrypt(rawKeyLocal, plaintext);
 };
+
+export const decryptDataAESLocal = async (text, userdata) => {
+   if (userdata) await GetkeyAes(userdata, true);
+   return decrypt(rawKeyLocal, text);
+};
+
+export const hasLocalKey = () => Boolean(rawKeyLocal);

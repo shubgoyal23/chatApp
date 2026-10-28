@@ -8,49 +8,25 @@ import {
    checkGroupUniqueness,
    CreateGroup,
    DeleteGroup,
+   LeaveGroup,
    RemoveAdmin,
    RemoveMembers,
 } from "../controllers/group.controller.js";
-import { ApiError } from "../utils/ApiError.js";
-import { ConnectRedis } from "../db/Redis.js";
 
 const router = Router();
 
-router.use(async (req, res, next) => {
-   await ConnectRedis().catch((err) =>
-      res.status(500).json({
-         success: false,
-         message: "Internal Server Error",
-      })
-   );
-   next();
-});
+router.use(verifyJWT);
 
-// router.route("/new").post(verifyJWT, newMessage);
-router.route("/new").post(verifyJWT, CreateGroup);
-router.route("/delete").post(verifyJWT, DeleteGroup);
-router.route("/add/member").post(verifyJWT, AddMembers);
-router.route("/add/admin").post(verifyJWT, AddAdmin);
-router.route("/remove/member").post(verifyJWT, RemoveMembers);
-router.route("/remove/admin").post(verifyJWT, RemoveAdmin);
+router.route("/new").post(CreateGroup);
+router.route("/delete").post(DeleteGroup);
+router.route("/leave").post(LeaveGroup);
+router.route("/add/member").post(AddMembers);
+router.route("/add/admin").post(AddAdmin);
+router.route("/remove/member").post(RemoveMembers);
+router.route("/remove/admin").post(RemoveAdmin);
 
-router.route("/description").post(verifyJWT, changeDescription);
-router.route("/name").post(verifyJWT, changeName);
-router.route("/check-group-name").post(verifyJWT, checkGroupUniqueness);
+router.route("/description").post(changeDescription);
+router.route("/name").post(changeName);
+router.route("/check-group-name").post(checkGroupUniqueness);
 
-router.use((err, req, res, next) => {
-   if (err instanceof ApiError) {
-      res.status(err.statusCode).json({
-         success: false,
-         message: err.message,
-         errors: err.errors,
-      });
-   } else {
-      console.error(err);
-      res.status(500).json({
-         success: false,
-         message: err.message,
-      });
-   }
-});
 export default router;

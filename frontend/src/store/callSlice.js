@@ -1,29 +1,26 @@
 import { createSlice } from "@reduxjs/toolkit";
 
+// Serializable call state; media streams live in lib/call.js.
+const initialState = {
+   status: "idle", // idle | outgoing | incoming | connecting | connected | ended
+   peer: null, // { _id, fullname, avatar }
+   media: "audio",
+   startedAt: null,
+   reason: null,
+};
+
 const callSlice = createSlice({
-   name: "video",
-   initialState: {
-      isInCall: false,
-      Data: null,
-   },
+   name: "call",
+   initialState,
    reducers: {
-      StartCall(state, action) {
-         state.isInCall = true;
-         state.Data = action.payload || null;
+      setCall(state, action) {
+         return { ...state, ...action.payload };
       },
-      EndCall(state) {
-         state.isInCall = false;
-         state.Data = null;
-      },
-      SetCallSettings(state, action) {
-         state.isInCall = true;
-         let to = action.payload.from;
-         action.payload.from = action.payload.to;
-         action.payload.to = to;
-         state.Data = action.payload;
+      resetCall() {
+         return initialState;
       },
    },
 });
 
-export const { StartCall, EndCall, SetCallSettings } = callSlice.actions;
+export const { setCall, resetCall } = callSlice.actions;
 export default callSlice.reducer;

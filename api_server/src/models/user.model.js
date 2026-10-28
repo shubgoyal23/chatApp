@@ -7,6 +7,8 @@ const UserSchema = new mongoose.Schema(
       fullname: {
          type: String,
          required: true,
+         trim: true,
+         maxlength: [50, "Full name can be at most 50 characters"],
       },
       username: {
          type: String,
@@ -54,8 +56,14 @@ const UserSchema = new mongoose.Schema(
          default: false,
       },
       avatar: String,
-      about: String,
+      about: {
+         type: String,
+         trim: true,
+         maxlength: [200, "About can be at most 200 characters"],
+      },
       refreshToken: String,
+      // access tokens issued before this instant are rejected (logout, password reset)
+      tokensValidAfter: Date,
       accountType: String,
    },
    {
@@ -63,7 +71,7 @@ const UserSchema = new mongoose.Schema(
    }
 );
 
-UserSchema.pre("save", async function (next) {
+UserSchema.pre("save", async function () {
    if (!this.isModified("password")) return;
 
    this.password = await bcrypt.hash(this.password, 10);
@@ -79,11 +87,12 @@ UserSchema.methods.generateAccessToken = function () {
          _id: this._id,
          email: this.email,
          username: this.username,
-         fullName: this.fullName,
+         fullName: this.fullname,
       },
       process.env.ACCESS_TOKEN_SECRET,
       {
-         expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
+         algorithm: "HS256",
+         expiresIn: process.env.ACCESS_TOKEN_EXPIRY || "1d",
       }
    );
 };
@@ -94,7 +103,8 @@ UserSchema.methods.generateRefreshToken = function () {
       },
       process.env.REFRESH_TOKEN_SECRET,
       {
-         expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
+         algorithm: "HS256",
+         expiresIn: process.env.REFRESH_TOKEN_EXPIRY || "10d",
       }
    );
 };

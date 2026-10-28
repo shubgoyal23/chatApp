@@ -2,16 +2,23 @@ package helpers
 
 import (
 	"chatapp/models"
-	"fmt"
+	"time"
+
+	"github.com/gorilla/websocket"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func CleaupOnShutDown() {
 	Logger.Info("cleaning up on shutdown")
 	AllConns.Range(func(key, value interface{}) bool {
-		if value.(*models.Conn).WS != nil {
-			value.(*models.Conn).WS.Close()
+		conn := value.(*models.Conn)
+		if conn.WS != nil {
+			// 1012 "service restart" lets clients reconnect to another instance right away
+			conn.WS.WriteControl(websocket.CloseMessage,
+				websocket.FormatCloseMessage(websocket.CloseServiceRestart, "server restarting"),
+				time.Now().Add(time.Second))
 		}
-		DelRedisKey(fmt.Sprintf("userVm:%s", value.(*models.Conn).UserInfo.ID.Hex()))
+		CloseConn(key.(primitive.ObjectID), conn)
 		return true
 	})
 	RemoveSetMember("VMsRunning", VmId)

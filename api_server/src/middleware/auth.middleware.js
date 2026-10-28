@@ -4,23 +4,33 @@ import jwt from "jsonwebtoken";
 import { User } from "../models/user.model.js";
 
 export const verifyJWT = asyncHandler(async (req, res, next) => {
-   try {
-      const token =
-         req.cookies?.accessToken ||
-         req.header("Authorization")?.replace("Bearer ", "");
-      if (!token) {
-         throw new ApiError(401, "not Authorised");
-      }
-      const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-      const user = await User.findById(decodedToken?._id).select(
-         "-password -refreshToken"
-      );
-      if (!user) {
-         throw new ApiError(401, "Invalid Access Token");
-      }
-      req.user = user;
-      next();
-   } catch (error) {
-      throw new ApiError(401, error?.message || "Invalid access token");
+   const token =
+      req.cookies?.accessToken ||
+      req.header("Authorization")?.replace("Bearer ", "");
+   if (!token) {
+      throw new ApiError(401, "Not authorised");
    }
+   let decodedToken;
+   try {
+      decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, {
+         algorithms: ["HS256"],
+      });
+   } catch {
+      throw new ApiError(401, "Session expired, please log in again");
+   }
+   const user = await User.findById(decodedToken?._id).select(
+      "-password -refreshToken"
+   );
+   if (!user) {
+      throw new ApiError(401, "Invalid access token");
+   }
+   // tokens issued before a password change or logout are no longer valid
+   if (
+      user.tokensValidAfter &&
+      decodedToken.iat * 1000 < user.tokensValidAfter.getTime() - 1000
+   ) {
+      throw new ApiError(401, "Session expired, please log in again");
+   }
+   req.user = user;
+   next();
 });

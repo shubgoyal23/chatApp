@@ -1,3 +1,5 @@
+import { escapeHtml } from "../escapeHtml.js";
+
 export default function forgotPasswordEmailTemplate(user) {
    return `<!DOCTYPE html>
         <html>
@@ -74,10 +76,10 @@ export default function forgotPasswordEmailTemplate(user) {
                 <a href="https://chat.stockimagesearch.online">Chatzz</a>
                 <div class="message">Forgot Your Password?</div>
                 <div class="body">
-                    <p>Dear ${user?.fullname}</p>
+                    <p>Dear ${escapeHtml(user?.fullname)}</p>
                     <p>We received a request to reset your password for your ProteinSlice account. We understand that forgetting passwords can happen to anyone, so no worries, we've got you covered!</p>
                     <p>To reset your password, Use OTP:</p>
-                    <div class="otp">${user.otp}</div>
+                    <div class="otp">${escapeHtml(user.otp)}</div>
                      
                     <p>This OTP is valid for 30 minutes. If you did not request this password reset, please ignore this email. Your account security is important to us, and we recommend keeping your password confidential and regularly updating it for added security.</p>
                 </div>

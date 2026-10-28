@@ -1,26 +1,29 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { closeWebSocket } from "../socket";
 
 const loginSlice = createSlice({
    name: "Login",
    initialState: {
+      // "checking" until the initial session probe finishes
+      status: "checking",
       isLoggedin: false,
       userdata: null,
    },
    reducers: {
       login(state, action) {
+         state.status = "ready";
          state.isLoggedin = true;
          state.userdata = action.payload;
-         localStorage.clear();
       },
-      logout(state, action) {
-         closeWebSocket()
+      updateUser(state, action) {
+         state.userdata = { ...state.userdata, ...action.payload };
+      },
+      logout(state) {
+         state.status = "ready";
          state.isLoggedin = false;
          state.userdata = null;
-         localStorage.clear();
       },
    },
 });
 
-export const { login, logout } = loginSlice.actions;
+export const { login, logout, updateUser } = loginSlice.actions;
 export default loginSlice.reducer;

@@ -1,7 +1,6 @@
 package helpers
 
 import (
-	"chatapp/models"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -160,16 +159,18 @@ func HandleStreamData(data []interface{}) error {
 		if len(data4) == 0 || data4 == nil {
 			continue
 		}
-		msg, _ := redis.String(data4[1], nil)
-		var m models.Message
-		if err := json.Unmarshal([]byte(msg), &m); err != nil {
-			Logger.Error("Error unmarshalling message:", zap.Error(err))
+		var raw string
+		for i := 0; i+1 < len(data4); i += 2 {
+			if field, _ := redis.String(data4[i], nil); field == "msg" {
+				raw, _ = redis.String(data4[i+1], nil)
+			}
+		}
+		var env streamEnvelope
+		if err := json.Unmarshal([]byte(raw), &env); err != nil || env.Recipient.IsZero() {
+			Logger.Error("Error unmarshalling stream message:", zap.Error(err))
 			continue
 		}
-		if f := SendMessagestoUser(m, m.To); !f {
-			Logger.Error("Error sending message to user:", zap.Error(fmt.Errorf("%v", f)))
-			continue
-		}
+		SendMessagestoUser(env.Message, env.Recipient)
 	}
 	// ack the messages
 	rc := RedigoConn.Get()
