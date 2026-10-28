@@ -48,9 +48,16 @@
 }
 
 html,
-body,
-#root {
+body {
    height: 100%;
+   overflow: hidden;
+}
+
+/* --app-height follows the visible area above an on-screen keyboard (set in
+   main.jsx), so the composer is never hidden behind it */
+#root {
+   height: var(--app-height, 100dvh);
+   overflow-y: auto;
 }
 
 body {
