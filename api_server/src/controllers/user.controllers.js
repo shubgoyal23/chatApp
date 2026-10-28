@@ -15,6 +15,7 @@ import { Verify } from "../models/verification.model.js";
 import { Group } from "../models/group.model.js";
 import jwt from "jsonwebtoken";
 import { testUsersEnabled, testUsersPassword } from "../utils/testUsers.js";
+import { canReceiveEmail, isUndeliverableEmail } from "../utils/emailPolicy.js";
 import {
    escapeRegex,
    identifierQuery,
@@ -141,6 +142,9 @@ const registerUser = asyncHandler(async (req, res) => {
    if (!fullname || !username || !email || !password) {
       throw new ApiError(400, "All fields are required");
    }
+   if (isUndeliverableEmail(email)) {
+      throw new ApiError(400, "Use a real email address — this one can't receive mail");
+   }
 
    const existing = await User.find({ $or: [{ username }, { email }] });
    for (const u of existing) {
@@ -202,7 +206,7 @@ const verifyEmail = asyncHandler(async (req, res) => {
 const resendVerification = asyncHandler(async (req, res) => {
    const user = await User.findOne(identifierQuery(req.body));
    // same answer either way, so this cannot be used to probe for accounts
-   if (user && !user.verified) {
+   if (user && !user.verified && canReceiveEmail(user)) {
       const otp = await issueOtp(user._id, "registration");
       await sendVerificationEmail(user, otp);
    }
@@ -225,6 +229,9 @@ const loginUser = asyncHandler(async (req, res) => {
    }
 
    if (!user.verified) {
+      if (!canReceiveEmail(user)) {
+         throw new ApiError(403, "This account's email can't receive mail, so it can't be verified");
+      }
       const otp = await issueOtp(user._id, "registration");
       await sendVerificationEmail(user, otp);
       throw new ApiError(
@@ -389,6 +396,10 @@ const editUserDetails = asyncHandler(async (req, res) => {
    if (username && username !== req.user.username) updates.username = username;
    if (email && email !== req.user.email) updates.email = email;
 
+   if (updates.email && isUndeliverableEmail(updates.email)) {
+      throw new ApiError(400, "Use a real email address — this one can't receive mail");
+   }
+
    if (Object.keys(updates).length === 0) {
       return res
          .status(200)
@@ -414,6 +425,14 @@ const editUserDetails = asyncHandler(async (req, res) => {
 });
 
 const editUserDetailsSendOtp = asyncHandler(async (req, res) => {
+   if (!canReceiveEmail(req.user)) {
+      throw new ApiError(
+         403,
+         req.user.isTestUser
+            ? "Test accounts can't receive email codes, so their username and email can't be changed"
+            : "Your email address can't receive mail"
+      );
+   }
    const otp = await issueOtp(req.user._id, "updateDetails");
    await sendVerificationEmail(req.user, otp, "Confirm your account changes");
    return res.status(200).json(new ApiResponse(200, {}, "OTP sent successfully"));
@@ -421,7 +440,8 @@ const editUserDetailsSendOtp = asyncHandler(async (req, res) => {
 
 const forgotPassword = asyncHandler(async (req, res) => {
    const user = await User.findOne(identifierQuery(req.body));
-   if (user) {
+   // same response either way; test accounts and reserved addresses get no mail
+   if (user && canReceiveEmail(user)) {
       const otp = await issueOtp(user._id, "forgetPassword");
       await sendEmail({
          priority: "transactional",
