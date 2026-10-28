@@ -1,6 +1,9 @@
 import { useMemo, useState } from "react";
-import { emoji as EMOJI } from "../../constance/EmojiList";
+import { emoji } from "../../constance/EmojiList";
 import Icon from "../ui/Icon";
+
+// the source list contains some empty categories; they'd render as blank tabs
+const EMOJI = emoji.filter((g) => g.list?.length);
 
 function EmojiPicker({ onPick }) {
    const [query, setQuery] = useState("");

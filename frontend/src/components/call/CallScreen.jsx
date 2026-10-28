@@ -24,12 +24,63 @@ function useElapsed(startedAt) {
    return s >= 3600 ? `${Math.floor(s / 3600)}:${mm}:${ss}` : `${mm}:${ss}`;
 }
 
-function Video({ stream, muted, className }) {
+function Video({ stream, muted, className, onAspect }) {
    const ref = useRef(null);
    useEffect(() => {
       if (ref.current && ref.current.srcObject !== stream) ref.current.srcObject = stream ?? null;
    }, [stream]);
-   return <video ref={ref} autoPlay playsInline muted={muted} className={className} />;
+   // "resize" fires whenever the incoming frame size changes, e.g. a phone rotating
+   const report = (e) => {
+      const { videoWidth: w, videoHeight: h } = e.currentTarget;
+      if (w && h) onAspect?.(w / h);
+   };
+   return (
+      <video
+         ref={ref}
+         autoPlay
+         playsInline
+         muted={muted}
+         onLoadedMetadata={onAspect && report}
+         onResize={onAspect && report}
+         className={className}
+      />
+   );
+}
+
+function useWindowAspect() {
+   const [aspect, setAspect] = useState(() => window.innerWidth / window.innerHeight);
+   useEffect(() => {
+      const onResize = () => setAspect(window.innerWidth / window.innerHeight);
+      window.addEventListener("resize", onResize);
+      return () => window.removeEventListener("resize", onResize);
+   }, []);
+   return aspect;
+}
+
+// Full-screen remote video. When the caller's camera and this screen have
+// different orientations (a portrait phone on a landscape desktop), cropping
+// to fill would zoom in heavily, so show the whole frame over a blurred copy.
+function RemoteVideo({ stream }) {
+   const [videoAspect, setVideoAspect] = useState(null);
+   const screenAspect = useWindowAspect();
+   const fit = videoAspect && videoAspect < 1 !== screenAspect < 1 ? "contain" : "cover";
+
+   return (
+      <>
+         {fit === "contain" && (
+            <Video
+               stream={stream}
+               muted
+               className="absolute inset-0 size-full object-cover scale-110 blur-2xl opacity-60"
+            />
+         )}
+         <Video
+            stream={stream}
+            onAspect={setVideoAspect}
+            className={`absolute inset-0 size-full ${fit === "contain" ? "object-contain" : "object-cover"}`}
+         />
+      </>
+   );
 }
 
 function Audio({ stream }) {
@@ -43,12 +94,13 @@ function Audio({ stream }) {
 // Draggable picture-in-picture for the local camera.
 function Pip({ stream, cameraOff }) {
    const [pos, setPos] = useState({ x: 16, y: 16 });
+   const [aspect, setAspect] = useState(3 / 4);
    const drag = useRef(null);
 
    return (
       <div
-         className="absolute z-20 w-28 sm:w-40 aspect-[3/4] rounded-2xl overflow-hidden shadow-2xl ring-2 ring-white/20 bg-slate-800 touch-none cursor-grab active:cursor-grabbing"
-         style={{ right: pos.x, top: pos.y }}
+         className={`absolute z-20 ${aspect >= 1 ? "w-36 sm:w-56" : "w-28 sm:w-40"} rounded-2xl overflow-hidden shadow-2xl ring-2 ring-white/20 bg-slate-800 touch-none cursor-grab active:cursor-grabbing`}
+         style={{ right: pos.x, top: pos.y, aspectRatio: aspect }}
          onPointerDown={(e) => {
             e.currentTarget.setPointerCapture(e.pointerId);
             drag.current = { sx: e.clientX, sy: e.clientY, ...pos };
@@ -66,7 +118,7 @@ function Pip({ stream, cameraOff }) {
          }}
          onPointerUp={() => (drag.current = null)}
       >
-         <Video stream={stream} muted className={`size-full object-cover -scale-x-100 ${cameraOff ? "hidden" : ""}`} />
+         <Video stream={stream} muted onAspect={setAspect} className={`size-full object-cover -scale-x-100 ${cameraOff ? "hidden" : ""}`} />
          {cameraOff && (
             <div className="size-full flex items-center justify-center text-white/60">
                <Icon name="videocam_off" size={30} />
@@ -118,7 +170,7 @@ function ActiveCall() {
       <div className="fixed inset-0 z-50 bg-slate-950 text-white overflow-hidden animate-fade-in">
          {/* background */}
          {remoteHasVideo ? (
-            <Video stream={streams.remote} className="absolute inset-0 size-full object-cover" />
+            <RemoteVideo stream={streams.remote} />
          ) : showLocalFull ? (
             <Video stream={streams.local} muted className="absolute inset-0 size-full object-cover -scale-x-100 opacity-40 blur-sm" />
          ) : (
