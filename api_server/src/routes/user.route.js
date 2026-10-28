@@ -2,6 +2,7 @@ import { Router } from "express";
 import { rateLimit } from "express-rate-limit";
 
 import {
+   listTestUsers,
    registerUser,
    verifyEmail,
    resendVerification,
@@ -42,6 +43,7 @@ const authLimiter = limiter(20);
 // these send emails, so keep them tight
 const emailLimiter = limiter(5);
 
+router.route("/test-users").get(limiter(60), listTestUsers);
 router.route("/register").post(emailLimiter, registerUser);
 router.route("/verify-email").post(authLimiter, verifyEmail);
 router.route("/resend-verification").post(emailLimiter, resendVerification);

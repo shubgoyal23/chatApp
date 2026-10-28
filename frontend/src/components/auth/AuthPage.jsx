@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { api } from "../../lib/api";
 import Logo from "../ui/Logo";
 import Icon from "../ui/Icon";
 import Login from "./Login";
@@ -17,6 +18,19 @@ function AuthPage() {
    // login | register | verify | forgot
    const [view, setView] = useState("login");
    const [pending, setPending] = useState(null);
+   // { users, password } when the server has test users enabled
+   const [testAccounts, setTestAccounts] = useState(null);
+
+   useEffect(() => {
+      api("/users/test-users", { auth: false })
+         .then((data) => setTestAccounts(data?.users?.length ? data : null))
+         .catch(() => setTestAccounts(null));
+   }, []);
+
+   const tabs = [
+      ["login", "Sign in"],
+      ["register", "Create account"],
+   ];
 
    const needVerification = (account) => {
       setPending(account);
@@ -78,9 +92,12 @@ function AuthPage() {
                   <span className="text-2xl font-extrabold tracking-tight text-fg">Chatzz</span>
                </div>
 
-               {(view === "login" || view === "register") && (
-                  <div className="grid grid-cols-2 p-1 mb-8 rounded-2xl bg-surface-2 border border-line">
-                     {["login", "register"].map((v) => (
+               {tabs.some(([v]) => v === view) && (
+                  <div
+                     className="grid p-1 mb-8 rounded-2xl bg-surface-2 border border-line"
+                     style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}
+                  >
+                     {tabs.map(([v, label]) => (
                         <button
                            key={v}
                            onClick={() => setView(v)}
@@ -88,14 +105,18 @@ function AuthPage() {
                               view === v ? "bg-surface text-fg shadow-sm" : "text-muted hover:text-fg"
                            }`}
                         >
-                           {v === "login" ? "Sign in" : "Create account"}
+                           {label}
                         </button>
                      ))}
                   </div>
                )}
 
                {view === "login" && (
-                  <Login onForgot={() => setView("forgot")} onNeedVerification={needVerification} />
+                  <Login
+                     onForgot={() => setView("forgot")}
+                     onNeedVerification={needVerification}
+                     testAccounts={testAccounts}
+                  />
                )}
                {view === "register" && <Register onRegistered={needVerification} />}
                {view === "verify" && <VerifyEmail account={pending} onBack={() => setView("login")} />}

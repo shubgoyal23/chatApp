@@ -62,6 +62,8 @@ const UserSchema = new mongoose.Schema(
          maxlength: [200, "About can be at most 200 characters"],
       },
       refreshToken: String,
+      // accounts created by utils/testUsers.js, listed on the login page
+      isTestUser: { type: Boolean, default: false, index: true },
       // access tokens issued before this instant are rejected (logout, password reset)
       tokensValidAfter: Date,
       accountType: String,

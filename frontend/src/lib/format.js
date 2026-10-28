@@ -47,6 +47,7 @@ export const dayKey = (epoch) => startOfDay(fromEpoch(epoch)).getTime();
 
 export const initials = (name = "") =>
    name
+      .replace(/[^\p{L}\p{N}\s]/gu, "")
       .trim()
       .split(/\s+/)
       .slice(0, 2)

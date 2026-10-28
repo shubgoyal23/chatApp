@@ -14,6 +14,7 @@ import VerificationEmailTemplate from "../utils/EmailTemplate/verifyAccount.js";
 import { Verify } from "../models/verification.model.js";
 import { Group } from "../models/group.model.js";
 import jwt from "jsonwebtoken";
+import { testUsersEnabled, testUsersPassword } from "../utils/testUsers.js";
 import {
    escapeRegex,
    identifierQuery,
@@ -486,6 +487,20 @@ const resetPassword = asyncHandler(async (req, res) => {
       .json(new ApiResponse(200, {}, "Password Reset successfully"));
 });
 
+// Lists the test accounts and their password for the login page (404 when disabled).
+const listTestUsers = asyncHandler(async (req, res) => {
+   if (!testUsersEnabled()) {
+      throw new ApiError(404, "Not found");
+   }
+   const users = await User.find({ isTestUser: true })
+      .sort({ createdAt: 1 })
+      .limit(10)
+      .select("username fullname avatar");
+   return res
+      .status(200)
+      .json(new ApiResponse(200, { users, password: testUsersPassword() }, "Test users"));
+});
+
 // removes multer's temp file whatever happened during the upload
 const cleanupUpload = (req, res, next) => {
    res.on("finish", () => {
@@ -496,6 +511,7 @@ const cleanupUpload = (req, res, next) => {
 };
 
 export {
+   listTestUsers,
    registerUser,
    verifyEmail,
    resendVerification,
